@@ -58,16 +58,25 @@ object ColorRamp extends GeoCrunch {
     val styles = CommonFactoryFinder.getStyleFactory(null)
     val filters = CommonFactoryFinder.getFilterFactory(null)
 
-    def rule(range: (Double, Double)): Rule = {
+    def rule(x: ((Double, Double), Int)): Rule = {
+      val range = x._1
+      val index = x._2
+
       val rule = styles.createRule
       rule.setFilter(filters.between(
         filters.property(property),
         filters.literal(range._1),
         filters.literal(range._2)
       ))
+      val color = java.awt.Color.getHSBColor(index/10.0f, 0.5f, 0.5f)
+      val colorExpr = filters.literal("#%2x%2x%2x".format(
+          color.getRed,
+          color.getGreen,
+          color.getBlue
+      ))
       rule.symbolizers.add(styles.createPolygonSymbolizer(
         styles.getDefaultStroke,
-        styles.getDefaultFill,
+        styles.createFill(colorExpr),
         null
       ))
       return rule
@@ -75,7 +84,8 @@ object ColorRamp extends GeoCrunch {
 
     val style = styles.createStyle
     val ramp = ranges(s.getFeatures, "PERSONS")
-    val ftStyle = styles.createFeatureTypeStyle(ramp.map(rule).toArray)
+    val ftStyle = 
+      styles.createFeatureTypeStyle(ramp.zipWithIndex.map(rule).toArray)
     style.featureTypeStyles.add(ftStyle)
 
     return style
