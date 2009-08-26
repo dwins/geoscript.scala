@@ -1,25 +1,14 @@
 package dwins.geoscala
 
-import scala.collection.jcl.HashMap
-import scala.collection.jcl.MutableIterator
-
 import java.io.File
-import java.io.FileNotFoundException
 import java.io.Serializable
 
-import javax.swing.JFileChooser
-import javax.swing.filechooser.FileFilter
-
-import org.geotools.data.DataStore
-import org.geotools.data.DataStoreFinder
 import org.geotools.data.FeatureSource
-import org.geotools.factory.GeoTools
 import org.geotools.factory.CommonFactoryFinder
+import org.geotools.factory.GeoTools
 import org.geotools.feature.FeatureCollection
-import org.geotools.feature.FeatureIterator
 import org.geotools.styling.SLDTransformer
 import org.geotools.styling.Style
-import org.geotools.styling.Rule
 
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.feature.simple.SimpleFeatureType
@@ -58,7 +47,7 @@ object ColorRamp extends GeoCrunch {
     val styles = CommonFactoryFinder.getStyleFactory(null)
     val filters = CommonFactoryFinder.getFilterFactory(null)
 
-    def rule(x: ((Double, Double), Int)): Rule = {
+    def rule(x: ((Double, Double), Int)): org.geotools.styling.Rule = {
       val range = x._1
       val index = x._2
 
