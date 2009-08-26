@@ -6,7 +6,6 @@ import scala.collection.jcl.MutableIterator
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.Serializable
-import java.util.Map
 
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileFilter
@@ -25,10 +24,33 @@ import org.geotools.styling.Rule
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.feature.simple.SimpleFeatureType
 
-object ColorRamp {
+object ColorRamp extends GeoCrunch {
 
   def pairwise[A](s: List[A]): List[(A,A)] = {
     s zip (s drop 1)
+  }
+
+  def ranges(col: FeatureCollection[SimpleFeatureType, SimpleFeature], 
+    p: String) : List[(Double, Double)] = {
+    // Use the value for the first feature as the starting value 
+    // for both max and min
+    val it = col.features
+
+    var min = it.next.getAttribute(p).asInstanceOf[Double]
+    var max = min
+
+    try {
+      while (it.hasNext) {
+        val current = it.next.getAttribute(p).asInstanceOf[Double]
+        min = min.min(current)
+        max = max.max(current)
+      }
+    } finally { 
+      if (it!= null) col.close(it)
+    }
+
+    // create 10 pairs representing ranges between min and max, linearly spaced
+    pairwise((0 to 10).toList.map(min + (max - min) * (_)))
   }
 
   def colorRamp(s: FeatureSource[SimpleFeatureType,SimpleFeature],
@@ -59,90 +81,35 @@ object ColorRamp {
     return style
   }
 
-  def ranges(col: FeatureCollection[SimpleFeatureType, SimpleFeature], 
-    p: String) : List[(Double, Double)] = {
-    // Use the value for the first feature as the starting value 
-    // for both max and min
-    val it = col.features
-
-    var min = it.next.getAttribute(p).asInstanceOf[Double]
-    var max = min
-
-    try {
-      while (it.hasNext) {
-        val current = it.next.getAttribute(p).asInstanceOf[Double]
-        min = min.min(current)
-        max = max.max(current)
-      }
-    } finally { 
-      if (it!= null) col.close(it)
-    }
-
-    // create 10 pairs representing ranges between min and max, linearly spaced
-    pairwise((0 to 10).toList.map(min + (max - min) * (_)))
-  }
-
-  @throws(classOf[Exception])
   def main(args: Array[String]) = {
     println("Welcome to GeoTools:" + GeoTools.getVersion());
 
-    val file = promptShapeFile(args);
-    try {
-      // Connection parameters
-      val connectParameters = new HashMap[String, Serializable]() +
-        ("url" -> file.toURI.toURL) +
-        ("create spatial index" -> true)
-
-      val dataStore = DataStoreFinder.getDataStore(connectParameters.underlying)
-
-      // we are now connected
-      val typeNames = dataStore.getTypeNames()
-      val typeName = typeNames.elements.next
-
-      println("Reading content " + typeName);
-
-      val featureSource = dataStore.getFeatureSource(typeName)
-
-      val xformer = new SLDTransformer
-      xformer.setIndentation(2)
-      xformer.transform(colorRamp(featureSource, "PERSONS"), System.out)
-    } catch {
-      case ex => {
-        ex.printStackTrace();
-        System.exit(1);
-      }
-    }
-    System.exit(0);
-  }
-
-  private def promptShapeFile(args: Array[String]): File = {
-    val file = 
-      if (args.length == 0) {
-        val chooser = new JFileChooser();
-        chooser.setDialogTitle("Open Shapefile for Reprojection");
-
-        object filter extends FileFilter {
-          def accept(f: File): Boolean = {
-            f.isDirectory || f.getPath.toLowerCase.endsWith("shp")
-          }
-
-          def getDescription(): String = "ShapeFiles"
+    val file = promptOpenFile(new javax.swing.filechooser.FileFilter() {
+        def accept(f: File): Boolean = {
+          f.isDirectory || f.getPath.toLowerCase.endsWith("shp")
         }
 
-        chooser.setFileFilter(filter)
+        def getDescription(): String = "ShapeFiles"
+    })
 
-        if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
-          System.exit(0)
-        }
+    // Connection parameters
+    val connectParameters: Map[String, Serializable] = Map(
+      "url" -> file.toURI.toURL,
+      "create spatial index" -> true
+    )
 
-        println("You chose to open this file: " + chooser.getSelectedFile.getName);
-        chooser.getSelectedFile
-      } else {
-        new File(args(0));
-      }
-    if (!file.exists) {
-      throw new FileNotFoundException(file.getAbsolutePath);
-    }
-    return file
+    val dataStore = connect(connectParameters)
+
+    // we are now connected
+    val typeNames = dataStore.getTypeNames()
+    val typeName = typeNames.elements.next
+
+    println("Reading content " + typeName);
+
+    val featureSource = dataStore.getFeatureSource(typeName)
+
+    val xformer = new SLDTransformer
+    xformer.setIndentation(2)
+    xformer.transform(colorRamp(featureSource, "PERSONS"), System.out)
   }
 }
