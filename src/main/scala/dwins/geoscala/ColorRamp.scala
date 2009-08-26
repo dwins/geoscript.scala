@@ -109,7 +109,19 @@ object ColorRamp extends GeoCrunch {
     val featureSource = dataStore.getFeatureSource(typeName)
 
     val xformer = new SLDTransformer
+    val sld = promptSaveFile(new javax.swing.filechooser.FileFilter() {
+        def accept(f: File): Boolean = {
+          f.isDirectory || 
+          f.getPath.toLowerCase.endsWith("sld") ||
+          f.getPath.toLowerCase.endsWith("xml")
+        }
+
+        def getDescription(): String = "SLD (Styled Layer Descriptor)"
+    })
+
+    val sldStream = new java.io.FileOutputStream(sld)
+
     xformer.setIndentation(2)
-    xformer.transform(colorRamp(featureSource, "PERSONS"), System.out)
+    xformer.transform(colorRamp(featureSource, "PERSONS"), sldStream)
   }
 }
