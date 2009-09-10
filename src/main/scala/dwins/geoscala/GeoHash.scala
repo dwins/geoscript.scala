@@ -49,14 +49,10 @@ trait GeoHash {
     
     def dehashBits(bits: Stream[Boolean], min: Double, max: Double): Double = {
       val mid = (min + max) / 2
-      if (bits.isEmpty) {
-        max
-      } else {
-        if (bits.head) {
-          dehashBits(bits.tail, mid, max)
-        } else {
-          dehashBits(bits.tail, min, mid)
-        }
+      bits.headOption match {
+        case None => max
+        case Some(true) => dehashBits(bits.tail, mid, max)
+        case Some(false) => dehashBits(bits.tail, min, mid)
       }
     }
 
