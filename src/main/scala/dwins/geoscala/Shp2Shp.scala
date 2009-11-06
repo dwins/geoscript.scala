@@ -27,7 +27,7 @@ import org.opengis.feature.simple.SimpleFeature
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
-object Shp2Shp {
+object Shp2Shp extends GeoCrunch {
   def main(args: Array[String]) = {
     println("Welcome to GeoTools:" + GeoTools.getVersion())
 
@@ -143,36 +143,6 @@ object Shp2Shp {
       }
 
       return CRS.decode("EPSG:" + selected);
-  }
-
-  @throws(classOf[FileNotFoundException])
-  private def promptShapeFile(args: Array[String]): File = {
-    val file =
-      if (args.length == 0) {
-        val chooser = new JFileChooser()
-        chooser.setDialogTitle("Open Shapefile for Reprojection")
-        object filter extends FileFilter {
-          def accept(f: File) = {
-            f.isDirectory || f.getPath.toLowerCase.endsWith("shp")
-          }
-          def getDescription = "Shapefiles"
-        }
-
-        if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
-          System.exit(0)
-        }
-
-        println("You chose to open this file: " + chooser.getSelectedFile.getName());
-        chooser.getSelectedFile
-      } else {
-        new File(args(0))
-      }
-
-    if (!file.exists) {
-      throw new FileNotFoundException(file.getAbsolutePath())
-    }
-
-    return file;
   }
 }
 
