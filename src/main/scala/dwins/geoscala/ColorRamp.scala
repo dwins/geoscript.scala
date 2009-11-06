@@ -14,32 +14,28 @@ import org.opengis.feature.simple.SimpleFeature
 import org.opengis.feature.simple.SimpleFeatureType
 
 object ColorRamp extends GeoCrunch {
-
-  def pairwise[A](s: List[A]): List[(A,A)] = {
-    s zip (s drop 1)
-  }
+  def pairwise[A](s: List[A]): List[(A,A)] = s zip (s drop 1)
 
   def ranges(col: FeatureCollection[SimpleFeatureType, SimpleFeature], 
     p: String) : List[(Double, Double)] = {
     // Use the value for the first feature as the starting value 
     // for both max and min
-    val it = col.features
 
-    var min = it.next.getAttribute(p).asInstanceOf[Double]
-    var max = min
+    var min = Math.NEG_INF_DOUBLE
+    var max = Math.POS_INF_DOUBLE
 
-    try {
-      while (it.hasNext) {
-        val current = it.next.getAttribute(p).asInstanceOf[Double]
-        min = min.min(current)
-        max = max.max(current)
-      }
-    } finally { 
-      if (it!= null) col.close(it)
+    foreach (col) { f => 
+      val current = f.getAttribute(p).asInstanceOf[Double]
+      min = Math.min(min, current)
+      max = Math.max(max, current)
     }
 
+    // find a position on the ramp by taking a weighted 
+    // average of the max and min values.
+    def ramp(weight: Double) = min + (max - min) * weight
+
     // create 10 pairs representing ranges between min and max, linearly spaced
-    pairwise((0 to 10).toList.map(min + (max - min) * (_) / 10.0d))
+    pairwise((0 to 10).toList.map(x => ramp(x / 10d)))
   }
 
   def colorRamp(s: FeatureSource[SimpleFeatureType,SimpleFeature],
@@ -59,10 +55,10 @@ object ColorRamp extends GeoCrunch {
       ))
       val color = java.awt.Color.getHSBColor(index/10.0f, 0.5f, 0.75f)
       val colorExpr = filters.literal("#%2x%2x%2x".format(
-          color.getRed,
-          color.getGreen,
-          color.getBlue
-      ))
+        color.getRed,
+        color.getGreen,
+        color.getBlue)
+      )
       rule.symbolizers.add(styles.createPolygonSymbolizer(
         styles.getDefaultStroke,
         styles.createFill(colorExpr),

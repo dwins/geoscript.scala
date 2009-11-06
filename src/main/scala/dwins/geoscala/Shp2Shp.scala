@@ -31,7 +31,7 @@ object Shp2Shp extends GeoCrunch {
   def main(args: Array[String]) = {
     println("Welcome to GeoTools:" + GeoTools.getVersion())
 
-    val file = promptShapeFile(args)
+    val file = promptShapeFile
 
     val connect = new HashMap[String, Object]() + 
       ("url" -> file.toURI.toURL)
