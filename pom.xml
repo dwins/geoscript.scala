@@ -13,12 +13,14 @@
       <url>http://scala-tools.org/repo-releases</url>
     </repository>
     <repository>
-      <id>opengeo</id>
-      <name>OpenGeo Maven Repository</name>
-      <url>http://repo.opengeo.org/</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
+      <id>osgeo</id>
+      <name>OSGeo Maven Repository</name>
+      <url>http://download.osgeo.org/webdav/geotools/</url>
+    </repository>
+    <repository>
+      <id>java.net</id>
+      <name>Java.net Maven Repository</name>
+      <url>http://download.java.net/maven/2/</url>
     </repository>
   </repositories>
   <pluginRepositories>
@@ -28,23 +30,28 @@
       <url>http://scala-tools.org/repo-releases</url>
     </pluginRepository>
   </pluginRepositories>
+  <properties>
+    <geotools.version>2.6.0</geotools.version>
+    <maven.test.search.classdir>true</maven.test.search.classdir>
+    <scala.version>2.7.7</scala.version>
+  </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
-      <version>2.7.2</version>
+      <version>${scala.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-compiler</artifactId>
-      <version>2.7.2</version>
+      <version>${scala.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.scala-tools.testing</groupId>
+      <groupId>org.scalatest</groupId>
       <artifactId>scalatest</artifactId>
-      <version>0.9.5</version>
+      <version>1.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -56,27 +63,29 @@
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-main</artifactId>
-      <version>2.6-SNAPSHOT</version>
+      <version>${geotools.version}</version>
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-epsg-hsql</artifactId>
-      <version>2.6-SNAPSHOT</version>
+      <version>${geotools.version}</version>
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-jdbc</artifactId>
-      <version>2.6-SNAPSHOT</version>
+      <version>${geotools.version}</version>
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-shapefile</artifactId>
-      <version>2.6-SNAPSHOT</version>
+      <version>${geotools.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.geotools</groupId>
+      <artifactId>gt-directory</artifactId>
+      <version>${geotools.version}</version>
     </dependency>
   </dependencies>
-  <properties>
-    <maven.test.search.classdir>true</maven.test.search.classdir>
-  </properties>
   <build>
     <plugins>
       <plugin>
