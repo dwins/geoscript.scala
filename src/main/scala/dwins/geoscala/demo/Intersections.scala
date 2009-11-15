@@ -10,7 +10,7 @@ import org.geotools.feature.{DefaultFeatureCollection, NameImpl}
 import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
-object Intersections extends GeoCrunch {
+object Intersections extends GeoCrunch with SchemaHelpers{
   def process(store: DataStore, dest: FeatureStore[SimpleFeatureType,SimpleFeature]) = {
     val typename = store.getTypeNames()(0)
     println("Processing " + typename)
@@ -45,24 +45,13 @@ object Intersections extends GeoCrunch {
   }
 
   def rewrite(ft: SimpleFeatureType) = {
-    val builder = new SimpleFeatureTypeBuilder
+    val name = ft.getName.getLocalPart + "_intersect"
     val geom = ft.getGeometryDescriptor
-    val atts = ft.getAttributeDescriptors.iterator
-    while (atts.hasNext) {
-      val att = atts.next
-      if (att eq geom) {
-        builder.add(
-          att.getName.getLocalPart,
-          classOf[Point],
-          geom.getCoordinateReferenceSystem
-        )
-      // } else {
-      //   builder.add(att)
-      }
-    }
 
-    builder.setName(new NameImpl(ft.getName.getLocalPart + "_intersect"))
-    builder.buildFeatureType
+    buildFeatureType(
+      name,
+      (geom.getName.getLocalPart, classOf[Point], geom.getCoordinateReferenceSystem)
+    )
   }
 
   def main(args: Array[String]) = {
