@@ -1,1 +1,4 @@
 target
+project/boot
+lib_managed/
+tags
