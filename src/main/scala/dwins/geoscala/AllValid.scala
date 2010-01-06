@@ -17,7 +17,7 @@ object AllValid extends GeoCrunch {
 
     foreach (featureSource.getFeatures) { feature => 
       if (!feature.getDefaultGeometry.asInstanceOf[Geometry].isValid) 
-        invalid += feature
+        invalid ::= feature
     }
     
     println("Found %1$s invalid features.  That's %1$s too many.".format(invalid.length))
