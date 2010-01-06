@@ -27,7 +27,7 @@ import org.opengis.feature.simple.SimpleFeature
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
-object Shp2Shp extends GeoCrunch {
+object Shp2Shp extends org.geoscala.feature.GeoCrunch {
   def main(args: Array[String]) = {
     println("Welcome to GeoTools:" + GeoTools.getVersion())
 

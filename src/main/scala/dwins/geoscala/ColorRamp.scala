@@ -13,7 +13,7 @@ import org.geotools.styling.Style
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.feature.simple.SimpleFeatureType
 
-object ColorRamp extends GeoCrunch {
+object ColorRamp extends org.geoscala.feature.GeoCrunch {
   def pairwise[A](s: List[A]): List[(A,A)] = s zip (s drop 1)
 
   def ranges(col: FeatureCollection[SimpleFeatureType, SimpleFeature], 

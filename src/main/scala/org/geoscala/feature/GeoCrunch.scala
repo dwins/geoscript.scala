@@ -1,4 +1,4 @@
-package dwins.geoscala
+package org.geoscala.feature
 
 import java.io.Serializable
 import java.io.{File, FileNotFoundException}

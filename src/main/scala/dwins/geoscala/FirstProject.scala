@@ -22,7 +22,7 @@ import org.opengis.feature.simple.SimpleFeatureType
 
 import com.vividsolutions.jts.geom.Geometry
 
-object FirstProject extends GeoCrunch {
+object FirstProject extends org.geoscala.feature.GeoCrunch {
   def main(args: Array[String]) = {
     println("Welcome to GeoTools:" + GeoTools.getVersion)
 

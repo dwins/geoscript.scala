@@ -1,4 +1,4 @@
-package dwins.geocrunch
+package org.geoscala
 
 trait GeoHash {
   private val characters = "0123456789bcdefghjkmnpqrstuvwxyz"

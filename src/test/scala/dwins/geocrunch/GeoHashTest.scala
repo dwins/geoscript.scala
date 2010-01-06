@@ -1,21 +1,20 @@
-package dwins.geocrunch
+package org.geoscala
 
+import org.scalatest._
 import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.junit.JUnit3Suite
 
-class GeoHashTest extends JUnit3Suite with GeoHash with ShouldMatchers{
+class GeoHashTest extends FlatSpec with GeoHash with ShouldMatchers{
   val cases = Map(
     (57.64911, 10.40744, 11) -> "u4pruydqqvj"
   )
 
-  def testHash() {
-    val invertedCases = Map() incl (cases.map(x => {
+  "hash" should "be reversible" in {
+    val invertedCases = Map() ++ (cases.map(x => {
         (x._2, x._1)
-    }))
+      }))
 
-    cases.keys.foreach( x => {
-        assert(geohash(x._1, x._2, x._3) == cases(x))
-      }
+    cases.keys.foreach( x => 
+      geohash(x._1, x._2, x._3) should be (cases(x))
     )
 
     invertedCases.keys.foreach(x => {

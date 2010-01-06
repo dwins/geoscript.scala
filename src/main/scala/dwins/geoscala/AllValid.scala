@@ -5,7 +5,7 @@ import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.DataStoreFinder
 import org.opengis.feature.simple.SimpleFeature
 
-object AllValid extends GeoCrunch {
+object AllValid extends org.geoscala.feature.GeoCrunch {
   def main(args: Array[String]) = {
     val file = promptShapeFile
     val params = (new HashMap + ("url" -> file.toURI.toURL)).underlying

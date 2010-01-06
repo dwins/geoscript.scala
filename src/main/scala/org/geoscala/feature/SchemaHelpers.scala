@@ -1,4 +1,4 @@
-package dwins.geoscala
+package org.geoscala.feature
 
 import com.vividsolutions.jts.geom.Geometry
 import org.opengis.feature.`type`.{Name,AttributeDescriptor}

@@ -5,7 +5,7 @@ import java.net.URL
 import java.util.HashMap
 import org.geotools.data.DataStoreFinder
 
-object Identify extends GeoCrunch {
+object Identify extends org.geoscala.feature.GeoCrunch {
   implicit def iterator[T](i: java.util.Iterator[T]): Iterator[T] = 
     new Iterator[T] {
       def next = i.next
