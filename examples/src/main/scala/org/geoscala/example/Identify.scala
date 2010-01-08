@@ -1,4 +1,4 @@
-package dwins.geoscala
+package org.geoscala.example
 
 import java.io.File
 import java.net.URL

@@ -1,4 +1,4 @@
-package dwins.kmlrip
+package org.geoscala.example.kmlrip
 
 import java.net.URL
 

@@ -1,4 +1,4 @@
-package dwins.kmlrip
+package org.geoscala.example.kmlrip
 
 class Logger {
   val conn = {

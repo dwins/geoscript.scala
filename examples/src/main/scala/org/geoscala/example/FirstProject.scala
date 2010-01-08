@@ -1,4 +1,4 @@
-package dwins.geoscala
+package org.geoscala.example
 
 import scala.collection.jcl.HashMap
 import scala.collection.jcl.MutableIterator
