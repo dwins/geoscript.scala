@@ -2,7 +2,7 @@ import sbt._
 
 class GeoScalaProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val library = 
-    project("geoscala", "GeoScala support library", new GeoScalaLibrary(_))
+    project("geoscala", "GeoScala Library", new GeoScalaLibrary(_))
   lazy val examples = project("examples", "GeoScala Example Programs", library)
 
   class GeoScalaLibrary(info: ProjectInfo) extends DefaultProject(info) {
