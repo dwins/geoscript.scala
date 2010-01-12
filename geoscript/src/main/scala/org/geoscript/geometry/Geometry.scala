@@ -1,57 +1,51 @@
 package org.geoscript.geometry
 
 import com.vividsolutions.jts.{geom=>jts}
+import org.opengis.referencing.crs.CoordinateReferenceSystem
 
 private object ModuleInternals {
   val factory = new jts.GeometryFactory()
 }
 
-import ModuleInternals.factory._
+object EndCap {
+  import com.vividsolutions.jts.operation.buffer.BufferOp._
 
-object Point {
-  def apply(x: Double, y: Double, z: Double): jts.Point =
-    createPoint(new jts.Coordinate(x, y, z))
-
-  def apply(x: Double, y: Double): jts.Point = 
-    createPoint(new jts.Coordinate(x, y))
-}
-
-object LineString {
-  def apply(vertices: jts.Coordinate*): jts.LineString =
-    createLineString(vertices.toArray)
-
-  def apply(vertices: jts.CoordinateSequence): jts.LineString =
-    createLineString(vertices)
-}
-
-object GeometryImplicits {
-  implicit def enrich(p: jts.Point): RichPoint = new RichPoint(p)
+  sealed abstract class Style { val intValue: Int }
+  case object Butt extends Style { val intValue = CAP_BUTT }
+  case object Round extends Style { val intValue = CAP_ROUND }
+  case object Square extends Style { val intValue = CAP_SQUARE }
 }
 
 class RichGeometry(geom: jts.Geometry) {
-  def writeAs(enc: Encoder): String = enc.encode(geom)
-  def & (g: jts.Geometry): Boolean = geom intersects g
-  def && (g: jts.Geometry): jts.Geometry = geom intersection g
-  def || (g: jts.Geometry): jts.Geometry = geom union g
-  def simplify(threshold: Double): jts.Geometry = {
-    com.vividsolutions.jts.simplify
-      .TopologyPreservingSimplifier.simplify(geom, threshold)
+  def area: Double = geom.getArea()
+  def bounds: jts.Envelope = geom.getEnvelope().asInstanceOf[jts.Envelope]
+  def centroid: jts.Point = geom.getCentroid()
+  def coordinates: Seq[jts.Coordinate] = geom.getCoordinates()
+  def length: Double = geom.getLength()
+
+  def json: String = "" // TODO: Real JSON encoding
+  def wkt: String = geom.toString()
+  def projection: CoordinateReferenceSystem = null // TODO: Real CRS tracking
+  
+  def buffer(dist: Double): jts.Geometry =
+    buffer(dist, 8, EndCap.Round)
+
+  def buffer(dist: Double, segs: Int): jts.Geometry = 
+    buffer(dist, segs, EndCap.Round) 
+
+  def buffer(dist: Double, segs: Int, mode: EndCap.Style): jts.Geometry = 
+    geom.buffer(dist, segs, mode.intValue)
+
+  override def clone(): jts.Geometry = geom.clone().asInstanceOf[jts.Geometry]
+
+  def transform(dest: CoordinateReferenceSystem): jts.Geometry = {
+    // TODO: Provide an implicit in the projection package that gives this
+    // signature, but actually looks up the MathTransform and performs the
+    // transformation
+    implicit def x(c: CoordinateReferenceSystem) = new {
+      def to (d: CoordinateReferenceSystem)(g: jts.Geometry) = g
+    }
+    (projection to dest)(geom)
   }
-}
+} 
 
-class RichPoint(p: jts.Point) extends RichGeometry(p) {
-  override def && (g: jts.Geometry): jts.Point = (p intersection g).asInstanceOf[jts.Point]
-  override def || (g: jts.Geometry): jts.Point = (p union g).asInstanceOf[jts.Point]
-}
-
-trait Encoder {
-  def encode(g: jts.Geometry): String;
-}
-
-/**
- * A sample Encoder implementation demonstrating how to add output formats.
- * This one simply reuses the toString method from JTS.
- */
-object WKT extends Encoder {
-  def encode(g: jts.Geometry): String = g.toString() 
-}
