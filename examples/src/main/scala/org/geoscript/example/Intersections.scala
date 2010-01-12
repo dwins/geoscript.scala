@@ -10,7 +10,7 @@ import org.geotools.feature.{DefaultFeatureCollection, NameImpl}
 import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
-object Intersections extends org.geoscript.feature.GeoCrunch with org.geoscala.feature.SchemaHelpers{
+object Intersections extends org.geoscript.feature.GeoCrunch with org.geoscript.feature.SchemaHelpers{
   def process(store: DataStore, dest: FeatureStore[SimpleFeatureType,SimpleFeature]) = {
     val typename = store.getTypeNames()(0)
     println("Processing " + typename)

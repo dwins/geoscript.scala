@@ -2,10 +2,10 @@ import sbt._
 
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val library = 
-    project("geoscript", "GeoScala Library", new GeoScalaLibrary(_))
-  lazy val examples = project("examples", "GeoScala Example Programs", library)
+    project("geoscript", "GeoScript Library", new GeoScriptLibrary(_))
+  lazy val examples = project("examples", "GeoScript Example Programs", library)
 
-  class GeoScalaLibrary(info: ProjectInfo) extends DefaultProject(info) {
+  class GeoScriptLibrary(info: ProjectInfo) extends DefaultProject(info) {
     val osgeo = "OSGeo Maven Repository" at 
         "http://download.osgeo.org/webdav/geotools/"
     val java_net = "Java.net Maven Repository" at 
