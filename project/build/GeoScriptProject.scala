@@ -3,7 +3,7 @@ import sbt._
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val library = 
     project("geoscript", "GeoScript Library", new GeoScriptLibrary(_))
-  lazy val examples = project("examples", "GeoScript Example Programs", library)
+  lazy val examples = project("examples", "GeoScript Examples", library)
 
   class GeoScriptLibrary(info: ProjectInfo) extends DefaultProject(info) {
     val osgeo = "OSGeo Maven Repository" at 
