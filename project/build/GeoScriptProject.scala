@@ -19,6 +19,8 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val gtJDBC = "org.geotools" % "gt-jdbc" % gtVersion
     val gtDirectory = "org.geotools" % "gt-directory" % gtVersion 
 
+    val jai = "javax.media" % "jai_core" % "1.1.3"
+
     val scalaTest = "org.scalatest" % "scalatest" % "1.0" % "test"
   }
 }
