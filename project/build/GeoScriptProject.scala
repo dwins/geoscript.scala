@@ -5,6 +5,14 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     project("geoscript", "GeoScript Library", new GeoScriptLibrary(_))
   lazy val examples = project("examples", "GeoScript Examples", library)
 
+  lazy val console = task {
+    library.act("console")
+  } describedAs "Alias for library's console task."
+
+  lazy val run = task { (args: Array[String]) => task { 
+    examples.call("run", args) 
+  } } describedAs "Alias for examples' run task."
+
   class GeoScriptLibrary(info: ProjectInfo) extends DefaultProject(info) {
     val osgeo = "OSGeo Maven Repository" at 
         "http://download.osgeo.org/webdav/geotools/"
