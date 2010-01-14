@@ -1,28 +1,46 @@
 package org.geoscript
 
+import com.vividsolutions.jts.{geom => jts}
 import Stream._
 
-trait GeoHash {
+trait GeoHash extends geometry.Implicits {
   private val characters = "0123456789bcdefghjkmnpqrstuvwxyz"
 
-  def geohash(lat: Double, long: Double, size: Int): String = {
-    val lonBits = hash(long, -180, 180)
-    val latBits = hash(lat,   -90,  90)
-    val bits = alternate(lonBits, latBits)
+  def geohash(geom: jts.Geometry): String = {
+    val bbox = geom.bounds
+    val blHash = geohashForever(bbox.getMinY(), bbox.getMinX())
+    val urHash = geohashForever(bbox.getMaxY(), bbox.getMaxX())
 
-    text(bits).take(size).mkString
+    (blHash zip urHash)
+      .takeWhile({ case (x, y) => x == y })
+      .take(32)
+      .map(_._1)
+      .mkString
   }
 
+  def geohash(lat: Double, long: Double, level: Int): String =
+    geohashForever(lat, long).take(level).mkString
+
   def decode(hash: String): (Double, Double) = {
+    val center = decodeBounds(hash).centre
+    (center.y, center.x)
+  }
+
+  def decodeBounds(hash: String): jts.Envelope = {
     val bits = hash.flatMap ((x: Char) => {
       val bitString = characters.indexOf(x).toBinaryString
       ("00000".substring(0, 5 - bitString.length) + bitString).map('1' ==)
     })
 
     val (lonBits, latBits) = separate(bits.toStream)
+    val (minLon, maxLon) = range(lonBits, -180, 180)
+    val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    (coord(latBits, -90, 90), coord(lonBits, -180, 180))
+    new jts.Envelope(minLon, maxLon, minLat, maxLat)
   }
+
+  private def geohashForever(lat: Double, long: Double): Stream[Char] =
+    text(alternate(hash(long, -180, 180), hash(lat, -90, 90)))
 
   private def alternate[A](x: Stream[A], y: Stream[A]): Stream[A] =
     Stream.cons(x.head, alternate(y, x.tail))
@@ -50,11 +68,13 @@ trait GeoHash {
     cons(characters(char), text(bits drop 5))
   }
  
-  private def coord(bits: Stream[Boolean], min: Double, max: Double): Double = {
-    val mid = (min + max) / 2
+  private def range(bits: Stream[Boolean], min: Double, max: Double)
+  : (Double, Double) = 
+  {
+    lazy val mid = (min + max) / 2
 
-    if (bits isEmpty)   max
-    else if (bits.head) coord(bits.tail, mid, max) 
-    else                coord(bits.tail, min, mid)
+    if (bits isEmpty)   (min, max)
+    else if (bits.head) range(bits.tail, mid, max) 
+    else                range(bits.tail, min, mid)
   }
 } 
