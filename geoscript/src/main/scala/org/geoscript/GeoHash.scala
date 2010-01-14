@@ -1,70 +1,60 @@
 package org.geoscript
 
+import Stream._
+
 trait GeoHash {
   private val characters = "0123456789bcdefghjkmnpqrstuvwxyz"
 
   def geohash(lat: Double, long: Double, size: Int): String = {
-    def mingle[A](x: Stream[A], y: Stream[A]): Stream[A] = {
-      Stream.cons(x.head, mingle(y, x.tail))
-    }
+    val lonBits = hash(long, -180, 180)
+    val latBits = hash(lat,   -90,  90)
+    val bits = alternate(lonBits, latBits)
 
-    def hashBits(x:Double, min: Double, max:Double): Stream[Boolean] = {
-      val mid = (min + max) / 2
-      if (x >= mid) {
-        Stream.cons(true, hashBits(x, mid, max))
-      } else {
-        Stream.cons(false, hashBits(x, min, mid))
-      }
-    }
-
-    def hash_text(bits: List[Boolean]): String = {
-      val pieces = bits splitAt 5;
-      return character(pieces._1) + 
-        (if (pieces._2 != Nil) hash_text(pieces._2) else "")
-    }
-
-    def character(bits: List[Boolean]):String = {
-      val index = bits.foldLeft(0) { (x: Int, b: Boolean) =>
-        2*x + (if (b) 1 else 0)
-      }
-
-      characters.substring(index, index + 1)
-    }
-
-    val bits = mingle(hashBits(long, -180, 180), hashBits(lat, -90, 90))
-      .take(5 * size).force;
-
-    hash_text(bits)
+    text(bits).take(size).mkString
   }
 
-  def dehash(hash: String): Pair[Double, Double] = {
-    def demingle[A](list:Stream[A]): (Stream[A], Stream[A]) = {
-      if (list isEmpty) {
-        (Stream.empty, Stream.empty) 
-      } else {
-        val xs = demingle(list drop 1)
-        (Stream.cons(list.first, xs._2), xs._1)
-      }
-    }
-    
-    def dehashBits(bits: Stream[Boolean], min: Double, max: Double): Double = {
-      val mid = (min + max) / 2
-      if (bits isEmpty) {
-        max
-      } else if (bits.head) {
-        dehashBits(bits.tail, mid, max)
-      } else {
-        dehashBits(bits.tail, min, mid)
-      }
-    }
-
+  def decode(hash: String): (Double, Double) = {
     val bits = hash.flatMap ((x: Char) => {
       val bitString = characters.indexOf(x).toBinaryString
       ("00000".substring(0, 5 - bitString.length) + bitString).map('1' ==)
     })
 
-    val streams = demingle(bits.toStream)
+    val (lonBits, latBits) = separate(bits.toStream)
 
-    (dehashBits(streams._2, -90, 90), dehashBits(streams._1, -180, 180))
+    (coord(latBits, -90, 90), coord(lonBits, -180, 180))
+  }
+
+  private def alternate[A](x: Stream[A], y: Stream[A]): Stream[A] =
+    Stream.cons(x.head, alternate(y, x.tail))
+
+  private def separate[A](combined: Stream[A]): (Stream[A], Stream[A]) =
+    if (combined isEmpty) {
+      (Stream.empty, Stream.empty) 
+    } else {
+      val (xs, ys) = separate(combined tail)
+      (cons(combined.first, ys), xs)
+    }
+
+  private def hash(x:Double, min: Double, max: Double): Stream[Boolean] = {
+    val mid = (min + max) / 2
+    if (x >= mid) cons(true,  hash(x, mid, max))
+    else          cons(false, hash(x, min, mid))
+  }
+
+  private def text(bits: Stream[Boolean]): Stream[Char] = {
+    val char = bits.take(5).foldLeft(0) { (accum, bit) => 
+      if (bit) (2 * accum) + 1 
+      else      2 * accum
+    }
+
+    cons(characters(char), text(bits drop 5))
+  }
+ 
+  private def coord(bits: Stream[Boolean], min: Double, max: Double): Double = {
+    val mid = (min + max) / 2
+
+    if (bits isEmpty)   max
+    else if (bits.head) coord(bits.tail, mid, max) 
+    else                coord(bits.tail, min, mid)
   }
 } 
