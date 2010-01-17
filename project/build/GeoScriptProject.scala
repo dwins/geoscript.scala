@@ -29,6 +29,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
-    val scalaTest = "org.scalatest" % "scalatest" % "1.0" % "test"
+    val specs = "org.specs" % "specs" % "[1.4.0,1.5[" % "test"
   }
 }
