@@ -35,7 +35,7 @@ class UsageTests extends Specification with GeoScript {
       proj must_== "EPSG:4326"
     }
 
-    "support iteration" in {
+    "support search" in {
       val shp = Shapefile(statesPath)
       shp.features.find(_.getID == "states.1") must beSome[SimpleFeature]
     }
@@ -43,6 +43,11 @@ class UsageTests extends Specification with GeoScript {
     "provide access to schema information" in {
       val shp = Shapefile(statesPath)
       shp.schema.name must_== "states"
+      val field = shp.schema("STATE_NAME")
+      field.name must_== "STATE_NAME"
+      // the type of field.binding is hard to spell,
+      // just compare toStrings for now
+      field.binding.getName must_== classOf[java.lang.String].getName
     }
   }
 }

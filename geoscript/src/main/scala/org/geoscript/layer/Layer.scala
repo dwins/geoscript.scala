@@ -3,60 +3,39 @@ package org.geoscript.layer
 import java.io.File
 
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.opengis.feature.`type`.AttributeDescriptor
 import org.geotools.data.{DataStore, DataStoreFinder, DefaultQuery}
 import org.geotools.data.shapefile.ShapefileDataStore
 import org.geotools.feature.FeatureCollection
 import org.geotools.referencing.CRS
 import com.vividsolutions.jts.geom.Envelope
 
+import org.geoscript.util.ClosingIterator
+
 class Schema(wrapped: SimpleFeatureType) {
   def name = wrapped.getTypeName()
+  def apply(fieldName: String) = 
+    new Field(wrapped.getDescriptor(fieldName))
+}
+
+class Field(wrapped: AttributeDescriptor) {
+  def name = wrapped.getLocalName
+  def binding = wrapped.getType.getBinding
 }
 
 class RichFeatureCollection(
   wrapped: FeatureCollection[SimpleFeatureType, SimpleFeature]
-) {
-  def foreach(op: SimpleFeature => Unit) {
-    val iter = wrapped.iterator()
-    try {
-      while (iter hasNext) { op(iter.next) }
-    } finally { wrapped.close(iter) }
-  }
+) extends Iterable[SimpleFeature] {
+  override def elements = {
+    val raw = wrapped.iterator()
+    val rawIter = new Iterator[SimpleFeature] {
+      def hasNext = raw.hasNext
+      def next = raw.next
+    }
 
-  def filter(pred: SimpleFeature => Boolean): Iterable[SimpleFeature] = {
-    var buff = new collection.mutable.ArrayBuffer[SimpleFeature]()
-    
-    val iter = wrapped.iterator()
-    try {
-      while (iter hasNext) {
-        val f = iter.next
-        if (pred(f)) { buff += f }
-      }
-    } finally { wrapped.close(iter) }
-
-    buff.toArray
-  }
-
-  def find(pred: SimpleFeature => Boolean): Option[SimpleFeature] = {
-    val iter = wrapped.iterator()
-    try {
-      while (iter hasNext) {
-        val f = iter.next
-        if (pred(f)) return Some(f)
-      }
-      None
-    } finally { wrapped.close(iter) }
-  }
-
-  def map[A](op: SimpleFeature => A): Iterable[A] = {
-    val buff = new collection.mutable.ArrayBuffer[A]()
-    
-    val iter = wrapped.iterator()
-    try {
-      while (iter hasNext) { buff += op(iter.next) }
-    } finally { wrapped.close(iter) }
-
-    buff.toArray
+    new ClosingIterator(rawIter) {
+      def close() { wrapped.close(raw) }
+    }
   }
 }
 
