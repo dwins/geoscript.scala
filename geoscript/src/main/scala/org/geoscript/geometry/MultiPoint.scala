@@ -13,7 +13,6 @@ object MultiPoint {
 }
 
 class RichMultiPoint(p: jts.Point) extends RichGeometry(p) {
-
   override def clone(): jts.Point = p.clone().asInstanceOf[jts.Point]
   override def transform(dest: CoordinateReferenceSystem): jts.Point = 
     super.transform(dest).asInstanceOf[jts.Point]
