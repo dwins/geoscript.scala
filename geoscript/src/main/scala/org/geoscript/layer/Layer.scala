@@ -31,6 +31,7 @@ trait Field {
 trait Feature {
   def id: String
   def apply[A](key: String): A
+  def geometry: com.vividsolutions.jts.geom.Geometry
   def properties: Map[String, Any]
 }
 
@@ -54,7 +55,13 @@ object Feature {
   def apply(wrapped: SimpleFeature): Feature = {
     new Feature {
       def id: String = wrapped.getID
+
       def apply[A](key: String): A = wrapped.getAttribute(key).asInstanceOf[A]
+
+      def geometry: com.vividsolutions.jts.geom.Geometry = 
+        wrapped.getDefaultGeometry()
+          .asInstanceOf[com.vividsolutions.jts.geom.Geometry]
+
       def properties: Map[String, Any] = {
         val m = collection.mutable.Map[String, Any]()
         var i = 0
@@ -73,6 +80,10 @@ object Feature {
     new Feature {
       def id: String = null
 
+      def geometry = props
+          .find(_._1.isInstanceOf[com.vividsolutions.jts.geom.Geometry])
+          .map(_._2).get.asInstanceOf[com.vividsolutions.jts.geom.Geometry]
+
       def apply[A](key: String): A = 
         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
 
@@ -83,13 +94,13 @@ object Feature {
 
 class FeatureCollection(
   wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature]
-) extends Iterable[SimpleFeature] {
+) extends Iterable[Feature] {
   override def elements = {
     val collection = wrapped.getFeatures()
     val raw = collection.iterator()
-    val rawIter = new Iterator[SimpleFeature] {
+    val rawIter = new Iterator[Feature] {
       def hasNext = raw.hasNext
-      def next = raw.next
+      def next = Feature(raw.next)
     }
 
     new ClosingIterator(rawIter) {

@@ -53,7 +53,7 @@ class UsageTests extends Specification with GeoScript {
 
     "support search" in {
       val shp = layer.Shapefile(statesPath)
-      shp.features.find(_.getID == "states.1") must beSome[SimpleFeature]
+      shp.features.find(_.id == "states.1") must beSome[layer.Feature]
     }
 
     "provide access to schema information" in {
@@ -98,6 +98,10 @@ class UsageTests extends Specification with GeoScript {
       )
 
       dummy.count must_== 2
+      
+      dummy.features.find(
+        f => f[String]("name") == "New York"
+      ) must beSome[layer.Feature]
     }
   }
 }
