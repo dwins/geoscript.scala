@@ -5,7 +5,6 @@ import org.opengis.feature.simple.SimpleFeature
 import org.specs._
 
 import geometry._
-import layer._
 import projection._
 
 class UsageTests extends Specification with GeoScript {
@@ -39,7 +38,7 @@ class UsageTests extends Specification with GeoScript {
   "Layers" should {
     val statesPath = "geoscript/src/test/resources/data/states.shp"
     "be able to read shapefiles" in {
-      val shp = Shapefile(statesPath)
+      val shp = layer.Shapefile(statesPath)
       val (xMin, yMin, xMax, yMax, proj) = shp.bounds
 
       shp.name must_== "states"
@@ -53,12 +52,12 @@ class UsageTests extends Specification with GeoScript {
     }
 
     "support search" in {
-      val shp = Shapefile(statesPath)
+      val shp = layer.Shapefile(statesPath)
       shp.features.find(_.getID == "states.1") must beSome[SimpleFeature]
     }
 
     "provide access to schema information" in {
-      val shp = Shapefile(statesPath)
+      val shp = layer.Shapefile(statesPath)
       shp.schema.name must_== "states"
       val field = shp.schema("STATE_NAME")
       field.name must_== "STATE_NAME"
@@ -68,8 +67,37 @@ class UsageTests extends Specification with GeoScript {
     }
 
     "provide access to the containing workspace" in {
-      val shp = Shapefile(statesPath)
+      val shp = layer.Shapefile(statesPath)
       shp.workspace must haveSuperClass[workspace.Workspace]
+    }
+  }
+
+  "Workspaces" should {
+    "provide a listing of layers" in {
+      val mem = workspace.Memory()
+      mem.layers must beEmpty
+    }
+
+    "allow creating new layers" in {
+      val mem = workspace.Memory()
+      mem.layers must beEmpty
+      var dummy = mem.create("dummy", 
+        layer.Field("name", classOf[String]),
+        layer.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
+      )
+      mem.layers.length must_== 1
+
+      dummy += layer.Feature(
+        "name" -> "San Francisco",
+        "geom" -> Point(37.78, -122.42)
+      )
+
+      dummy += layer.Feature(
+        "name" -> "New York",
+        "geom" -> Point(40.47, -73.58)
+      )
+
+      dummy.count must_== 2
     }
   }
 }
