@@ -1,5 +1,7 @@
 package org.geoscript
 
+import org.opengis.feature.simple.SimpleFeature
+
 import org.specs._
 
 import geometry._
@@ -20,7 +22,7 @@ class UsageTests extends Specification with GeoScript {
   "Layers" should {
     val statesPath = "geoscript/src/test/resources/data/states.shp"
     "be able to read shapefiles" in {
-      var shp = Shapefile(statesPath)
+      val shp = Shapefile(statesPath)
       val (xMin, yMin, xMax, yMax, proj) = shp.bounds
 
       shp.name must_== "states"
@@ -34,10 +36,13 @@ class UsageTests extends Specification with GeoScript {
     }
 
     "support iteration" in {
-      var shp = Shapefile(statesPath)
-      val features = for (f <- shp.features) yield f
-      features.toStream.take(1).head.getIdentifier().toString() must_== 
-        "states.1"
+      val shp = Shapefile(statesPath)
+      shp.features.find(_.getID == "states.1") must beSome[SimpleFeature]
+    }
+
+    "provide access to schema information" in {
+      val shp = Shapefile(statesPath)
+      shp.schema.name must_== "states"
     }
   }
 }

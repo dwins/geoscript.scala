@@ -9,36 +9,61 @@ import org.geotools.feature.FeatureCollection
 import org.geotools.referencing.CRS
 import com.vividsolutions.jts.geom.Envelope
 
+class Schema(wrapped: SimpleFeatureType) {
+  def name = wrapped.getTypeName()
+}
+
 class RichFeatureCollection(
   wrapped: FeatureCollection[SimpleFeatureType, SimpleFeature]
 ) {
-  def map[A](op: SimpleFeature => A): Iterable[A] = {
+  def foreach(op: SimpleFeature => Unit) {
     val iter = wrapped.iterator()
-    Stream.fromIterator(
-      new Iterator[A] {
-        var open = true
+    try {
+      while (iter hasNext) { buff += op(iter.next) }
+    } finally { wrapped.close(iter) }
+  }
 
-        override def next = 
-          try {
-            op(iter.next )
-          } catch {
-            case ex => wrapped.close(iter); throw ex
-          }
-
-        override def hasNext = 
-          if (iter.hasNext) true
-          else {
-            if (open) wrapped.close(iter)
-            open = false
-            false
-          }
+  def filter(pred: SimpleFeature => Boolean): Iterable[SimpleFeature] = {
+    val buff = new collection.mutable.ArrayBuffer[SimpleFeature]()
+    
+    val iter = wrapped.iterator()
+    try {
+      while (iter hasNext) {
+        val f = iter.next
+        if (pred(f)) { buff += f }
       }
-    )
+    } finally { wrapped.close(iter) }
+
+    buff.toArray
+  }
+
+  def find(pred: SimpleFeature => Boolean): Option[SimpleFeature] = {
+    val iter = wrapped.iterator()
+    try {
+      while (iter hasNext) {
+        val f = iter.next
+        if (pred(f)) return Some(f)
+      }
+      None
+    } finally { wrapped.close(iter) }
+  }
+
+  def map[A](op: SimpleFeature => A): Iterable[A] = {
+    val buff = new collection.mutable.ArrayBuffer[A]()
+    
+    val iter = wrapped.iterator()
+    try {
+      while (iter hasNext) { buff += op(iter.next) }
+    } finally { wrapped.close(iter) }
+
+    buff.toArray
   }
 }
 
 class Layer(val name: String, store: DataStore) {
   private def source = store.getFeatureSource(name)
+
+  def schema: Schema = new Schema(store.getSchema(name))
 
   def features: RichFeatureCollection = {
     new RichFeatureCollection(source.getFeatures)
