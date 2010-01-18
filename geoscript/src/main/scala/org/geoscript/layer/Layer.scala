@@ -4,10 +4,7 @@ import java.io.File
 
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.feature.`type`.AttributeDescriptor
-import org.geotools.data.{DataStore, DataStoreFinder, DefaultQuery}
-import org.geotools.data.shapefile.ShapefileDataStore
-import org.geotools.feature.FeatureCollection
-import org.geotools.referencing.CRS
+import org.{geotools => gt}
 import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.util.ClosingIterator
@@ -25,7 +22,7 @@ class Field(wrapped: AttributeDescriptor) {
 }
 
 class RichFeatureCollection(
-  wrapped: FeatureCollection[SimpleFeatureType, SimpleFeature]
+  wrapped: gt.feature.FeatureCollection[SimpleFeatureType, SimpleFeature]
 ) extends Iterable[SimpleFeature] {
   override def elements = {
     val raw = wrapped.iterator()
@@ -40,7 +37,7 @@ class RichFeatureCollection(
   }
 }
 
-class Layer(val name: String, store: DataStore) {
+class Layer(val name: String, store: gt.data.DataStore) {
   private def source = store.getFeatureSource(name)
 
   def workspace: Workspace = new Workspace(store)
@@ -51,18 +48,22 @@ class Layer(val name: String, store: DataStore) {
     new RichFeatureCollection(source.getFeatures)
   }
 
-  def count: Int = source.getCount(new DefaultQuery())
+  def count: Int = source.getCount(new gt.data.DefaultQuery())
 
   def bounds: (Double, Double, Double, Double, String) = {
     val bbox = source.getBounds()
-    val crs = CRS.lookupEpsgCode(bbox.getCoordinateReferenceSystem(), true)
+    val crs = gt.referencing.CRS.lookupEpsgCode(
+      bbox.getCoordinateReferenceSystem(), true
+    )
     (bbox.getMinX, bbox.getMinY, bbox.getMaxX, bbox.getMaxY, "EPSG:" + crs)
   }
 }
 
 object Shapefile {
   def apply(path: String): Layer = {
-    val ds = new ShapefileDataStore(new File(path).toURI.toURL)
+    val ds = new gt.data.shapefile.ShapefileDataStore(
+      new File(path).toURI.toURL
+    )
     val name = ds.getTypeNames()(0)
     new Layer(name, ds)
   }
