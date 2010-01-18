@@ -19,12 +19,12 @@ class RichFeatureCollection(
   def foreach(op: SimpleFeature => Unit) {
     val iter = wrapped.iterator()
     try {
-      while (iter hasNext) { buff += op(iter.next) }
+      while (iter hasNext) { op(iter.next) }
     } finally { wrapped.close(iter) }
   }
 
   def filter(pred: SimpleFeature => Boolean): Iterable[SimpleFeature] = {
-    val buff = new collection.mutable.ArrayBuffer[SimpleFeature]()
+    var buff = new collection.mutable.ArrayBuffer[SimpleFeature]()
     
     val iter = wrapped.iterator()
     try {
