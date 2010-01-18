@@ -46,8 +46,13 @@ class UsageTests extends Specification with GeoScript {
       val field = shp.schema("STATE_NAME")
       field.name must_== "STATE_NAME"
       // the type of field.binding is hard to spell,
-      // just compare toStrings for now
+      // just compare toString's for now
       field.binding.getName must_== classOf[java.lang.String].getName
+    }
+
+    "provide access to the containing workspace" in {
+      val shp = Shapefile(statesPath)
+      shp.workspace must haveSuperClass[workspace.Workspace]
     }
   }
 }

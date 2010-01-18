@@ -11,6 +11,7 @@ import org.geotools.referencing.CRS
 import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.util.ClosingIterator
+import org.geoscript.workspace.Workspace
 
 class Schema(wrapped: SimpleFeatureType) {
   def name = wrapped.getTypeName()
@@ -41,6 +42,8 @@ class RichFeatureCollection(
 
 class Layer(val name: String, store: DataStore) {
   private def source = store.getFeatureSource(name)
+
+  def workspace: Workspace = new Workspace(store)
 
   def schema: Schema = new Schema(store.getSchema(name))
 
