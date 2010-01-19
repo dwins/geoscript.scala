@@ -22,7 +22,7 @@ object ColorRamp extends org.geoscript.feature.GeoCrunch {
     var max = Math.POS_INF_DOUBLE
 
     for (f <- col) { 
-      val current = f[Double](p)
+      val current = f.get[Double](p)
       min = Math.min(min, current)
       max = Math.max(max, current)
     }
