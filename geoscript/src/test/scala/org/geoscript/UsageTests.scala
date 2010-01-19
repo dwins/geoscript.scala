@@ -100,7 +100,7 @@ class UsageTests extends Specification with GeoScript {
       dummy.count must_== 2
       
       dummy.features.find(
-        f => f[String]("name") == "New York"
+        f => f.get[String]("name") == "New York"
       ) must beSome[layer.Feature]
     }
   }

@@ -10,17 +10,35 @@ import com.vividsolutions.jts.geom.Envelope
 import org.geoscript.util.ClosingIterator
 import org.geoscript.workspace.Workspace
 
-class Schema(wrapped: SimpleFeatureType) {
-  def name = wrapped.getTypeName()
+trait Schema {
+  def name: String
+  def fields: Seq[Field]
+  def apply(fieldName: String): Field
+}
 
-  def fields: Seq[Field] = { 
-    var buffer = new collection.mutable.ArrayBuffer[Field]
-    val descriptors = wrapped.getAttributeDescriptors().iterator()
-    while (descriptors hasNext) { buffer += Field(descriptors.next) }
-    buffer.toSeq
+object Schema{
+  def apply(wrapped: SimpleFeatureType) = {
+    new Schema {
+      def name = wrapped.getTypeName()
+
+      def fields: Seq[Field] = { 
+        var buffer = new collection.mutable.ArrayBuffer[Field]
+        val descriptors = wrapped.getAttributeDescriptors().iterator()
+        while (descriptors hasNext) { buffer += Field(descriptors.next) }
+        buffer.toSeq
+      }
+
+      def apply(fieldName: String) = Field(wrapped.getDescriptor(fieldName))
+    }
   }
 
-  def apply(fieldName: String) = Field(wrapped.getDescriptor(fieldName))
+  def apply(n: String, f: Field*) = {
+    new Schema {
+      def name = name
+      def fields = f
+      def apply(fieldName: String) = f.find(_.name == fieldName).get
+    }
+  }
 }
 
 trait Field {
@@ -30,7 +48,7 @@ trait Field {
 
 trait Feature {
   def id: String
-  def apply[A](key: String): A
+  def get[A](key: String): A
   def geometry: com.vividsolutions.jts.geom.Geometry
   def properties: Map[String, Any]
 }
@@ -56,7 +74,7 @@ object Feature {
     new Feature {
       def id: String = wrapped.getID
 
-      def apply[A](key: String): A = wrapped.getAttribute(key).asInstanceOf[A]
+      def get[A](key: String): A = wrapped.getAttribute(key).asInstanceOf[A]
 
       def geometry: com.vividsolutions.jts.geom.Geometry = 
         wrapped.getDefaultGeometry()
@@ -84,7 +102,7 @@ object Feature {
           .find(_._1.isInstanceOf[com.vividsolutions.jts.geom.Geometry])
           .map(_._2).get.asInstanceOf[com.vividsolutions.jts.geom.Geometry]
 
-      def apply[A](key: String): A = 
+      def get[A](key: String): A = 
         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
 
       def properties: Map[String, Any] = Map(props: _*)
@@ -93,8 +111,10 @@ object Feature {
 }
 
 class FeatureCollection(
-  wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature]
+  wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature],
+  query: gt.data.Query
 ) extends Iterable[Feature] {
+
   override def elements = {
     val collection = wrapped.getFeatures()
     val raw = collection.iterator()
@@ -114,9 +134,15 @@ class Layer(val name: String, store: gt.data.DataStore) {
 
   def workspace: Workspace = new Workspace(store)
 
-  def schema: Schema = new Schema(store.getSchema(name))
+  def schema: Schema = Schema(store.getSchema(name))
 
-  def features: FeatureCollection = { new FeatureCollection(source) }
+  def features: FeatureCollection = {
+    new FeatureCollection(source, new gt.data.DefaultQuery()) 
+  }
+  
+  def filter(pred: org.opengis.filter.Filter): FeatureCollection = {
+    new FeatureCollection(source, new gt.data.DefaultQuery(name, pred)) 
+  }
 
   def count: Int = source.getCount(new gt.data.DefaultQuery())
 
@@ -128,12 +154,18 @@ class Layer(val name: String, store: gt.data.DataStore) {
     (bbox.getMinX, bbox.getMinY, bbox.getMaxX, bbox.getMaxY, "EPSG:" + crs)
   }
 
-  def += (f: Feature) {
+  def += (f: Feature) { this ++= Seq.singleton(f) }
+
+  def ++= (features: Iterable[Feature]) {
     val tx = new gt.data.DefaultTransaction
     val writer = store.getFeatureWriterAppend(name, tx)
-    val toBeWritten = writer.next()
-    for ((key, value) <- f.properties) toBeWritten.setAttribute(key, value)
-    writer.write()
+
+    for (f <- features) {
+      val toBeWritten = writer.next()
+      for ((key, value) <- f.properties) toBeWritten.setAttribute(key, value)
+      writer.write()
+    }
+
     writer.close()
     tx.commit()
     tx.close()
