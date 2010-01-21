@@ -7,7 +7,7 @@ trait GeoHash extends geometry.Implicits {
   private val characters = "0123456789bcdefghjkmnpqrstuvwxyz"
 
   def geohash(geom: jts.Geometry): String = {
-    val bbox = geom.bounds
+    val bbox = geom.getEnvelope().asInstanceOf[jts.Envelope]
     val blHash = geohashForever(bbox.getMinY(), bbox.getMinX())
     val urHash = geohashForever(bbox.getMaxY(), bbox.getMaxX())
 

@@ -3,6 +3,8 @@ package org.geoscript.geometry
 import com.vividsolutions.jts.{geom=>jts}
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
+import org.geoscript.projection.Projection
+
 object MultiPoint {
   import ModuleInternals.factory._
 
@@ -12,8 +14,7 @@ object MultiPoint {
     ) 
 }
 
-class RichMultiPoint(p: jts.Point) extends RichGeometry(p) {
-  override def clone(): jts.Point = p.clone().asInstanceOf[jts.Point]
-  override def transform(dest: CoordinateReferenceSystem): jts.Point = 
-    super.transform(dest).asInstanceOf[jts.Point]
+trait MultiPoint extends Geometry {
+  override val underlying: jts.MultiPoint
+  override def in(dest: Projection): MultiPoint
 }

@@ -13,9 +13,5 @@ trait Implicits {
 
   implicit def point2coord(p: jts.Point): jts.Coordinate = p.getCoordinate()
 
-  implicit def enrichPoint(p: jts.Point): RichPoint = 
-    new RichPoint(p)
-
-  implicit def enrichGeometry(g: jts.Geometry): RichGeometry =
-    new RichGeometry(g)
+  implicit def enrichPoint(p: jts.Point): Point = Point(p)
 }

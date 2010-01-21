@@ -9,10 +9,17 @@ import org.geotools.factory.Hints
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 
+class Projection(val crs: CoordinateReferenceSystem) {
+  def to[Geom<:jts.Geometry](dest: Projection)(geom: Geom) = {
+    val tx = CRS.findMathTransform(crs, dest.crs)
+    JTS.transform(geom, tx).asInstanceOf[Geom] 
+  }
+}
+
 object Projection {
-  def apply(s: String): CoordinateReferenceSystem = {
+  def apply(s: String): Projection = {
     // TODO: Fall back on WKT parsing if CRS code is not understood
-    CRS.decode(s) 
+    new Projection(CRS.decode(s))
   }
 }
 

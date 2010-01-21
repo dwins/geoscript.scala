@@ -10,8 +10,8 @@ import projection._
 class UsageTests extends Specification with GeoScript {
   "geometries" should { 
     "work like on the geoscript homepage" in { 
-      var p = Point(-111, 45.7)
-      var p2 = Projection("epsg:4326") to Projection("epsg:26912") apply p
+      var p = Point(-111, 45.7) in Projection("epsg:4326")
+      var p2 = p in Projection("epsg:26912")
       var poly = p.buffer(100)
 
       p2.x must beCloseTo(499999.0, 0.5)
@@ -29,7 +29,7 @@ class UsageTests extends Specification with GeoScript {
 
     "polygon should be easy" in { 
       Polygon(
-        Ring((10, 10), (10, 20), (20, 20), (20, 15), (10, 10)),
+        LineString((10, 10), (10, 20), (20, 20), (20, 15), (10, 10)),
         Seq.empty
       ).area must_== 75
     }

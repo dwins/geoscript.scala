@@ -7,6 +7,7 @@ import org.opengis.feature.`type`.AttributeDescriptor
 import org.{geotools => gt}
 import com.vividsolutions.jts.geom.Envelope
 
+import org.geoscript.geometry.Geometry
 import org.geoscript.util.ClosingIterator
 import org.geoscript.workspace.Workspace
 
@@ -49,7 +50,7 @@ trait Field {
 trait Feature {
   def id: String
   def get[A](key: String): A
-  def geometry: com.vividsolutions.jts.geom.Geometry
+  def geometry: Geometry
   def properties: Map[String, Any]
 }
 
@@ -76,9 +77,11 @@ object Feature {
 
       def get[A](key: String): A = wrapped.getAttribute(key).asInstanceOf[A]
 
-      def geometry: com.vividsolutions.jts.geom.Geometry = 
-        wrapped.getDefaultGeometry()
-          .asInstanceOf[com.vividsolutions.jts.geom.Geometry]
+      def geometry: Geometry = 
+        Geometry(
+          wrapped.getDefaultGeometry()
+            .asInstanceOf[com.vividsolutions.jts.geom.Geometry]
+        )
 
       def properties: Map[String, Any] = {
         val m = collection.mutable.Map[String, Any]()
@@ -98,9 +101,12 @@ object Feature {
     new Feature {
       def id: String = null
 
-      def geometry = props
-          .find(_._1.isInstanceOf[com.vividsolutions.jts.geom.Geometry])
-          .map(_._2).get.asInstanceOf[com.vividsolutions.jts.geom.Geometry]
+      def geometry = 
+        Geometry(
+          props
+            .find(_._1.isInstanceOf[com.vividsolutions.jts.geom.Geometry])
+            .map(_._2).get.asInstanceOf[com.vividsolutions.jts.geom.Geometry]
+        )
 
       def get[A](key: String): A = 
         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get

@@ -2,6 +2,7 @@ package org.geoscript.geometry
 
 import com.vividsolutions.jts.{geom=>jts}
 import org.opengis.referencing.crs.CoordinateReferenceSystem
+import org.geoscript.projection.Projection
 
 private object ModuleInternals {
   val factory = new jts.GeometryFactory() 
@@ -31,36 +32,52 @@ object EndCap {
   case object Square extends Style { val intValue = CAP_SQUARE }
 }
 
-class RichGeometry(geom: jts.Geometry) {
-  def area: Double = geom.getArea()
-  def bounds: jts.Envelope = geom.getEnvelope().asInstanceOf[jts.Envelope]
-  def centroid: jts.Point = geom.getCentroid()
-  def coordinates: Seq[jts.Coordinate] = geom.getCoordinates()
-  def length: Double = geom.getLength()
+object Geometry {
+  def apply(geom: jts.Geometry): Geometry = {
+    geom match {
+      case (point: jts.Point) => Point(point)
+      case (poly: jts.Polygon) => Polygon(poly)
+    }
+  }
+
+  def apply(geom: jts.Geometry, proj: Projection): Geometry =
+    apply(geom) in proj
+}
+
+trait Geometry {
+  val underlying: jts.Geometry
+
+  def area: Double = underlying.getArea()
+
+  def bounds: jts.Envelope = 
+    underlying.getEnvelope().asInstanceOf[jts.Envelope] // in projection
+
+  def centroid: Point = Point(underlying.getCentroid()) in projection
+
+  def coordinates: Seq[Point] = 
+    underlying.getCoordinates() map (c => Point(c) in projection)
+
+  def length: Double = underlying.getLength()
 
   def json: String = "" // TODO: Real JSON encoding
-  def wkt: String = geom.toString()
-  def projection: CoordinateReferenceSystem = null // TODO: Real CRS tracking
+  def wkt: String = underlying.toString()
+  def projection: Projection = null // TODO: Real CRS tracking
   
-  def buffer(dist: Double): jts.Geometry =
-    buffer(dist, 8, EndCap.Round)
+  def buffer(dist: Double): Geometry = buffer(dist, 8, EndCap.Round)
 
-  def buffer(dist: Double, segs: Int): jts.Geometry = 
+  def buffer(dist: Double, segs: Int): Geometry = 
     buffer(dist, segs, EndCap.Round) 
 
-  def buffer(dist: Double, segs: Int, mode: EndCap.Style): jts.Geometry = 
-    geom.buffer(dist, segs, mode.intValue)
+  def buffer(dist: Double, segs: Int, mode: EndCap.Style): Geometry = 
+    Geometry(underlying.buffer(dist, segs, mode.intValue), projection)
 
-  override def clone(): jts.Geometry = geom.clone().asInstanceOf[jts.Geometry]
+  def in(proj: Projection): Geometry
 
-  def transform(dest: CoordinateReferenceSystem): jts.Geometry = {
-    // TODO: Provide an implicit in the projection package that gives this
-    // signature, but actually looks up the MathTransform and performs the
-    // transformation
-    implicit def x(c: CoordinateReferenceSystem) = new {
-      def to (d: CoordinateReferenceSystem)(g: jts.Geometry) = g
-    }
-    (projection to dest)(geom)
-  }
+  def intersection(that: Geometry): Geometry = 
+    Geometry(underlying intersection that.underlying)
+
+  def isValid: Boolean = underlying.isValid
+
+  def transform(dest: Projection): Geometry 
 } 
 
