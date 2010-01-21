@@ -20,17 +20,6 @@ private object ModuleInternals {
       )
     }
   }
-
-//   def makeCoordSeq(input: Any* ) = { 
-//     val coordSeq = input.map  ({ 
-//       case (x: Double,y: Double) => new jts.Coordinate(x,y) 
-//       case (x: Double, y: Double, z: Double) => new jts.Coordinate(x,y,z)  
-//       case p: jts.Point => p.getCoordinate
-//       case _  => throw new RuntimeException("LineString requires CoordinateSeq")  
-//     }).toArray
-//     new jts.impl.CoordinateArraySequence(coordSeq) 
-//    } 
-
 }
 
 object EndCap {
