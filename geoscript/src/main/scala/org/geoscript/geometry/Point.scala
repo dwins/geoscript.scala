@@ -14,11 +14,6 @@ object Point {
 }
 
 class RichPoint(p: jts.Point) extends RichGeometry(p) {
-  def x: Double = p.getCoordinate.x
-  def y: Double = p.getCoordinate.y
-  def z: Double = p.getCoordinate.z
-
-  override def clone(): jts.Point = p.clone().asInstanceOf[jts.Point]
   override def transform(dest: CoordinateReferenceSystem): jts.Point = 
     super.transform(dest).asInstanceOf[jts.Point]
 }

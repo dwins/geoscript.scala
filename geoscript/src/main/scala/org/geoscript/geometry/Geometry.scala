@@ -5,15 +5,31 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem
 
 private object ModuleInternals {
   val factory = new jts.GeometryFactory() 
-  def makeCoordSeq(input: Any* ) = { 
-    val coordSeq = input.map  ({ 
-      case (x: Double,y: Double) => new jts.Coordinate(x,y) 
-      case (x: Double, y: Double, z: Double) => new jts.Coordinate(x,y,z)  
-      case p: jts.Point => p.getCoordinate
-      case _  => throw new RuntimeException("LineString requires CoordinateSeq")  
-    }).toArray
-    new jts.impl.CoordinateArraySequence(coordSeq) 
-   } 
+
+  def coerceCoord(input: Any) = {
+    input match {
+      case (x: Number, y: Number) => 
+        new jts.Coordinate(x.doubleValue(), y.doubleValue())
+      case (x: Number, y: Number, z: Number) =>
+        new jts.Coordinate(x.doubleValue(), y.doubleValue(), z.doubleValue())
+      case (p: jts.Point) => p.getCoordinate()
+      case (coord: jts.Coordinate) => coord
+      case other => throw new RuntimeException(
+        "Coordinates can only be coerced from numeric tuples or points; " + 
+        "found %s instead.".format(other)
+      )
+    }
+  }
+
+//   def makeCoordSeq(input: Any* ) = { 
+//     val coordSeq = input.map  ({ 
+//       case (x: Double,y: Double) => new jts.Coordinate(x,y) 
+//       case (x: Double, y: Double, z: Double) => new jts.Coordinate(x,y,z)  
+//       case p: jts.Point => p.getCoordinate
+//       case _  => throw new RuntimeException("LineString requires CoordinateSeq")  
+//     }).toArray
+//     new jts.impl.CoordinateArraySequence(coordSeq) 
+//    } 
 
 }
 

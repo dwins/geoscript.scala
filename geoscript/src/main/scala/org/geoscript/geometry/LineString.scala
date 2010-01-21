@@ -4,11 +4,8 @@ import com.vividsolutions.jts.{geom=>jts}
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
 object LineString {
-  import ModuleInternals.factory._
-
-  def apply(coordTuple: Any*): jts.LineString = {
-    createLineString(ModuleInternals.makeCoordSeq(coordTuple: _*))
-  }
+  def apply(coords: jts.Coordinate*): jts.LineString =
+    ModuleInternals.factory.createLineString(coords toArray)
 }
 
 class RichLineString(p: jts.LineString) extends RichGeometry(p) {

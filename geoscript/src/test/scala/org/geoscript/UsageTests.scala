@@ -20,18 +20,22 @@ class UsageTests extends Specification with GeoScript {
     }
 
     "linestrings should be easy" in { 
-      LineString((10.0, 10.0), (20.0, 20.0), (30.0, 40.0)) 
+      LineString((10.0, 10.0), (20.0, 20.0), (30.0, 40.0))
+        .length must beCloseTo(36.503, 0.001)
+
+      LineString((10, 10), (20.0, 20.0), (30, 40)) 
+        .length must beCloseTo(36.503, 0.001)
     }
 
     "polygon should be easy" in { 
       Polygon(
-        Seq((10d, 10d),(10d, 20d),(20d, 20d), (20d, 15d), (10d, 10d)),
+        Ring((10, 10), (10, 20), (20, 20), (20, 15), (10, 10)),
         Seq.empty
-      )
+      ).area must_== 75
     }
 
     "multi point should be easy" in {
-      MultiPoint(Seq((20.0,20.0),(10.0,10.0))) 
+      MultiPoint(Seq((20, 20), (10.0, 10.0))) 
     } 
   }  
 
