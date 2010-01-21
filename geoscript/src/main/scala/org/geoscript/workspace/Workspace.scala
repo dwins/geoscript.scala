@@ -27,7 +27,7 @@ object Memory {
 }
 
 object Postgis {
-  val factory = new gt.data.postgis.PostgisDataStoreFactory
+  val factory = new gt.data.postgis.PostgisNGDataStoreFactory
   def apply(params: (String,String)*) = { 
     val connection = new java.util.HashMap[String,String] 
     connection.put("port", "5432")
