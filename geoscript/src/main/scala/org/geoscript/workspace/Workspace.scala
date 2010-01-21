@@ -1,8 +1,9 @@
 package org.geoscript.workspace
 
 import org.{geotools => gt}
-
 import org.geoscript.layer._
+import java.io.Serializable
+
 
 class Workspace(wrapped: gt.data.DataStore) {
   def count = wrapped.getTypeNames.length
@@ -24,3 +25,24 @@ class Workspace(wrapped: gt.data.DataStore) {
 object Memory {
   def apply() = new Workspace(new gt.data.memory.MemoryDataStore())
 }
+
+object Postgis {
+  val factory = new gt.data.postgis.PostgisDataStoreFactory
+  def apply(params: (String,String)*) = { 
+    val connection = new java.util.HashMap[String,String] 
+    connection.put("port", "5432")
+    connection.put("host", "localhost")
+    connection.put("user", "postgres")
+    connection.put("passwd","")
+    connection.put("charset","utf-8")
+
+    for ((key,value) <- params)  { 
+      connection.put(key,value)           
+    }
+
+    connection.put("dbtype", "postgis")
+    new Workspace(factory.createDataStore(connection)) 
+    
+ } 
+
+} 

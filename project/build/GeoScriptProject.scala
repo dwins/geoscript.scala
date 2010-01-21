@@ -26,6 +26,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val gtShapefile = "org.geotools" % "gt-shapefile" % gtVersion
     val gtJDBC = "org.geotools" % "gt-jdbc" % gtVersion
     val gtDirectory = "org.geotools" % "gt-directory" % gtVersion 
+    val gtPostgis = "org.geotools"   % "gt-postgis" % gtVersion 
 
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
