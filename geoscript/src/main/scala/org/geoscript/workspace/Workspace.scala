@@ -35,14 +35,21 @@ object Postgis {
     connection.put("user", "postgres")
     connection.put("passwd","")
     connection.put("charset","utf-8")
-
+    connection.put("dbtype", "postgis")
     for ((key,value) <- params)  { 
       connection.put(key,value)           
     }
-
-    connection.put("dbtype", "postgis")
-    new Workspace(factory.createDataStore(connection)) 
-    
+    new Workspace(factory.createDataStore(connection))  
  } 
-
+}
+object SpatiaLite {
+  
+  def apply(params: (String,String)*) = { 
+    val connection = new java.util.HashMap[String,String] 
+    connection.put("dbtype","spatialite")
+    for ((key,value) <- params) { 
+    connection.put(key,value)  
+    }
+    new Workspace(gt.data.DataStoreFinder.getDataStore(connection)) 
+  } 
 } 
