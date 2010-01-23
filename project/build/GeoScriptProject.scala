@@ -22,7 +22,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val java_net = "Java.net Maven Repository" at 
         "http://download.java.net/maven/2/"
 
-    val gtVersion = "[2.6.1,2.7.0["
+    val gtVersion = "2.6.1"
         
     val gtMain = "org.geotools" % "gt-main" % gtVersion
     val gtReferencing = "org.geotools" % "gt-epsg-hsql" % gtVersion

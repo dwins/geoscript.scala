@@ -17,7 +17,12 @@ object MultiLineString {
       new Projected(projection.to(dest)(underlying), dest)
   }
   
-  def apply(mp : jts.MultiLineString): MultiLineString = new Wrapper(mp) 
+  def apply(mp : jts.MultiLineString): MultiLineString = new Wrapper(mp)
+
+  def apply(ls : Seq[jts.LineString]): MultiLineString = 
+    new Wrapper( 
+    ModuleInternals.factory.createMultiLineString(ls.toArray) 
+  )
 
 }
 

@@ -20,6 +20,11 @@ object MultiPolygon {
   
   def apply(mp : jts.MultiPolygon): MultiPolygon = new Wrapper(mp) 
 
+  def apply(polygons : Seq[jts.Polygon]): MultiPolygon =
+  new Wrapper( 
+    ModuleInternals.factory.createMultiPolygon(polygons.toArray) 
+    ) 
+
 }
 
 trait MultiPolygon extends Geometry {
