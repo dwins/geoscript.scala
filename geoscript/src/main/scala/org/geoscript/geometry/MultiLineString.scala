@@ -28,6 +28,4 @@ trait MultiLineString extends Geometry {
   override def transform(dest: Projection): MultiLineString = 
     MultiLineString(projection.to(dest)(underlying)) in dest
 
-
-
 }

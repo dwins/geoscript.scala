@@ -12,6 +12,15 @@ object PostgisTest extends GeoScript {
      for (field <- fields) { 
         println(field.name) 
         } 
-
+    val workSpaceTest = workspace.Postgis() 
+    
+    val test = workSpaceTest.create("test",
+        layer.Field("name", classOf[String]),
+        layer.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
+    )
+    test += layer.Feature( 
+      "name" -> "test",
+      "geom" -> geometry.Point(43,74) ) 
+    
   }
 } 
