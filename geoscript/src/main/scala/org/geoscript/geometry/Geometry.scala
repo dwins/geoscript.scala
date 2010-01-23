@@ -4,9 +4,33 @@ import com.vividsolutions.jts.{geom=>jts}
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.projection.Projection
 
+/**
+ * The ModuleInternals object contains some state shared among the objects in
+ * the geometry package.  It is not really intended for use by client code, it
+ * just avoids creating multiple GeometryFactories for the different geometry
+ * types and such.
+ */
 private object ModuleInternals {
   val factory = new jts.GeometryFactory() 
 
+  /**
+   * Try really hard to make objects into JTS Coordinates.  This function
+   * accepts (so that it can be used to map mixed collections) so watch out for
+   * runtime errors.
+   * 
+   * Convertible types include: 
+   * <ul>
+   *   <li> (Number, Number) </li>
+   *   <li> (Number, Number, Number) </li>
+   *   <li> com.vividsolutions.jts.geometry.Point </li>
+   *   <li> com.vividsolutions.jts.geometry.Coordinate </li>
+   * </ul>
+   *
+   * @param input: Any An object that is hopefully kind of like a Coordinate
+   *     tuple.
+   * @return the equivalent JTS Coordinate
+   * @throws RuntimeException if the input is not convertible
+   */
   def coerceCoord(input: Any) = {
     input match {
       case (x: Number, y: Number) => 
@@ -23,12 +47,26 @@ private object ModuleInternals {
   }
 }
 
+/**
+ * An enumeration of the valid end-cap styles when buffering a (line) Geometry.
+ * Valid styles include: 
+ * <ul>
+ *   <li>Round - A semicircle </li>
+ *   <li>Butt - A straight line perpendicular to the end segment</li>
+ *   <li>Square - A half-square</li>
+ * </ul>
+ * 
+ * @see org.geoscript.geometry.Geometry.buffer
+ */
 object EndCap {
   import com.vividsolutions.jts.operation.buffer.BufferOp._
 
   sealed abstract class Style { val intValue: Int }
+  /** @see EndCap */
   case object Butt extends Style { val intValue = CAP_BUTT }
+  /** @see EndCap */
   case object Round extends Style { val intValue = CAP_ROUND }
+  /** @see EndCap */
   case object Square extends Style { val intValue = CAP_SQUARE }
 }
 
