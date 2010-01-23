@@ -6,11 +6,12 @@ import layer._
 
 object PostgisTest extends GeoScript { 
   def main(args: Array[String]) {
-    val shrubbery = workspace.Postgis(
-      "database" -> "newyorkcity",
-      "passwd" -> "hope"
-      )
-     println(shrubbery.count)
-     println(shrubbery.layer("nyc_roadbed"))
+    val conflict = workspace.Postgis("database" -> "conflict")
+    val fields = conflict.layer("conflictsite").schema.fields
+    
+     for (field <- fields) { 
+        println(field.name) 
+        } 
+
   }
 } 

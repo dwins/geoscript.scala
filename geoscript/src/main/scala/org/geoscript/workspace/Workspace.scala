@@ -43,13 +43,13 @@ object Postgis {
  } 
 }
 object SpatiaLite {
-  
+  val factory = new gt.data.spatialite.SpatiaLiteDataStoreFactory 
   def apply(params: (String,String)*) = { 
     val connection = new java.util.HashMap[String,String] 
     connection.put("dbtype","spatialite")
     for ((key,value) <- params) { 
     connection.put(key,value)  
     }
-    new Workspace(gt.data.DataStoreFinder.getDataStore(connection)) 
+    new Workspace(factory.createDataStore(connection)) 
   } 
 } 
