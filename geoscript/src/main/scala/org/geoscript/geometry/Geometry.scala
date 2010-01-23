@@ -75,6 +75,10 @@ object Geometry {
     geom match {
       case (point: jts.Point) => Point(point)
       case (poly: jts.Polygon) => Polygon(poly)
+      case (linestring: jts.LineString) => LineString(linestring)
+      case (multipoint: jts.MultiPoint) => MultiPoint(multipoint)
+      case (multipoly: jts.MultiPolygon) => MultiPolygon(multipoly)
+      case (multilinestring: jts.MultiLineString) => MultiLineString(multilinestring)
     }
   }
 
