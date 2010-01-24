@@ -2,7 +2,7 @@ package org.geoscript.workspace
 
 import org.{geotools => gt}
 import org.geoscript.layer._
-import java.io.Serializable
+import java.io.{File, Serializable}
 
 
 class Workspace(wrapped: gt.data.DataStore) {
@@ -42,6 +42,7 @@ object Postgis {
     new Workspace(factory.createDataStore(connection))  
  } 
 }
+
 object SpatiaLite {
   val factory = new gt.data.spatialite.SpatiaLiteDataStoreFactory 
   def apply(params: (String,String)*) = { 
@@ -53,3 +54,15 @@ object SpatiaLite {
     new Workspace(factory.createDataStore(connection)) 
   } 
 } 
+
+object Directory {
+  def apply(path: String): Workspace = apply(new File(path))
+
+  def apply(path: File): Workspace =
+    new Workspace(
+      new gt.data.directory.DirectoryDataStore(
+        path, 
+        new java.net.URI("http://geoscript.org/")
+      )
+    )
+}

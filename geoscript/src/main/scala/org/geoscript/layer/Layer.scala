@@ -9,7 +9,7 @@ import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.geometry.Geometry
 import org.geoscript.util.ClosingIterator
-import org.geoscript.workspace.Workspace
+import org.geoscript.workspace.{Directory,Workspace}
 
 trait Schema {
   def name: String
@@ -179,11 +179,12 @@ class Layer(val name: String, store: gt.data.DataStore) {
 }
 
 object Shapefile {
-  def apply(path: String): Layer = {
-    val ds = new gt.data.shapefile.ShapefileDataStore(
-      new File(path).toURI.toURL
-    )
-    val name = ds.getTypeNames()(0)
-    new Layer(name, ds)
+  private def basename(f: File) = f.getName().replaceFirst("\\.[^.]+$", "")
+    
+  def apply(path: String): Layer = apply(new File(path))
+
+  def apply(file: File): Layer = {
+    val ws = Directory(file.getParent())
+    ws.layer(basename(file))
   }
 }
