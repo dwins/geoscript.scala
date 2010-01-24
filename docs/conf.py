@@ -83,6 +83,9 @@ exclude_trees = ['_build']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
+# The default language to use for highlighting code listings
+highlight_language = "scala"
+
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
