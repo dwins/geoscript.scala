@@ -19,9 +19,9 @@ object MultiPoint {
   
   def apply(mp : jts.MultiPoint): MultiPoint = new Wrapper(mp) 
 
-  def apply(coords: Seq[(Double,Double)]): MultiPoint =
+  def apply(coords: Seq[Any]): MultiPoint =
     new Wrapper(ModuleInternals.factory.createMultiPoint( 
-      coords.map ({ elem => new jts.Coordinate(elem._1,elem._2) }).toArray
+      (coords map ModuleInternals.coerceCoord).toArray
     )) 
 }
 
