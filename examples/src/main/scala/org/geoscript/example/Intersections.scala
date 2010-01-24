@@ -31,13 +31,17 @@ object Intersections extends GeoScript with feature.GeoCrunch {
     )
 
   def main(args: Array[String]) = {
-    val src = layer.Shapefile(args(0))
-    val joinField = 
-      src.schema.fields.find { _.binding == classOf[String] } match {
-        case Some(f) => f.name
-        case None => "id"
-      }
-    val dest = src.workspace.create(rewrite(src.schema, joinField))
-    process(src, dest, joinField)
+    if (args.length == 0) {
+      println("You need to provide the path to a shapefile as an argument to this example.")
+    } else {
+      val src = layer.Shapefile(args(0))
+      val joinField = 
+        src.schema.fields.find { _.binding == classOf[String] } match {
+          case Some(f) => f.name
+          case None => "id"
+        }
+      val dest = src.workspace.create(rewrite(src.schema, joinField))
+      process(src, dest, joinField)
+    }
   }
 }
