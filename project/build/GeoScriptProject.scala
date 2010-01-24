@@ -3,6 +3,8 @@ import sbt._
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val library = 
     project("geoscript", "GeoScript Library", new GeoScriptLibrary(_))
+  lazy val docs =
+    project("docs", "GeoScript Documentation", new SphinxProject(_))
   lazy val examples = project("examples", "GeoScript Examples", library)
 
   lazy val console = task {
@@ -35,5 +37,27 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
     val specs = "org.specs" % "specs" % "[1.4.0,1.5[" % "test"
+  }
+
+  class SphinxProject(val info: ProjectInfo) 
+  extends ReflectiveTasks with ReflectiveMethods {
+    import Process._
+    val doc = task { 
+	  new java.lang.ProcessBuilder(
+        "sphinx-build",
+        "-b", "html",
+        "-d", "target/doctrees",
+        ".",
+        "target/html"
+      ) directory new java.io.File("docs")!;
+      None
+    }
+
+    val clean = task {
+      FileUtilities.clean(outputDirectories, log)
+      None
+    }
+
+    override val dependencies = Nil
   }
 }
