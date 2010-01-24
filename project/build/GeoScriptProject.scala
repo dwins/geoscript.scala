@@ -43,14 +43,20 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   extends ReflectiveTasks with ReflectiveMethods {
     import Process._
     val doc = task { 
-	  new java.lang.ProcessBuilder(
-        "sphinx-build",
-        "-b", "html",
-        "-d", "target/doctrees",
-        ".",
-        "target/html"
-      ) directory new java.io.File("docs")!;
-      None
+      try {
+        new java.lang.ProcessBuilder(
+          "sphinx-build",
+          "-b", "html",
+          "-d", "target/doctrees",
+          ".",
+          "target/html"
+        ) directory new java.io.File("docs")! match {
+          case 0 => None
+          case error => Some("Sphinx failed with error code %d".format(error))
+        }
+      } catch {
+        case ex => Some("Couldn't run Sphinx due to %s".format(ex.getMessage))
+      }
     }
 
     val clean = task {
