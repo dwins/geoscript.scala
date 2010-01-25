@@ -70,56 +70,151 @@ object EndCap {
   case object Square extends Style { val intValue = CAP_SQUARE }
 }
 
+/**
+ * The Geometry object contains several methods for dealing with Geometry
+ * objects, including translating from JTS Geometries to GeoScript Geometries.
+ */
 object Geometry {
+
+  /**
+   * Create a GeoScript Geometry equivalent to a given JTS Geometry.
+   */
   def apply(geom: jts.Geometry): Geometry = {
     geom match {
-      case (point: jts.Point) => Point(point)
-      case (poly: jts.Polygon) => Polygon(poly)
-      case (linestring: jts.LineString) => LineString(linestring)
-      case (multipoint: jts.MultiPoint) => MultiPoint(multipoint)
-      case (multipoly: jts.MultiPolygon) => MultiPolygon(multipoly)
-      case (multilinestring: jts.MultiLineString) => MultiLineString(multilinestring)
+      case (geom: jts.Point) => Point(geom)
+      case (geom: jts.Polygon) => Polygon(geom)
+      case (geom: jts.LineString) => LineString(geom)
+      case (geom: jts.MultiPoint) => MultiPoint(geom)
+      case (geom: jts.MultiPolygon) => MultiPolygon(geom)
+      case (geom: jts.MultiLineString) => MultiLineString(geom)
     }
   }
 
+  /**
+   * Create a GeoScript Geometry equivalent to a given JTS Geometry and
+   * annotated with a Projection.  The coordinates of the original Geometry are
+   * assumed to be in the provided projection.
+   */
   def apply(geom: jts.Geometry, proj: Projection): Geometry =
     apply(geom) in proj
 }
 
+/**
+ * The Geometry trait provides a common parent type for types representing
+ * specific geometric entities such as points and line strings.  All GeoScript
+ * geometry classes wrap their equivalent Geometry type from the Java Topology
+ * Suite (JTS).
+ *
+ * @see com.vividsolutions.jts.geom.Geometry
+ */
 trait Geometry {
+
+  /**
+   * The JTS geometry wrapped by this Geometry instance.  Note that projection
+   * information is not preserved if you manipulate the geometry directly.
+   */
   val underlying: jts.Geometry
 
+  /**
+   * The area enclosed by this geometry, in the same units as used by its
+   * coordinates.
+   */
   def area: Double = underlying.getArea()
 
+  /**
+   * A jts.Envelope that fully encloses this Geometry.
+   * @todo This should use a type from the GeoScript geometry package instead
+   */
   def bounds: jts.Envelope = 
     underlying.getEnvelope().asInstanceOf[jts.Envelope] // in projection
 
+  /**
+   * A point that represents the "center of gravity" of this geometry's
+   * enclosed area.  Note that this point is not necessarily on the geometry!
+   */
   def centroid: Point = Point(underlying.getCentroid()) in projection
 
+  /**
+   * All the coordinates that compose this Geometry as a sequence.
+   */
   def coordinates: Seq[Point] = 
     underlying.getCoordinates() map (c => Point(c) in projection)
 
+  /**
+   * The length of the line segments that compose this geometry, in the same
+   * units as used by its coordinates.
+   */
   def length: Double = underlying.getLength()
 
+  /**
+   * A string representation of this Geometry in GeoJSON format
+   * @see http://geojson.org/
+   */
   def json: String = "" // TODO: Real JSON encoding
-  def wkt: String = underlying.toString()
-  def projection: Projection = null // TODO: Real CRS tracking
   
+  /**
+   * A string representation of this Geometry in WKT (Well-Known Text) format.
+   * @see http://en.wikipedia.org/wiki/Well-known_text
+   */
+  def wkt: String = underlying.toString()
+
+  /**
+   * The Projection used for this Geometry's coordinates, or null if that is
+   * unspecified.
+   */
+  def projection: Projection = null
+  
+  /**
+   * @see buffer(Double, Int, EndCap.Style)
+   */
   def buffer(dist: Double): Geometry = buffer(dist, 8, EndCap.Round)
 
+  /**
+   * @see buffer(Double, Int, EndCap.Style)
+   */
   def buffer(dist: Double, segs: Int): Geometry = 
     buffer(dist, segs, EndCap.Round) 
 
+  /**
+   * Create a new Geometry expanding a set distance out from the boundaries of
+   * this one.
+   *
+   * @param dist: The distance to expand out.  May be positive, 0, or negative.
+   * @param segs: The number of line segments to create at vertices
+   * @param mode: The style to use for endcaps when buffering linear geometries
+   * @see EndCap
+   */
   def buffer(dist: Double, segs: Int, mode: EndCap.Style): Geometry = 
     Geometry(underlying.buffer(dist, segs, mode.intValue), projection)
 
+  /**
+   * Create a new Geometry equivalent to this one, but in the specified
+   * Projection.  If the projection for this geometry is known, this involves 
+   * transforming the coordinates; otherwise the projection is merely
+   * associated with the existing coordinates.
+   */
   def in(proj: Projection): Geometry
 
+  /**
+   * Create a new Geometry which contains only the areas included by both this
+   * Geometry and the one passed as an argument.
+   * 
+   * @todo Account for projection differences here
+   */
   def intersection(that: Geometry): Geometry = 
     Geometry(underlying intersection that.underlying)
 
+  /**
+   * Are the coordinates of this geometry in an acceptable order? (no
+   * self-intersecting polygons, etc.)
+   */
   def isValid: Boolean = underlying.isValid
 
+  /**
+   * Like <code>in</code>, but fails if this Geometry doesn't have a projection
+   * set.  
+   *
+   * @see in
+   */
   def transform(dest: Projection): Geometry 
 } 
-
