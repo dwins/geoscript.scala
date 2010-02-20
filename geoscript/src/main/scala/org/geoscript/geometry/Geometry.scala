@@ -75,6 +75,7 @@ object EndCap {
  * objects, including translating from JTS Geometries to GeoScript Geometries.
  */
 object Geometry {
+  private val wktReader = new com.vividsolutions.jts.io.WKTReader()
 
   /**
    * Create a GeoScript Geometry equivalent to a given JTS Geometry.
@@ -97,6 +98,11 @@ object Geometry {
    */
   def apply(geom: jts.Geometry, proj: Projection): Geometry =
     apply(geom) in proj
+
+  /**
+   * Create a GeoScript Geometry based on a string containing WKT text.
+   */
+  def fromWKT(wkt: String): Geometry = apply(wktReader.read(wkt))
 }
 
 /**
@@ -217,4 +223,6 @@ trait Geometry {
    * @see in
    */
   def transform(dest: Projection): Geometry 
+
+  override def toString = underlying.toString
 } 
