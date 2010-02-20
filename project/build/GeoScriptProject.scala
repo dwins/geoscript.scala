@@ -20,7 +20,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
         "http://download.osgeo.org/webdav/geotools/"
     val opengeo = "OpenGeo Maven Repository" at 
         "http://repo.opengeo.org/"
-
     val java_net = "Java.net Maven Repository" at 
         "http://download.java.net/maven/2/"
 
@@ -34,6 +33,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val gtPostgis = "org.geotools.jdbc"   % "gt-jdbc-postgis" % gtVersion 
     val gtSpatiaLite = "org.geotools.jdbc" % "gt-jdbc-spatialite" % gtVersion
 
+    val scalaSwing = "org.scala-lang" % "scala-swing" % (ScalaVersion.current getOrElse "2.7.7")
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
     val specs = "org.specs" % "specs" % "[1.4.0,1.5[" % "test"
