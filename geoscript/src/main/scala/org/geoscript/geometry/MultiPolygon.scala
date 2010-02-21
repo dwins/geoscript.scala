@@ -2,11 +2,25 @@
 package org.geoscript.geometry
 
 import com.vividsolutions.jts.{geom=>jts}
+import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.projection.Projection
 
 object MultiPolygon {
-   class Wrapper(val underlying: jts.MultiPolygon) extends MultiPolygon {
+  private val preparingFactory = new PreparedGeometryFactory()
+
+  class Wrapper(val underlying: jts.MultiPolygon) extends MultiPolygon {
+    override def prepare() = 
+    if (prepared) {
+      this
+    } else {
+      val prep =
+        preparingFactory.create(underlying).asInstanceOf[jts.MultiPolygon]
+      new Wrapper(prep) {
+        override def prepared = true
+      }
+    }
+
     def in(dest: Projection): MultiPolygon = new Projected(underlying, dest)
   }
 
@@ -14,6 +28,18 @@ object MultiPolygon {
     val underlying: jts.MultiPolygon, 
     override val projection: Projection
   ) extends MultiPolygon {
+
+    override def prepare() = 
+      if (prepared) {
+        this
+      } else {
+        val prep =
+          preparingFactory.create(underlying).asInstanceOf[jts.MultiPolygon]
+        new Projected(prep, projection) {
+          override def prepared = true
+        }
+      }
+
     def in(dest: Projection): MultiPolygon= 
       new Projected(projection.to(dest)(underlying), dest)
   }

@@ -63,7 +63,7 @@ class UsageTests extends Specification with GeoScript {
     "provide access to schema information" in {
       val shp = layer.Shapefile(statesPath)
       shp.schema.name must_== "states"
-      val field = shp.schema("STATE_NAME")
+      val field = shp.schema.get("STATE_NAME")
       field.name must_== "STATE_NAME"
       // the type of field.binding is hard to spell,
       // just compare toString's for now
@@ -79,17 +79,17 @@ class UsageTests extends Specification with GeoScript {
   "Workspaces" should {
     "provide a listing of layers" in {
       val mem = workspace.Memory()
-      mem.layers must beEmpty
+      mem.names must beEmpty
     }
 
     "allow creating new layers" in {
       val mem = workspace.Memory()
-      mem.layers must beEmpty
+      mem.names must beEmpty
       var dummy = mem.create("dummy", 
         layer.Field("name", classOf[String]),
         layer.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
       )
-      mem.layers.length must_== 1
+      mem.names.length must_== 1
 
       dummy += layer.Feature(
         "name" -> "San Francisco",

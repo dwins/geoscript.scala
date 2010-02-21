@@ -3,18 +3,27 @@ package org.geoscript.layer
 import java.io.File
 
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.feature.`type`.AttributeDescriptor
+import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
 import org.{geotools => gt}
+import com.vividsolutions.jts.{geom => jts}
 import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.geometry.Geometry
+import org.geoscript.projection.Projection
 import org.geoscript.util.ClosingIterator
 import org.geoscript.workspace.{Directory,Workspace}
 
 trait Schema {
   def name: String
   def fields: Seq[Field]
-  def apply(fieldName: String): Field
+  def fieldNames: Seq[String] = fields map { _.name } 
+  def get(fieldName: String): Field
+  override def toString: String = {
+    "<Schema name: %s, fields: %s>".format(
+      name,
+      fields.mkString("[", ", ", "]")
+    )
+  }
 }
 
 object Schema{
@@ -29,7 +38,7 @@ object Schema{
         buffer.toSeq
       }
 
-      def apply(fieldName: String) = Field(wrapped.getDescriptor(fieldName))
+      def get(fieldName: String) = Field(wrapped.getDescriptor(fieldName))
     }
   }
 
@@ -37,7 +46,7 @@ object Schema{
     new Schema {
       def name = name
       def fields = f
-      def apply(fieldName: String) = f.find(_.name == fieldName).get
+      def get(fieldName: String) = f.find(_.name == fieldName).get
     }
   }
 }
@@ -45,6 +54,9 @@ object Schema{
 trait Field {
   def name: String
   def binding: Class[_]
+  def projection: Projection
+  def gtBinding: Class[_] = binding
+  override def toString = "%s: %s".format(name, binding.getSimpleName)
 }
 
 trait Feature {
@@ -52,20 +64,49 @@ trait Feature {
   def get[A](key: String): A
   def geometry: Geometry
   def properties: Map[String, Any]
+  override def toString: String = 
+    properties map {
+      case (key, value: jts.Geometry) => 
+        "%s: <%s>".format(key, value.getGeometryType())
+      case (key, value) => 
+        "%s: %s".format(key, value)
+    } mkString("<Feature ", ", ", ">")
 }
 
 object Field {
   def apply(wrapped: AttributeDescriptor) = {
-    new Field {
-      def name = wrapped.getLocalName
-      def binding = wrapped.getType.getBinding
+    wrapped match {
+      case geom: GeometryDescriptor => new Field {
+        def name = geom.getLocalName
+        def binding =
+          Geometry.wrapperClass(
+            geom.getType.getBinding.asInstanceOf[Class[jts.Geometry]]
+          )
+        def projection = Projection(geom.getCoordinateReferenceSystem())
+        override def gtBinding = geom.getType.getBinding
+      }
+      case wrapped => 
+        new Field {
+          def name = wrapped.getLocalName
+          def binding = wrapped.getType.getBinding
+          def projection = null
+        }
     }
   }
+
+  def apply(n: String, b: Class[_ <: Geometry], p: Projection) = 
+    new Field {
+      def name = n
+      def binding = b
+      def projection = p
+      override def gtBinding = Geometry.jtsClass(b)
+    }
 
   def apply(n: String, b: Class[_]) = {
     new Field {
       def name = n
       def binding = b
+      def projection = null
     }
   }
 }
@@ -75,7 +116,11 @@ object Feature {
     new Feature {
       def id: String = wrapped.getID
 
-      def get[A](key: String): A = wrapped.getAttribute(key).asInstanceOf[A]
+      def get[A](key: String): A = 
+        wrapped.getAttribute(key) match {
+          case geom: jts.Geometry => Geometry(geom).asInstanceOf[A]
+          case x => x.asInstanceOf[A]
+        }
 
       def geometry: Geometry = 
         Geometry(
@@ -84,15 +129,10 @@ object Feature {
         )
 
       def properties: Map[String, Any] = {
-        val m = collection.mutable.Map[String, Any]()
-        var i = 0
-        while (i < wrapped.getAttributeCount) {
-          m.update(
-            wrapped.getType().getDescriptor(i).getLocalName,
-            wrapped.getAttribute(i)
-          )
-        }
-        m.readOnly.asInstanceOf[Map[String,Any]]
+        Map((0 until wrapped.getAttributeCount) map { i => 
+          val key = wrapped.getType().getDescriptor(i).getLocalName
+          ( key, get(key) )
+        }: _*)
       }
     }
   }
@@ -135,10 +175,12 @@ class FeatureCollection(
   }
 }
 
-class Layer(val name: String, store: gt.data.DataStore) {
-  private def source = store.getFeatureSource(name)
+trait Layer {
+  val name: String
+  def store: gt.data.DataStore
+  def workspace: Workspace
 
-  def workspace: Workspace = new Workspace(store)
+  private def source = store.getFeatureSource(name)
 
   def schema: Schema = Schema(store.getSchema(name))
 
@@ -176,6 +218,9 @@ class Layer(val name: String, store: gt.data.DataStore) {
     tx.commit()
     tx.close()
   }
+
+  override def toString: String = 
+    "<Layer name: %s, count: %d>".format(name, count)
 }
 
 object Shapefile {

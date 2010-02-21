@@ -77,6 +77,16 @@ object EndCap {
 object Geometry {
   private val wktReader = new com.vividsolutions.jts.io.WKTReader()
 
+  val typeMapping = List(
+    classOf[Point] -> classOf[jts.Point],
+    classOf[Polygon] -> classOf[jts.Polygon],
+    classOf[LineString] -> classOf[jts.LineString],
+    classOf[MultiPoint] -> classOf[jts.MultiPoint],
+    classOf[MultiPolygon] -> classOf[jts.MultiPolygon],
+    classOf[MultiLineString] -> classOf[jts.MultiLineString],
+    classOf[GeometryCollection] -> classOf[jts.GeometryCollection]
+  )
+
   /**
    * Create a GeoScript Geometry equivalent to a given JTS Geometry.
    */
@@ -88,8 +98,23 @@ object Geometry {
       case (geom: jts.MultiPoint) => MultiPoint(geom)
       case (geom: jts.MultiPolygon) => MultiPolygon(geom)
       case (geom: jts.MultiLineString) => MultiLineString(geom)
+      case (geom: jts.GeometryCollection) => GeometryCollection(geom)
     }
   }
+
+  def jtsClass(geomClass: Class[_ <: Geometry]): Class[_ <: jts.Geometry] =
+    typeMapping find { 
+      _._1.isAssignableFrom(geomClass) 
+    } map { 
+      _._2 
+    } getOrElse classOf[jts.Geometry]
+
+  def wrapperClass(geomClass: Class[_ <: jts.Geometry]): Class[_ <: Geometry] =
+    typeMapping find {
+      _._2.isAssignableFrom(geomClass)
+    } map {
+      _._1
+    } getOrElse classOf[Geometry]
 
   /**
    * Create a GeoScript Geometry equivalent to a given JTS Geometry and
@@ -132,7 +157,7 @@ trait Geometry {
    * @todo This should use a type from the GeoScript geometry package instead
    */
   def bounds: jts.Envelope = 
-    underlying.getEnvelope().asInstanceOf[jts.Envelope] // in projection
+    underlying.getEnvelopeInternal() // in projection
 
   /**
    * A point that represents the "center of gravity" of this geometry's
@@ -169,6 +194,19 @@ trait Geometry {
    * unspecified.
    */
   def projection: Projection = null
+
+  /**
+   * Tests whether this geometry is "prepared," optimized for certain
+   * spatial queries.
+   *
+   * @see prepare
+   */
+  def prepared: Boolean = false
+
+  /**
+   * Creates a prepared geometry equivalent to this one.
+   */
+  def prepare(): Geometry
   
   /**
    * @see buffer(Double, Int, EndCap.Style)
@@ -201,6 +239,9 @@ trait Geometry {
    */
   def in(proj: Projection): Geometry
 
+  def intersects(that: Geometry): Boolean = 
+    this.underlying intersects that.underlying
+
   /**
    * Create a new Geometry which contains only the areas included by both this
    * Geometry and the one passed as an argument.
@@ -209,6 +250,15 @@ trait Geometry {
    */
   def intersection(that: Geometry): Geometry = 
     Geometry(underlying intersection that.underlying)
+
+  /**
+   * Create a new Geometry which contains only the areas included by either this
+   * Geometry or the one passed as an argument.
+   * 
+   * @todo Account for projection differences here
+   */
+  def union(that: Geometry): Geometry = 
+    Geometry(underlying union that.underlying)
 
   /**
    * Are the coordinates of this geometry in an acceptable order? (no

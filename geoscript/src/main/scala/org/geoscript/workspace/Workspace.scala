@@ -4,32 +4,49 @@ import org.{geotools => gt}
 import org.geoscript.layer._
 import java.io.{File, Serializable}
 
-
-class Workspace(wrapped: gt.data.DataStore) {
-  def count = wrapped.getTypeNames.length
-  def layers: Seq[String] = wrapped.getTypeNames
-  def layer(name: String): Layer = new Layer(name, wrapped)
+class Workspace(
+  val underlying: gt.data.DataStore,
+  val params: java.util.HashMap[String, java.io.Serializable]
+) {
+  def count = underlying.getTypeNames.length
+  def names: Seq[String] = underlying.getTypeNames
+  def layer(theName: String): Layer = new Layer {
+    val name = theName
+    val workspace = Workspace.this
+    val store = underlying
+  }
 
   def create(name: String, fields: Field*): Layer = {
     val builder = new gt.feature.simple.SimpleFeatureTypeBuilder
     builder.setName(name)
-    for (field <- fields) builder.add(field.name, field.binding)
+    for (field <- fields) {
+      if (field.projection != null) builder.crs(field.projection.crs)
+      builder.add(field.name, field.gtBinding)
+    }
     val ftype = builder.buildFeatureType()
-    wrapped.createSchema(ftype)
+    underlying.createSchema(ftype)
     layer(name)
   }
    
   def create(schema: Schema): Layer = create(schema.name, schema.fields: _*)
+  override def toString = "<Workspace: %s>".format(params)
 }
 
 object Memory {
-  def apply() = new Workspace(new gt.data.memory.MemoryDataStore())
+  def apply() = 
+    new Workspace(
+      new gt.data.memory.MemoryDataStore(),
+      new java.util.HashMap
+    )
 }
 
 object Postgis {
   val factory = new gt.data.postgis.PostgisNGDataStoreFactory
-  def apply(params: (String,String)*) = { 
-    val connection = new java.util.HashMap[String,String] 
+  val create: (java.util.HashMap[_,_]) => gt.data.DataStore = 
+    factory.createDataStore
+
+  def apply(params: (String,java.io.Serializable)*) = { 
+    val connection = new java.util.HashMap[String,java.io.Serializable] 
     connection.put("port", "5432")
     connection.put("host", "localhost")
     connection.put("user", "postgres")
@@ -39,30 +56,35 @@ object Postgis {
     for ((key,value) <- params)  { 
       connection.put(key,value)           
     }
-    new Workspace(factory.createDataStore(connection))  
+    new Workspace(create(connection), connection)
  } 
 }
 
 object SpatiaLite {
   val factory = new gt.data.spatialite.SpatiaLiteDataStoreFactory 
-  def apply(params: (String,String)*) = { 
-    val connection = new java.util.HashMap[String,String] 
+  private val create: (java.util.HashMap[_,_]) => gt.data.DataStore =
+    factory.createDataStore
+
+  def apply(params: (String,java.io.Serializable)*) = { 
+    val connection = new java.util.HashMap[String,java.io.Serializable] 
     connection.put("dbtype","spatialite")
     for ((key,value) <- params) { 
-    connection.put(key,value)  
+      connection.put(key,value)  
     }
-    new Workspace(factory.createDataStore(connection)) 
+    new Workspace(create(connection), connection) 
   } 
 } 
 
 object Directory {
+  private val factory = new gt.data.directory.DirectoryDataStoreFactory
+
   def apply(path: String): Workspace = apply(new File(path))
 
-  def apply(path: File): Workspace =
-    new Workspace(
-      new gt.data.directory.DirectoryDataStore(
-        path, 
-        new java.net.URI("http://geoscript.org/")
-      )
-    )
+  def apply(path: File): Workspace = {
+    val params = new java.util.HashMap[String, java.io.Serializable]
+    params.put("url", path.toURL)
+    new Workspace(factory.createDataStore(params), params) {
+      override def toString = "<Directory: [%s]>".format(params.get("url"))
+    }
+  }
 }

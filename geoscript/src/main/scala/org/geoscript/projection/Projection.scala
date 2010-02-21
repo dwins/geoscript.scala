@@ -14,13 +14,29 @@ class Projection(val crs: CoordinateReferenceSystem) {
     val tx = CRS.findMathTransform(crs, dest.crs)
     JTS.transform(geom, tx).asInstanceOf[Geom] 
   }
+
+  def id: String = CRS.toSRS(crs)
+  def wkt: String = crs.toString()
+
+  override def toString: String = 
+    id match {
+      case null => "<Unidentified projection>"
+      case id => id
+    }
 }
 
 object Projection {
   def apply(s: String): Projection = {
-    // TODO: Fall back on WKT parsing if CRS code is not understood
-    new Projection(CRS.decode(s))
+    new Projection(
+      try {
+        CRS.decode(s)
+      } catch {
+        case _ => CRS.parseWKT(s)
+      }
+    )
   }
+
+  def apply(crs: CoordinateReferenceSystem) = new Projection(crs)
 }
 
 trait Implicits {

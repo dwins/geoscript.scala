@@ -1,18 +1,45 @@
 package org.geoscript.geometry
 
 import com.vividsolutions.jts.{geom=>jts}
+import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.projection.Projection
 
 object Point {
+  private val preparingFactory = new PreparedGeometryFactory()
+
   class Wrapper(val underlying: jts.Point) extends Point {
+    override def prepare() = 
+      if (prepared) {
+        this
+      } else {
+        val prep =
+          preparingFactory.create(underlying).asInstanceOf[jts.Point]
+        new Wrapper(prep) {
+          override def prepared = true
+        }
+      }
+
     def in(dest: Projection): Point = new Projected(underlying, dest)
   }
 
-  class Projected(
+  class Projected (
     val underlying: jts.Point, 
     override val projection: Projection
   ) extends Point {
+
+    override def prepare() = 
+      if (prepared) {
+        this
+      } else {
+        val prep =
+          preparingFactory.create(underlying).asInstanceOf[jts.Point]
+        new Projected(prep, projection) {
+          override def prepared = true
+        }
+      }
+
+
     def in(dest: Projection): Point = 
       new Projected(projection.to(dest)(underlying), dest)
   }
