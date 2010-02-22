@@ -7,10 +7,31 @@ import com.vividsolutions.jts.geom.{
 }
 import org.geotools.geometry.jts.LiteShape
 
+/**
+ * The Viewer object provides some rudimentary methods for rendering
+ * geometries on-screen.
+ */
 object Viewer {
+  /**
+   * Draw the given Geometry in a window with default size.
+   */
   def draw(g: Geometry) { draw(List(g), (500, 500)) } 
+
+  /**
+   * Draw the given Geometry in a window of the specified size (width, height).
+   */
   def draw(g: Geometry, size: (Int, Int)) { draw(List(g), size) }
+  
+  /**
+   * Draw all of the given Geometries in a window with default size 
+   * (width, height).
+   */
   def draw(gs: Seq[Geometry]) { draw(gs, (500, 500)) }
+
+  /**
+   * Draw all of the given Geometries in a window with the default size 
+   * (height, width)
+   */
   def draw(gs: Seq[Geometry], size: (Int, Int)) {
     val envelope = new Envelope
     for (geom <- gs) { envelope.expandToInclude(geom.bounds) }
@@ -68,6 +89,7 @@ object Viewer {
     Panel.preferredSize = (size._1 + 100, size._2 + 100)
 
     new swing.Frame {
+      title = "GeoScript Viewer"
       contents = Panel
       pack
       visible = true

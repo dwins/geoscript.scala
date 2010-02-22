@@ -57,7 +57,7 @@ class UsageTests extends Specification with GeoScript {
 
     "support search" in {
       val shp = layer.Shapefile(statesPath)
-      shp.features.find(_.id == "states.1") must beSome[layer.Feature]
+      shp.features.find(_.id == "states.1") must beSome[feature.Feature]
     }
 
     "provide access to schema information" in {
@@ -86,17 +86,17 @@ class UsageTests extends Specification with GeoScript {
       val mem = workspace.Memory()
       mem.names must beEmpty
       var dummy = mem.create("dummy", 
-        layer.Field("name", classOf[String]),
-        layer.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
+        feature.Field("name", classOf[String]),
+        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
       )
       mem.names.length must_== 1
 
-      dummy += layer.Feature(
+      dummy += feature.Feature(
         "name" -> "San Francisco",
         "geom" -> Point(37.78, -122.42)
       )
 
-      dummy += layer.Feature(
+      dummy += feature.Feature(
         "name" -> "New York",
         "geom" -> Point(40.47, -73.58)
       )
@@ -105,7 +105,7 @@ class UsageTests extends Specification with GeoScript {
       
       dummy.features.find(
         f => f.get[String]("name") == "New York"
-      ) must beSome[layer.Feature]
+      ) must beSome[feature.Feature]
     }
   }
 }
