@@ -92,7 +92,13 @@ trait Layer {
 
     for (f <- features) {
       val toBeWritten = writer.next()
-      for ((key, value) <- f.properties) toBeWritten.setAttribute(key, value)
+      for ((key, value) <- f.properties) {
+        val unwrapped = value match {
+          case geom: Geometry => geom.underlying
+          case raw => raw
+        }
+        toBeWritten.setAttribute(key, unwrapped)
+      }
       writer.write()
     }
 

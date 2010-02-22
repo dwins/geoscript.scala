@@ -22,6 +22,5 @@ object PostgisTest extends GeoScript {
       "name" -> "test",
       "geom" -> geometry.Point(43,74)
     ) 
-    
   }
 } 
