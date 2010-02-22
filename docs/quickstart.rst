@@ -1,16 +1,12 @@
 
 QuickStart with GeoScript Scala
 ================================
-GeoScript scala is a collection of wrapped GeoTools objects that provided access to GeoTools functionality but presented in a more scala like manner. 
 
-
-To build GeoScript.scala we use Scala’s simple build tool (sbt). Sbt is similar to Apache Ivy or Maven except its designed specificity for the Scala development environment. With sbt you can keep track of both scala and java based software libraries. 
 
 Install sbt
 -------------
-Download sbt from the project’s website. 
-http://code.google.com/p/simple-build-tool/
-http://code.google.com/p/simple-build-tool/wiki/Setup
+Download sbt from the project’s `website http://code.google.com/p/simple-build-tool/`_ 
+
 
 At the time of this writing a complied jar is available::
 	
@@ -30,7 +26,7 @@ Download GeoScript.scala::
 	
 Start sbt::
 
-	cd geoscipt.scala
+	cd geoscipt.scala/
 	sbt
 
 Check out the decencies:: 
