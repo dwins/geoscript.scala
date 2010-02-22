@@ -1,8 +1,9 @@
 package org.geoscript.workspace
 
-import org.{geotools => gt}
-import org.geoscript.layer._
 import java.io.{File, Serializable}
+import org.geoscript.feature._
+import org.geoscript.layer._
+import org.{geotools => gt}
 
 class Workspace(
   val underlying: gt.data.DataStore,
@@ -20,8 +21,13 @@ class Workspace(
     val builder = new gt.feature.simple.SimpleFeatureTypeBuilder
     builder.setName(name)
     for (field <- fields) {
-      if (field.projection != null) builder.crs(field.projection.crs)
-      builder.add(field.name, field.gtBinding)
+      field match {
+        case field: GeoField => 
+          builder.crs(field.projection.crs)
+          builder.add(field.name, field.gtBinding)
+        case field => 
+          builder.add(field.name, field.gtBinding)
+      }
     }
     val ftype = builder.buildFeatureType()
     underlying.createSchema(ftype)

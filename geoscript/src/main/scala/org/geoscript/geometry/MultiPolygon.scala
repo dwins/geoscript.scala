@@ -6,10 +6,14 @@ import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.projection.Projection
 
+/**
+ * A companion object for the MultiPolygon type, providing various
+ * methods for directly instantiating MultiPolygon objects.
+ */
 object MultiPolygon {
   private val preparingFactory = new PreparedGeometryFactory()
 
-  class Wrapper(val underlying: jts.MultiPolygon) extends MultiPolygon {
+  private class Wrapper(val underlying: jts.MultiPolygon) extends MultiPolygon {
     override def prepare() = 
     if (prepared) {
       this
@@ -24,7 +28,7 @@ object MultiPolygon {
     def in(dest: Projection): MultiPolygon = new Projected(underlying, dest)
   }
 
-  class Projected(
+  private class Projected(
     val underlying: jts.MultiPolygon, 
     override val projection: Projection
   ) extends MultiPolygon {
@@ -44,20 +48,27 @@ object MultiPolygon {
       new Projected(projection.to(dest)(underlying), dest)
   }
   
-  def apply(mp : jts.MultiPolygon): MultiPolygon = new Wrapper(mp) 
+  /**
+   * Create a MultiPolygon by wrapping a "raw" JTS MultiPolygon.
+   */
+  def apply(polygons: jts.MultiPolygon): MultiPolygon = new Wrapper(polygons) 
 
-  def apply(polygons : Seq[jts.Polygon]): MultiPolygon =
-  new Wrapper( 
-    ModuleInternals.factory.createMultiPolygon(polygons.toArray) 
+  /**
+   * Create a MultiPolygon from a sequence of Polygons
+   */
+  def apply(polygons: Seq[jts.Polygon]): MultiPolygon =
+    new Wrapper( 
+      ModuleInternals.factory.createMultiPolygon(polygons.toArray) 
     ) 
-
 }
 
+/**
+ * A MultiPolygon is a collection of 0 or more polygons that can be treated as
+ * a single geometry.
+ */
 trait MultiPolygon extends Geometry {
   override val underlying: jts.MultiPolygon
   override def in(dest: Projection): MultiPolygon
-
   override def transform(dest: Projection): MultiPolygon = 
     MultiPolygon(projection.to(dest)(underlying)) in dest
-
 }

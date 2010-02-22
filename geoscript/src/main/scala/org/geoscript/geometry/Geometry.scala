@@ -102,6 +102,12 @@ object Geometry {
     }
   }
 
+  /** 
+   * Find the class binding that should be used in the underlying GeoTools
+   * methods when dealing with a particular GeoScript geometry class.  Note
+   * that if you just want to unwrap a Geometry instance, you can simple use
+   * geom.underlying.
+   */
   def jtsClass(geomClass: Class[_ <: Geometry]): Class[_ <: jts.Geometry] =
     typeMapping find { 
       _._1.isAssignableFrom(geomClass) 
@@ -109,6 +115,11 @@ object Geometry {
       _._2 
     } getOrElse classOf[jts.Geometry]
 
+  /**
+   * Find the class binding that should be used in GeoScript wrapper objects
+   * for the given Geometry.  Note that if you just want to wrap an existing
+   * JTS Geometry instance, you can simply use Geometry.apply().
+   */
   def wrapperClass(geomClass: Class[_ <: jts.Geometry]): Class[_ <: Geometry] =
     typeMapping find {
       _._2.isAssignableFrom(geomClass)
@@ -204,16 +215,24 @@ trait Geometry {
   def prepared: Boolean = false
 
   /**
-   * Creates a prepared geometry equivalent to this one.
+   * Creates a prepared geometry equivalent to this one.  Prepared geometries
+   * are slower to create, but provide faster implementations of various
+   * spatial operations.
    */
   def prepare(): Geometry
   
   /**
+   * Create a new Geometry expanding a set distance out from the boundaries of
+   * this one.
+   *
    * @see buffer(Double, Int, EndCap.Style)
    */
   def buffer(dist: Double): Geometry = buffer(dist, 8, EndCap.Round)
 
   /**
+   * Create a new Geometry expanding a set distance out from the boundaries of
+   * this one.
+   *
    * @see buffer(Double, Int, EndCap.Style)
    */
   def buffer(dist: Double, segs: Int): Geometry = 
@@ -239,6 +258,10 @@ trait Geometry {
    */
   def in(proj: Projection): Geometry
 
+  /**
+   * Determines whether this Geometry contains any common points with the
+   * provided one.
+   */
   def intersects(that: Geometry): Boolean = 
     this.underlying intersects that.underlying
 

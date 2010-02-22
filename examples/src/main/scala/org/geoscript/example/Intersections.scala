@@ -11,7 +11,7 @@ object Intersections extends GeoScript with feature.GeoCrunch {
         src.filter(filter.Intersects(feat.geometry))
       dest ++= 
         intersections.filter(_.id > feat.id).map { corner =>
-          layer.Feature(
+          feature.Feature(
             "geom" -> (feat.geometry intersection corner.geometry),
             (joinField + "Left") -> feat.get(joinField),
             (joinField + "Right") -> corner.get(joinField)
@@ -22,12 +22,12 @@ object Intersections extends GeoScript with feature.GeoCrunch {
     println("Found %d intersections".format(dest.count))
   }
 
-  def rewrite(schema: layer.Schema, fieldName: String): layer.Schema = 
-    layer.Schema(
+  def rewrite(schema: feature.Schema, fieldName: String): feature.Schema = 
+    feature.Schema(
       schema.name + "_intersections",
-      layer.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry]),
-      layer.Field(fieldName + "Left", classOf[String]),
-      layer.Field(fieldName + "Right", classOf[String])
+      feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry]),
+      feature.Field(fieldName + "Left", classOf[String]),
+      feature.Field(fieldName + "Right", classOf[String])
     )
 
   def main(args: Array[String]) = {
