@@ -5,10 +5,14 @@ import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.projection.Projection
 
+/**
+ * A companion object for the LineString type, providing various
+ * methods for directly instantiating LineString objects.
+ */
 object LineString {
   private val preparingFactory = new PreparedGeometryFactory()
 
-  class Wrapper(val underlying: jts.LineString) extends LineString {
+  private class Wrapper(val underlying: jts.LineString) extends LineString {
     override def prepare() = 
     if (prepared) {
       this
@@ -23,7 +27,7 @@ object LineString {
     def in(dest: Projection) = new Projected(underlying, dest)
   }
 
-  class Projected(
+  private class Projected(
     val underlying: jts.LineString,
     override val projection: Projection
   ) extends LineString {
@@ -43,14 +47,24 @@ object LineString {
       new Projected(projection.to(dest)(underlying), dest)
   }
 
+  /**
+   * Create a LineString by wrapping a "raw" JTS LineString.
+   */
   def apply(line: jts.LineString): LineString = new Wrapper(line)
 
+  /**
+   * Create a LineString from JTS Coordinates.
+   */
   def apply(coords: jts.Coordinate*): LineString =
     new Wrapper(
       ModuleInternals.factory.createLineString(coords toArray)
     )
 }
 
+/**
+ * A LineString contains 0 or more contiguous line segments, and is useful for
+ * representing geometries such as roads or rivers.
+ */
 trait LineString extends Geometry {
   override val underlying: jts.LineString
   override def in(dest: Projection): LineString

@@ -8,7 +8,7 @@ import javax.swing.filechooser.FileFilter
 
 import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geotools.factory.CommonFactoryFinder
-import org.geotools.feature.FeatureCollection
+import org.geotools.{feature => gt}
 
 trait GeoCrunch {
   def styles = CommonFactoryFinder.getStyleFactory(null)
@@ -39,7 +39,7 @@ trait GeoCrunch {
     DataStoreFinder.getDataStore(javaMap.underlying)
   }
 
-  def foreach[F](fc: FeatureCollection[_,F]) (callback: F => Unit) = {
+  def foreach[F](fc: gt.FeatureCollection[_,F]) (callback: F => Unit) = {
     val it = fc.iterator
     try {
       while (it.hasNext) try {

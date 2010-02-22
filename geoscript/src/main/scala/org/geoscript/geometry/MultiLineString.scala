@@ -5,9 +5,14 @@ import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.projection.Projection
 
+
+/**
+ * A companion object for the MultiLineString type, providing various
+ * methods for directly instantiating MultiLineString objects.
+ */
 object MultiLineString {
   private val preparingFactory = new PreparedGeometryFactory()
-  class Wrapper(val underlying: jts.MultiLineString) extends MultiLineString {
+  private class Wrapper(val underlying: jts.MultiLineString) extends MultiLineString {
     override def prepare() = 
       if (prepared) {
         this
@@ -24,7 +29,7 @@ object MultiLineString {
     def in(dest: Projection): MultiLineString = new Projected(underlying, dest)
   }
 
-  class Projected(
+  private class Projected(
     val underlying: jts.MultiLineString, 
     override val projection: Projection
   ) extends MultiLineString {
@@ -44,15 +49,25 @@ object MultiLineString {
       new Projected(projection.to(dest)(underlying), dest)
   }
   
-  def apply(mp : jts.MultiLineString): MultiLineString = new Wrapper(mp)
+  /**
+   * Create a MultiLineString by wrapping a "raw" JTS MultiLineString.
+   */
+  def apply(lines: jts.MultiLineString): MultiLineString = new Wrapper(lines)
 
-  def apply(ls : Seq[jts.LineString]): MultiLineString = 
+  /**
+   * Create a MultiLineString from a list of JTS LineStrings
+   */
+  def apply(lines: Seq[jts.LineString]): MultiLineString = 
     new Wrapper( 
-    ModuleInternals.factory.createMultiLineString(ls.toArray) 
-  )
-
+      ModuleInternals.factory.createMultiLineString(lines.toArray) 
+    )
 }
 
+/**
+ * A MultiLineString aggregates 0 or more line strings and allows them to be
+ * treated as a single geometry.  For example, the length of a multilinestring
+ * is the sum of the length of its constituent linestrings.
+ */
 trait MultiLineString extends Geometry {
   override val underlying: jts.MultiLineString
   override def in(dest: Projection): MultiLineString

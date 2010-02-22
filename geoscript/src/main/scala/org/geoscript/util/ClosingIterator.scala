@@ -1,5 +1,10 @@
 package org.geoscript.util
 
+/**
+ * ClosingIterators ensure that some close() method is called once (and exactly
+ * once) when they run out of elements.  They mostly exist to make dealing with
+ * GeoTools FeatureIterators more automatic.
+ */
 abstract class ClosingIterator[A](iter: Iterator[A]) extends Iterator[A] {
   private var open = true
 

@@ -13,7 +13,7 @@ import org.geotools.styling.Style
 object ColorRamp extends org.geoscript.feature.GeoCrunch {
   def pairwise[A](s: List[A]): List[(A,A)] = s zip (s drop 1)
 
-  def ranges(col: layer.FeatureCollection, p: String): List[(Double, Double)] =
+  def ranges(col: feature.FeatureCollection, p: String): List[(Double, Double)] =
   {
     // Use the value for the first feature as the starting value 
     // for both max and min

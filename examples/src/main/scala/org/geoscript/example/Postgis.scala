@@ -2,7 +2,6 @@ package org.geoscript.example
 
 import com.vividsolutions.jts.geom.Geometry
 import org.geoscript._
-import layer._
 
 object PostgisTest extends GeoScript { 
   def main(args: Array[String]) {
@@ -15,12 +14,14 @@ object PostgisTest extends GeoScript {
     val workSpaceTest = workspace.Postgis() 
     
     val test = workSpaceTest.create("test",
-        layer.Field("name", classOf[String]),
-        layer.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
+        feature.Field("name", classOf[String]),
+        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
     )
-    test += layer.Feature( 
+
+    test += feature.Feature( 
       "name" -> "test",
-      "geom" -> geometry.Point(43,74) ) 
+      "geom" -> geometry.Point(43,74)
+    ) 
     
   }
 } 
