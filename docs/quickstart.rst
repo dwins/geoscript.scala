@@ -1,7 +1,13 @@
-
 QuickStart with GeoScript Scala
 ================================
 
+GeoScript.scala provides a streamlined Scala API for geospatial data access and operations.  Internally, it uses the `GeoTools library http://geotools.org/`_.
+
+In this quickstart, we will cover the following:
+
+#. Build GeoScript.scala from sources
+#. Use GeoScript in a Scala interpreter
+#. Set up GeoScript for use in another project
 
 Install sbt
 -------------
