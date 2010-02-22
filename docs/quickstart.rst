@@ -37,11 +37,17 @@ Start sbt::
 
 Check out the decencies:: 
 	
-	update
+	> update
 	
 Explore sbt:: 
 
-	actions
+	> actions
+
+Start the scala command line interpreter:: 
+
+	> console
+	scala> import geoscript._
+	scala> do something cool with geoscript._ 
 
 For more information check out the sbt Google project page. 
 
