@@ -220,6 +220,20 @@ trait Feature {
    */
   def properties: Map[String, Any]
 
+  /**
+   * Write the values in this Feature to a particular OGC Feature object.
+   */
+  def writeTo(feature: org.opengis.feature.simple.SimpleFeature) {
+    for ((key, value) <- properties) {
+      value match {
+        case geom: Geometry => 
+          feature.setAttribute(key, geom.underlying)
+        case value =>
+          feature.setAttribute(key, value)
+      }
+    }
+  }
+
   override def toString: String = 
     properties map {
       case (key, value: jts.Geometry) => 

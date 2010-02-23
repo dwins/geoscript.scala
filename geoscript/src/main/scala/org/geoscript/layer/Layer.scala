@@ -9,6 +9,7 @@ import com.vividsolutions.jts.{geom => jts}
 import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.feature._
+import org.geoscript.filter._
 import org.geoscript.geometry._
 import org.geoscript.projection._
 import org.geoscript.util.ClosingIterator
@@ -54,8 +55,8 @@ trait Layer {
   /** 
    * Get a filtered feature collection.
    */
-  def filter(pred: org.opengis.filter.Filter): FeatureCollection = {
-    new FeatureCollection(source, new gt.data.DefaultQuery(name, pred)) 
+  def filter(pred: Filter): FeatureCollection = {
+    new FeatureCollection(source, new gt.data.DefaultQuery(name, pred.underlying)) 
   }
 
   /**
@@ -92,13 +93,43 @@ trait Layer {
 
     for (f <- features) {
       val toBeWritten = writer.next()
-      for ((key, value) <- f.properties) {
-        val unwrapped = value match {
-          case geom: Geometry => geom.underlying
-          case raw => raw
-        }
-        toBeWritten.setAttribute(key, unwrapped)
-      }
+      f.writeTo(toBeWritten)
+      writer.write()
+    }
+
+    writer.close()
+    tx.commit()
+    tx.close()
+  }
+
+  def -= (feature: Feature) { this --= Seq.singleton(feature) }
+
+  def --= (features: Iterable[Feature]) {
+    exclude(Filter.or(
+      features.toSeq filter { null != } map { f =>  Filter.id(Seq.singleton(f.id)) }
+    ))
+  }
+
+  def exclude(filter: Filter) { 
+    store.getFeatureSource(name)
+      .asInstanceOf[gt.data.FeatureStore[SimpleFeatureType, SimpleFeature]]
+      .removeFeatures(filter.underlying) 
+  }
+
+  def update(replace: Feature => Feature) {
+    update(Filter.Include)(replace)
+  }
+
+  def update(filter: Filter)(replace: Feature => Feature) {
+    val tx = new gt.data.DefaultTransaction
+    val writer = filter match {
+      case Filter.Include => store.getFeatureWriter(name, tx)
+      case filter => store.getFeatureWriter(name, filter.underlying, tx)
+    }
+
+    while (writer hasNext) {
+      val existing = writer.next()
+      replace(Feature(existing)).writeTo(existing)
       writer.write()
     }
 

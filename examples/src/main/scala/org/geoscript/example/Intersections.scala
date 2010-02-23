@@ -8,7 +8,7 @@ object Intersections extends GeoScript with feature.GeoCrunch {
 
     for (feat <- src.features) {
       val intersections = 
-        src.filter(filter.Intersects(feat.geometry))
+        src.filter(filter.Filter.intersects(feat.geometry))
       dest ++= 
         intersections.filter(_.id > feat.id).map { corner =>
           feature.Feature(
