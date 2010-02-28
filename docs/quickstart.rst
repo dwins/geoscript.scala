@@ -1,5 +1,7 @@
-QuickStart with GeoScript Scala
-================================
+.. _quickstart:
+
+Quick Start
+===========
 
 GeoScript.scala provides a streamlined Scala API for geospatial data access and operations.  Internally, it uses the `GeoTools library http://geotools.org/`_.
 

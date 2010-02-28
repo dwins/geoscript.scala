@@ -1,3 +1,5 @@
+.. _scala_introduction:
+
 Introduction to Scala
 ======================
 
