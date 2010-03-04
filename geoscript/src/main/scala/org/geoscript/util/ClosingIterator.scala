@@ -45,14 +45,10 @@ abstract class ClosingIterator[A](iter: Iterator[A]) extends Iterator[A] {
     }
   }
 
-  override def ++[B >: A](that: => Iterator[B]) = {
-    val concatenated = super.++(that)
-    new ClosingIterator(concatenated) {
+  override def ++[B >: A](that: => Iterator[B]) =
+    new ClosingIterator(super.++(that)) {
       def close() { ClosingIterator.this.cleanup() } 
-      def what = concatenated.what
-      def what_=(b: Iterator[B]) = concatenated.what = b 
     }
-  }
 
   override def take(n: Int) = delegate(super.take(n)) 
 
