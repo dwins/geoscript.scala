@@ -1,0 +1,19 @@
+[PROP=10] {
+  stroke: #000001;
+}
+
+[PROP=20] {
+  stroke: #000002;
+}
+
+[PROP>30] {
+  stroke: #000003;
+}
+
+[PROP<5] {
+  stroke: #000004;
+}
+
+[PROP>25] {
+  stroke: #000005;
+}

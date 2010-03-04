@@ -1,0 +1,22 @@
+states {
+  label: [STATE_ABBR];
+  geometry: [the_geom];
+  stroke: black;
+  stroke-width: [PERSONS/1000000];
+  fill-opacity: 0.7;
+}
+
+states [PERSONS<2000000] {
+  title: "Persons < 2M";
+  fill: #4DFF4D;
+}
+
+states [PERSONS>=2000000][PERSONS<4000000] {
+  title: "2M < Persons < 4M";
+  fill: #FF4D4D;
+}
+
+states [PERSONS>=4000000] {
+  title: "4M < Persons";
+  fill: #4D4DFF;
+}
