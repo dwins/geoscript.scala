@@ -33,7 +33,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val gtPostgis = "org.geotools.jdbc"   % "gt-jdbc-postgis" % gtVersion 
     val gtSpatiaLite = "org.geotools.jdbc" % "gt-jdbc-spatialite" % gtVersion
 
-    val scalaSwing = "org.scala-lang" % "scala-swing" % ("2.7.7")
+    val scalaSwing = "org.scala-lang" % "scala-swing" % ("2.8.0.Beta1")
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
     val specs = "org.specs" % "specs" % "[1.4.0,1.5[" % "test"
