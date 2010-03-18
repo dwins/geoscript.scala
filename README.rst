@@ -2,7 +2,7 @@ GeoScript.scala is a Scala library for simple reading, writing, manipulation,
 and rendering of geospatial data.  It is based on the `GeoTools
 <http://geotools.org>`_ geospatial library for Java.
 
-Similar GeoTools wrappers are available for Python and JavaScript (using the
+Similar GeoTools wrappers are available for Python, Groovy, and JavaScript (using the
 narwhal platform).  See http://geoscript.org/ for details.
 
 Building
