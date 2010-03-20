@@ -1,7 +1,6 @@
 package org.geoscript.feature
 
-import java.io.Serializable
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, Serializable}
 
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileFilter
@@ -9,6 +8,9 @@ import javax.swing.filechooser.FileFilter
 import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.{feature => gt}
+import org.{opengis => ogc}
+
+import collection.JavaConversions._
 
 trait GeoCrunch {
   def styles = CommonFactoryFinder.getStyleFactory(null)
@@ -21,10 +23,10 @@ trait GeoCrunch {
     shp.createNewDataStore(map)
   }
 
-  def create(params: Map[String, Object]): DataStore = {
-    var javaMap = new scala.collection.jcl.HashMap[String, Object]
-    javaMap ++= params
-    shp.createNewDataStore(javaMap.underlying)
+  def create(params: Map[String, Serializable]): DataStore = {
+    var map = new java.util.HashMap[String, Object]
+    for ((key, value) <- params) map.put(key, value)
+    shp.createNewDataStore(map)
   }
 
   def connect(params: (String, Object)*): DataStore = {
@@ -33,13 +35,17 @@ trait GeoCrunch {
     DataStoreFinder.getDataStore(map)
   }
 
-  def connect(params: Map[String,Serializable]) = {
-    var javaMap = new scala.collection.jcl.HashMap[String, Serializable]
-    javaMap ++= params
-    DataStoreFinder.getDataStore(javaMap.underlying)
+  def connect(params: Map[String,Serializable]): DataStore = {
+    var map = new java.util.HashMap[String,Object]
+    for ((key, value) <- params) map.put(key, value)
+    DataStoreFinder.getDataStore(map)
   }
 
-  def foreach[F](fc: gt.FeatureCollection[_,F]) (callback: F => Unit) = {
+  def foreach[T <: ogc.feature.`type`.FeatureType, F <: ogc.feature.Feature](
+    fc: gt.FeatureCollection[T,F]
+  ) (
+    callback: F => Unit
+  ) = {
     val it = fc.iterator
     try {
       while (it.hasNext) try {
@@ -51,7 +57,7 @@ trait GeoCrunch {
   def promptOpenFile(ff: FileFilter*): java.io.File = {
     val chooser = new javax.swing.JFileChooser
     if (ff.length > 0) chooser.setFileFilter(ff(0))
-    (ff.elements drop 1).foreach(chooser.addChoosableFileFilter)
+    (ff.iterator drop 1).foreach(chooser.addChoosableFileFilter)
     if (chooser.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) {
        System.exit(0) 
     }
@@ -61,7 +67,7 @@ trait GeoCrunch {
   def promptSaveFile(ff: FileFilter*): java.io.File = {
     val chooser = new javax.swing.JFileChooser
     if (ff.length > 0) chooser.setFileFilter(ff(0))
-    (ff.elements drop 1).foreach(chooser.addChoosableFileFilter)
+    (ff.iterator drop 1).foreach(chooser.addChoosableFileFilter)
     if (chooser.showSaveDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) {
        System.exit(0) 
     }
