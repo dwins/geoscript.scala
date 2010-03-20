@@ -8,7 +8,7 @@ class ClosingIteratorTests extends Specification {
     closeCount = 0
     op(iterator)
     closeCount must_== 1
-    op(iterator ++ List(1, 2, 3).elements)
+    op(iterator ++ List(1, 2, 3).iterator)
     closeCount must_== 2
     op(iterator drop 1)
     closeCount must_== 3
@@ -28,7 +28,7 @@ class ClosingIteratorTests extends Specification {
   def closing[A](it: Iterator[A]): ClosingIterator[A] =
     new ClosingIterator(it) { def close() = closeCount += 1 }
 
-  def iterator = closing(List(1, 2, 3).elements)
+  def iterator = closing(List(1, 2, 3).iterator)
 
   "Closing iterators" should {
     "support folds" in {
@@ -36,25 +36,25 @@ class ClosingIteratorTests extends Specification {
       closeOnce { it => (it foldLeft 0) { (_, _) => 0 } }
       closeOnce { it => (it :\ 0) { (_, _) => 0 } }
       closeOnce { it => (it foldRight 0) { (_, _) => 0 } }
-      closeOnce { it => it forall { _ => true } }
-      closeOnce { it => it forall { _ => false } }
-      closeOnce { it => it foreach { _ => () } }
-      closeOnce { it => it mkString(".") }
-      closeOnce { it => it reduceLeft { _ + _ } }
-      closeOnce { it => it reduceRight { _ + _ } }
+      closeOnce { _ forall { _ => true } }
+      closeOnce { _ forall { _ => false } }
+      closeOnce { _ foreach { _ => () } }
+      closeOnce { _ mkString(".") }
+      closeOnce { _ reduceLeft { _ + _ } }
+      closeOnce { _ reduceRight { _ + _ } }
     }
 
     "support searches" in {
-      closeOnce { it => it contains 2 must beTrue }
-      closeOnce { it => it contains 4 must beFalse }
-      closeOnce { it => it exists (2 == ) must beTrue } 
-      closeOnce { it => it exists (4 == ) must beFalse } 
-      closeOnce { it => it find (2 ==) must_== Some(2) }
-      closeOnce { it => it find (4 ==) must_== None }
-      closeOnce { it => it findIndexOf (2 ==) }
-      closeOnce { it => it findIndexOf (4 ==) }
-      closeOnce { it => it indexOf 2 }
-      closeOnce { it => it indexOf 4 }
+      closeOnce { _ contains 2 must beTrue }
+      closeOnce { _ contains 4 must beFalse }
+      closeOnce { _ exists (2 == ) must beTrue } 
+      closeOnce { _ exists (4 == ) must beFalse } 
+      closeOnce { _ find (2 ==) must_== Some(2) }
+      closeOnce { _ find (4 ==) must_== None }
+      closeOnce { _ indexWhere (2 ==) }
+      closeOnce { _ indexWhere (4 ==) }
+      closeOnce { _ indexOf 2 }
+      closeOnce { _ indexOf 4 }
     }
   }
 }
