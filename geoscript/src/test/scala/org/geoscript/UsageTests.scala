@@ -35,7 +35,7 @@ class UsageTests extends Specification with GeoScript {
     }
 
     "multi point should be easy" in {
-      MultiPoint(Seq((20, 20), (10.0, 10.0))) 
+      MultiPoint(Seq((20, 20), (10.0, 10.0))).area must_== 0
     } 
   }  
 
