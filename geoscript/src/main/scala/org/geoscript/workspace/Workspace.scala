@@ -88,7 +88,7 @@ object Directory {
 
   def apply(path: File): Workspace = {
     val params = new java.util.HashMap[String, java.io.Serializable]
-    params.put("url", path.toURL)
+    params.put("url", path.toURI.toURL)
     new Workspace(factory.createDataStore(params), params) {
       override def toString = "<Directory: [%s]>".format(params.get("url"))
     }

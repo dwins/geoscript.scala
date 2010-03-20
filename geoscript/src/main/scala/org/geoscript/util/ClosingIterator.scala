@@ -71,8 +71,13 @@ abstract class ClosingIterator[A](iter: Iterator[A]) extends Iterator[A] {
     finally { cleanup() }
   }
 
+  override def indexWhere(p: A => Boolean) = {
+    try { super.indexWhere(p) }
+    finally { cleanup() }
+  }
+
   override def findIndexOf(p: A => Boolean) = {
-    try { super.findIndexOf(p) }
+    try { super.indexWhere(p) }
     finally { cleanup() }
   }
 

@@ -312,7 +312,7 @@ class FeatureCollection(
   wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature],
   query: gt.data.Query
 ) extends Iterable[Feature] {
-  override def elements = {
+  override def iterator: Iterator[Feature] = {
     val collection = wrapped.getFeatures()
     val raw = collection.iterator()
     val rawIter = new Iterator[Feature] {

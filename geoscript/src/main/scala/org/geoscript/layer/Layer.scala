@@ -81,7 +81,7 @@ trait Layer {
   /**
    * Add a single Feature to this data set.
    */
-  def += (f: Feature) { this ++= Seq.singleton(f) }
+  def += (f: Feature) { this ++= Seq(f) }
 
   /**
    * Add multiple features to this data set.  This should be preferred over
@@ -102,11 +102,11 @@ trait Layer {
     tx.close()
   }
 
-  def -= (feature: Feature) { this --= Seq.singleton(feature) }
+  def -= (feature: Feature) { this --= Seq(feature) }
 
   def --= (features: Iterable[Feature]) {
     exclude(Filter.or(
-      features.toSeq filter { null != } map { f =>  Filter.id(Seq.singleton(f.id)) }
+      features.toSeq filter { null != } map { f =>  Filter.id(Seq(f.id)) }
     ))
   }
 

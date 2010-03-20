@@ -6,6 +6,7 @@ import com.vividsolutions.jts.geom.{
   Envelope, GeometryFactory, MultiPolygon, Polygon
 }
 import org.geotools.geometry.jts.LiteShape
+import swing.Swing._
 
 /**
  * The Viewer object provides some rudimentary methods for rendering
@@ -58,8 +59,7 @@ object Viewer {
     at.translate(50 / scale, -50 / scale)
 
     object Panel extends swing.Panel {
-      override def paintComponent(gc: awt.Graphics) {
-        val graphics = gc.asInstanceOf[awt.Graphics2D]
+      override def paint(graphics: awt.Graphics2D) {
         val opaque = graphics.getComposite() 
         graphics.setRenderingHint(
           awt.RenderingHints.KEY_ANTIALIASING,
@@ -86,7 +86,7 @@ object Viewer {
       }
     }
 
-    Panel.preferredSize = (size._1 + 100, size._2 + 100)
+    Panel.preferredSize = ((size._1 + 100, size._2 + 100): awt.Dimension)
 
     new swing.Frame {
       title = "GeoScript Viewer"

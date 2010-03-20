@@ -17,7 +17,7 @@ trait GeoCrunch {
 
   def create(params: (String, Object)*): DataStore = {
     var map = new java.util.HashMap[String, Object]
-    for (val (key, value) <- params) map.put(key, value)
+    for ((key, value) <- params) map.put(key, value)
     shp.createNewDataStore(map)
   }
 
@@ -29,7 +29,7 @@ trait GeoCrunch {
 
   def connect(params: (String, Object)*): DataStore = {
     var map = new java.util.HashMap[String,Object]
-    for (val (key, value) <- params) map.put(key, value)
+    for ((key, value) <- params) map.put(key, value)
     DataStoreFinder.getDataStore(map)
   }
 

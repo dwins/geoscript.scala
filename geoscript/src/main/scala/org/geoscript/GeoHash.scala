@@ -88,7 +88,7 @@ object GeoHash extends geometry.Implicits {
       (Stream.empty, Stream.empty) 
     } else {
       val (xs, ys) = separate(combined tail)
-      (cons(combined.first, ys), xs)
+      (cons(combined.head, ys), xs)
     }
 
   /**
