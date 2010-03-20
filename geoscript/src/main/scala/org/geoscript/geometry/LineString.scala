@@ -52,6 +52,11 @@ object LineString {
    */
   def apply(line: jts.LineString): LineString = new Wrapper(line)
 
+  def apply(coords: Iterable[Point]): LineString = 
+    new Wrapper(ModuleInternals.factory.createLineString(
+      coords map (_.underlying.getCoordinate) toArray
+    ))
+
   /**
    * Create a LineString from JTS Coordinates.
    */

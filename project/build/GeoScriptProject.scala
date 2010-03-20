@@ -38,7 +38,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val scalaSwing = "org.scala-lang" % "scala-swing" % ("2.8.0.Beta1")
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
-    val specs = "org.scala-tools.testing" % "specs_2.7.7" % "1.6.1" % "test"
+    val specs = "org.scala-tools.testing" % "specs_2.8.0.Beta1" % "1.6.3" % "test"
   }
 
   class SphinxProject(val info: ProjectInfo) 

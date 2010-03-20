@@ -62,6 +62,11 @@ object Point {
       ModuleInternals.factory.createPoint(new jts.Coordinate(x, y))
     )
 
+  def apply(tuple: (Double, Double)): Point = apply(tuple._1, tuple._2)
+
+  def apply(tuple: (Double, Double, Double)): Point = 
+    apply(tuple._1, tuple._2, tuple._3)
+
   /**
    * Create a Point by wrapping a "raw" JTS Point.
    */
