@@ -70,7 +70,8 @@ trait Schema {
 }
 
 /**
- * A companion object for Schema that provides various ways of creating Schema instances.
+ * A companion object for Schema that provides various ways of creating Schema
+ * instances.
  */
 object Schema{
   def apply(wrapped: SimpleFeatureType) = {
@@ -89,15 +90,17 @@ object Schema{
     }
   }
 
-  def apply(n: String, f: Field*) = {
+  def apply(n: String, f: Field*): Schema = apply(n, f.toSeq)
+
+  def apply(n: String, f: Iterable[Field]): Schema = {
     new Schema {
-      def name = name
+      def name = n
       def geometry = 
         f.find(_.isInstanceOf[GeoField])
          .getOrElse(null)
          .asInstanceOf[GeoField]
 
-      def fields = f
+      def fields = f.toSeq
       def get(fieldName: String) = f.find(_.name == fieldName).get
     }
   }
@@ -220,6 +223,14 @@ trait Feature {
    */
   def properties: Map[String, Any]
 
+  def update(data: (String, Any)*): Feature = update(data.toSeq)
+
+  def update(data: Iterable[(String, Any)]): Feature = {
+    val props = properties
+    assert(data.forall { x => props contains x._1 })
+    Feature(props ++ data)
+  }
+
   /**
    * Write the values in this Feature to a particular OGC Feature object.
    */
@@ -276,13 +287,15 @@ object Feature {
     }
   }
 
+  def apply(props: (String, Any)*): Feature = apply(props)
+
   /**
    * Create a feature from name/value pairs.  Example usage looks like:
    * <pre>
    * val feature = Feature("geom" -&gt; Point(12, 37), "type" -&gt; "radio tower")
    * </pre>
    */
-  def apply(props: (String, Any)*): Feature = {
+  def apply(props: Iterable[(String, Any)]): Feature = {
     new Feature {
       def id: String = null
 
@@ -296,7 +309,7 @@ object Feature {
       def get[A](key: String): A = 
         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
 
-      def properties: Map[String, Any] = Map(props: _*)
+      def properties: Map[String, Any] = Map(props.toSeq: _*)
     }
   }
 }
