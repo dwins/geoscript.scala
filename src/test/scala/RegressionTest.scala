@@ -92,7 +92,7 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
     val styleSheet = CssParser.parse(in("/railroad.css")).get
     val style = Translator.css2sld(styleSheet)
     val rule = style.featureTypeStyles.get(0).rules.get(1)
-    rule.getFilter must have (parent (classOf[org.opengis.filter.Not]))
+    rule.getFilter must have (parent (classOf[org.opengis.filter.PropertyIsNotEqualTo]))
     val sym = rule.symbolizers.get(0)
     sym must have (parent (classOf[org.geotools.styling.LineSymbolizer]))
     val lineSym = sym.asInstanceOf[org.geotools.styling.LineSymbolizer]

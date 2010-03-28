@@ -27,8 +27,16 @@ class FilterTest extends FilterOps with JUnitSuite with MustMatchersForJUnit {
       case (lhs, rhs) => (ECQL.toFilter(lhs), ECQL.toFilter(rhs))
     }
 
-    testcases map {
-      case (lhs, rhs) => lhs must be (equivalentTo(rhs))
+    for ((lhs, rhs) <- testcases) lhs must be (equivalentTo(rhs))
+  }
+
+  @Test def redundancy {
+    val testcases = List(
+      ("A < 1", "A <> 1")
+    ) map { case (lhs, rhs) => (ECQL.toFilter(lhs), ECQL.toFilter(rhs)) }
+
+    for ((lhs, rhs) <- testcases) {
+      redundant(lhs, rhs) must be (true)
     }
   }
 
@@ -38,19 +46,22 @@ class FilterTest extends FilterOps with JUnitSuite with MustMatchersForJUnit {
       ("A <= 1", "A > 1", "EXCLUDE"),
       ("A >= 1", "A < 1", "EXCLUDE"),
       ("A > 1", "A = 1", "EXCLUDE"),
+      ("A = 1", "A <> 1", "EXCLUDE"),
+      ("A < 1", "A <> 1", "A < 1"),
       ("A < 1", "A < 1", "A < 1"),
       ("A < 2", "A < 1", "A < 1"),
       ("A <= 1", "A < 1", "A < 1"),
-      ("A LIKE 'abc%'", "A NOT LIKE 'abc%'", "EXCLUDE")
+      ("A LIKE 'abc%'", "A NOT LIKE 'abc%'", "EXCLUDE"),
+      ("A > 2 AND A < 4", "A > 4", "EXCLUDE"),
+      ("A > 2 OR A < 4", "A > 4", "A > 4")
     ) map {
       case (lhs, rhs, expected) => 
         (ECQL.toFilter(lhs), ECQL.toFilter(rhs), ECQL.toFilter(expected))
     }
 
-    testcases map {
-      case (lhs, rhs, expected) =>
-        constrain(lhs, rhs) must be (equivalentTo(expected))
-        constrain(rhs, lhs) must be (equivalentTo(expected))
+    for ((lhs, rhs, expected) <- testcases) {
+      constrain(lhs, rhs) must be (equivalentTo(expected))
+      constrain(rhs, lhs) must be (equivalentTo(expected))
     }
   }
 }
