@@ -71,6 +71,17 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
   }
 
   /**
+   * Find the simplest filter possible that matches those features NOT accepted
+   * by the filter passed in, if possible.
+   */
+  val negate: PartialFunction[Selector, Selector] = {
+    case AcceptSelector => Exclude
+    case Exclude => AcceptSelector
+    case d: DataSelector =>
+      WrappedFilter(negate(d.asFilter))
+  }
+
+  /**
    * Test two selectors to determine whether the set of features matched by the 
    * second is a subset of those matched by the first.  That is, returns true if
    * <code>y.accept(f)</code> implies <code>x.accept(f)</code> for all f.

@@ -6,9 +6,8 @@ import java.io.FileWriter
 
 import scala.io.Source
 
-import org.geoserver.catalog.FeatureTypeInfo
-import org.geoserver.catalog.ResourceInfo
-import org.geoserver.web.GeoServerBasePage
+import org.geoserver.catalog.{FeatureTypeInfo, ResourceInfo, StyleInfo}
+import org.geoserver.web.GeoServerSecuredPage
 import org.vfny.geoserver.global.GeoserverDataDirectory
 
 import org.geotools.data.FeatureSource
@@ -21,6 +20,7 @@ import org.apache.wicket.WicketRuntimeException
 import org.apache.wicket.ajax.AjaxRequestTarget
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior
 import org.apache.wicket.ajax.form.AjaxFormValidatingBehavior
+import org.apache.wicket.ajax.markup.html.AjaxLink
 import org.apache.wicket.ajax.markup.html.form.AjaxButton
 import org.apache.wicket.extensions.ajax.markup.html.tabs.AjaxTabbedPanel
 import org.apache.wicket.extensions.markup.html.tabs.AbstractTab
@@ -32,6 +32,7 @@ import org.apache.wicket.markup.html.form.Form
 import org.apache.wicket.markup.html.form.IChoiceRenderer
 import org.apache.wicket.markup.html.form.SubmitLink
 import org.apache.wicket.markup.html.form.TextArea
+import org.apache.wicket.markup.html.form.TextField
 import org.apache.wicket.markup.html.panel.EmptyPanel
 import org.apache.wicket.markup.html.panel.Panel
 import org.apache.wicket.model.CompoundPropertyModel
@@ -61,20 +62,21 @@ trait CssDemoConstants {
     sldBytes.toString
   }
 
-  def cssText2sldText(css: String): Either[NoSuccess, String]= {
+  def cssText2sldText(css: String): Either[NoSuccess, String] = {
     parse(css) match {
       case Success(rules, in) => Right(styleSheetXML(rules))
       case ns: NoSuccess => Left(ns)
     }
   }
+
 }
 
 class CssValidator extends IValidator {
   override def validate(text: IValidatable) = {
     text.getValue() match {
-      case css: String => {
+      case css: String =>
         parse(css) match {
-          case ns: NoSuccess => {
+          case ns: NoSuccess =>
             val errorMessage = 
               "Line %d, column %d: %s".format(
                 ns.next.pos.line,
@@ -82,10 +84,8 @@ class CssValidator extends IValidator {
                 ns.msg
               )
             text.error(new ValidationError().setMessage(errorMessage))
-          }
           case _ => ()
         }
-      } 
       case _ => text.error(new ValidationError().setMessage("CSS text must not be empty"))
     }
   }
@@ -93,12 +93,12 @@ class CssValidator extends IValidator {
 
 /**
  * A Wicket page using the GeoServer extension system.  It adds a simple form
- * and an OpenLayers map that can be used to try out MSS styling interactively
- * with the topp:states dataset included in the default GeoServer configuration.
+ * and an OpenLayers map that can be used to try out CSS styling interactively
+ * with the layers loaded in the GeoServer catalog.
  *
  * @author David Winslow <cdwinslow@gmail.com>
  */
-class CssDemoPage(params: PageParameters) extends GeoServerBasePage
+class CssDemoPage(params: PageParameters) extends GeoServerSecuredPage
 with CssDemoConstants {
 
   class UpdatingTextArea(id: String, m: IModel) extends TextArea(id, m) {
@@ -108,7 +108,6 @@ with CssDemoConstants {
       }
     })
   }
-
 
   def this() = this(new PageParameters)
   def catalog = getCatalog
@@ -125,11 +124,14 @@ with CssDemoConstants {
     var styleBody = {
       val file = GeoserverDataDirectory.findStyleFile(cssSource)
       if (file != null && file.exists) {
-        Source.fromFile(file).getLines.reduceLeft {
-          (x: String, y: String) => x + y
-        }
+        Source.fromFile(file).getLines.mkString
       } else {
-        defaultStyle
+        """
+No CSS file was found for this style.  Please
+make sure this is the style you intended to
+edit, since saving the CSS will destroy the
+existing SLD.
+        """.trim
       }
     }
 
@@ -177,6 +179,7 @@ with CssDemoConstants {
       }
     })
 
+
     AjaxFormValidatingBehavior.addToAllFormComponents(styleEditor, "onkeyup", Duration.ONE_SECOND)
     add(styleEditor)
   }
@@ -189,15 +192,24 @@ with CssDemoConstants {
 
     val states =
       new SummaryProvider(
-        statesInfo.getFeatureSource(null,null)
+        layerInfo.getFeatureSource(null,null)
         .asInstanceOf[FeatureSource[SimpleFeatureType, SimpleFeature]]
         .getFeatures
       )
     add(new SummaryTable("summary", states))
   }
 
-  val styleInfo = getCatalog.getStyleByName(styleName)
-  var statesInfo = {
+  class CreateLinkPanel(id: String) extends Panel(id)
+  class NamePanel(id: String) extends Panel(id)
+
+  val styleInfo =
+    if ((params containsKey "style") && catalog.getStyleByName(params.getString("style")) != null) {
+      catalog.getStyleByName(params.getString("style"))
+    } else {
+      getCatalog.getStyles().get(0)
+    }
+
+  var layerInfo = {
     def res(a: String, b: String) =
       catalog.getResourceByName(a, b, classOf[FeatureTypeInfo])
 
@@ -218,12 +230,38 @@ with CssDemoConstants {
 
   def cssSource = styleInfo.getFilename.replaceAll("\\.sld$","") + ".css"
 
+  def createCssTemplate(name: String) {
+    if (catalog.getStyleByName(name) == null) {
+      val style = catalog.getFactory().createStyle()
+      style.setName(name)
+      style.setFilename(name + ".sld")
+      catalog.add(style)
+
+      val sld = GeoserverDataDirectory.findStyleFile(style.getFilename())
+      if (sld == null || !sld.exists) {
+        catalog.getResourcePool().writeStyle(
+          style,
+          new ByteArrayInputStream(
+            cssText2sldText(defaultStyle).right.get.getBytes()
+          )
+        )
+      }
+
+      val css = GeoserverDataDirectory.findStyleFile(name + ".css", true)
+      if (!css.exists) {
+        val writer = new FileWriter(css)
+        writer.write(defaultStyle)
+        writer.close()
+      }
+    }
+  }
+
   val layerSelectionForm = new Form("layer-selection")
   layerSelectionForm.add(
     new DropDownChoice(
       "layername",
-      new PropertyModel(this, "statesInfo"),
-      getCatalog.getResources(classOf[FeatureTypeInfo]),
+      new PropertyModel(this, "layerInfo"),
+      catalog.getResources(classOf[FeatureTypeInfo]),
       new IChoiceRenderer {
         override def getDisplayValue(choice: AnyRef) = {
           val resource = choice.asInstanceOf[ResourceInfo]
@@ -241,19 +279,79 @@ with CssDemoConstants {
     )
   )
 
-  layerSelectionForm.add(new SubmitLink("submit", layerSelectionForm) {
-      override def onSubmit() = {
-        val params = new org.apache.wicket.PageParameters
-        params.put("layer", statesInfo.getPrefixedName)
+  layerSelectionForm.add(
+    new DropDownChoice(
+      "stylename",
+      new PropertyModel(this, "styleInfo"),
+      { val l = new java.util.ArrayList[StyleInfo]
+        l.addAll(catalog.getStyles())
+        l
+      },
+      new IChoiceRenderer {
+        override def getDisplayValue(choice: AnyRef) = 
+          choice.asInstanceOf[StyleInfo].getName()
 
+        override def getIdValue(choice: AnyRef, index: Int) =
+          choice.asInstanceOf[StyleInfo].getId
+      }
+    )
+  )
+
+  layerSelectionForm.add(new SubmitLink("submit", layerSelectionForm) {
+      override def onSubmit() {
+        val params = new org.apache.wicket.PageParameters
+        params.put("layer", layerInfo.getPrefixedName())
+        params.put("style", styleInfo.getName())
         setResponsePage(classOf[CssDemoPage], params)
       }
     }
   )
+  
+  val createPanel: Panel = new CreateLinkPanel("create") {
+    setOutputMarkupId(true)
+
+    add(new AjaxLink("create-style", new Model("Create")) {
+      override def onClick(target: AjaxRequestTarget) {
+        createPanel.replaceWith(namePanel)
+        target.addComponent(namePanel)
+      }
+    })
+  }
+
+  val namePanel: Panel = new NamePanel("create") {
+    setOutputMarkupId(true)
+    var stylename = new Model("New style name")
+
+    add(new Form("create-style") {
+      add(new TextField("new-style-name", stylename))
+
+      add(new SubmitLink("new-style-submit", this))
+
+      add(new AjaxLink("new-style-cancel", new Model("Cancel")) {
+        override def onClick(target: AjaxRequestTarget) {
+          namePanel.replaceWith(createPanel)
+          target.addComponent(createPanel)
+        }
+      })
+
+      override def onSubmit() {
+        val name = stylename.getObject().asInstanceOf[String]
+        createCssTemplate(name)
+
+        val params = new org.apache.wicket.PageParameters
+        params.put("layer", layerInfo.getPrefixedName())
+        params.put("style", name)
+        setResponsePage(classOf[CssDemoPage], params)
+        setRedirect(true)
+      }
+    })
+  }
+
+  layerSelectionForm.add(createPanel)
 
   add(layerSelectionForm)
 
-  val map = new OpenLayersMapPanel("map", statesInfo)
+  val map = new OpenLayersMapPanel("map", layerInfo, styleInfo)
   add(map)
 
   val feedback2 = new org.apache.wicket.markup.html.panel.FeedbackPanel("feedback-low")

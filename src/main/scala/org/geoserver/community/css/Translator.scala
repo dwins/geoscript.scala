@@ -577,21 +577,14 @@ object Translator extends CssOps with SelectorOps {
   : List[(List[SimpleRule], List[SimpleRule])] = {
     // does this pair of "in" and "out" rules combine to form a set of selectors
     // that can possibly match anything?
-    def satisfiable(x: (List[SimpleRule], List[SimpleRule])): Boolean = {
-      // compose() does some simplification, so leave the heavy lifting up to
-      // that.
-      compose(x._1, x._2)._1.exists(_ match {
-        case Exclude(_) => false
-        case _ => true
-      })
-    }
+    def satisfiable(x: (List[SimpleRule], List[SimpleRule])): Boolean =
+      !(compose(x._1, x._2)._1 contains Exclude)
 
     if (xs.isEmpty) (Nil, Nil) :: Nil
     else
-      permute(xs.tail).flatMap( (x: (List[SimpleRule], List[SimpleRule])) => {
-        val (in, out) = x
+      permute(xs.tail) flatMap { case (in, out) =>
         (xs.head :: in, out) :: (in, xs.head :: out) :: Nil
-      }).filter(satisfiable)
+      } filter satisfiable
   }
 
   /**
@@ -600,15 +593,11 @@ object Translator extends CssOps with SelectorOps {
    * list has its selectors negated and its properties omitted.
    */
   private def compose(in: List[SimpleRule], out: List[SimpleRule]) = {
-    def negate(xs: List[Selector]): List[Selector] = {
-      val candidate = xs.flatMap((x: Selector) => x match {
-        case AcceptSelector => None
-        case d: DataSelector => Some(NotSelector(d))
+    def not(xs: List[Selector]): Selector = {
+      OrSelector(xs flatMap {
+        case d: DataSelector => Some(negate(d).asInstanceOf[DataSelector])
         case _ => None
       })
-
-      if (candidate isEmpty) Exclude :: Nil
-      else candidate
     }
 
     def specificity(xs: SimpleRule, ys: SimpleRule) = {
@@ -617,7 +606,7 @@ object Translator extends CssOps with SelectorOps {
 
     val selectors =
       in.flatMap((x: SimpleRule) => x.selectors) ++
-      out.flatMap((x: SimpleRule) => negate(x.selectors))
+      out.map((x: SimpleRule) => not(x.selectors))
 
     (simplify(selectors), in.sort(specificity).flatMap(_.properties))
   }

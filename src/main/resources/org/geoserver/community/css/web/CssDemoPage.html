@@ -6,11 +6,12 @@
   </head>
   <body>
     <wicket:extend>
-        <form wicket:id="layer-selection">
-            Currently styling the <select style="width: 200px" wicket:id="layername"></select> layer.
-            <a wicket:id="submit">Switch Layers</a>
-        </form>
         <div wicket:id="map"> </div>
+        <form wicket:id="layer-selection">
+            <label style="display:inline;" for="layername">Layer:</label><select style="display:inline; width: 200px;" wicket:id="layername"></select>
+            <label style="display:inline;" for="layername">Style:</label><select style="display:inline; width: 200px;" wicket:id="stylename"></select>
+            <a wicket:id="submit">Switch,</a> or <span wicket:id="create"></span>
+        </form>
         <div wicket:id="feedback-low"></div>
         <div wicket:id="tabs"></div>
     </wicket:extend>

@@ -4,14 +4,14 @@ import org.apache.wicket.markup.html.IHeaderContributor
 import org.apache.wicket.markup.html.IHeaderResponse
 import org.apache.wicket.markup.html.panel.Panel
 
-import org.geoserver.catalog.ResourceInfo
+import org.geoserver.catalog.{ResourceInfo, StyleInfo}
 
 /**
  * A Wicket widget that encapsulates an OpenLayers interactive map.
  *
  * @author David Winslow <cdwinslow@gmail.com>
  */
-class OpenLayersMapPanel(id: String, resource: ResourceInfo) extends Panel(id)
+class OpenLayersMapPanel(id: String, resource: ResourceInfo, style: StyleInfo) extends Panel(id)
 with IHeaderContributor {
   val rand = new java.util.Random
   val bbox = resource.getLatLonBoundingBox
@@ -40,7 +40,7 @@ with IHeaderContributor {
 
       var cfg = {
         maxExtent: new OpenLayers.Bounds(%1$f, %2$f, %3$f, %4$f),
-        maxResolution: %8$f,
+        maxResolution: %9$f,
         controls: [
           new OpenLayers.Control.PanZoomBar(),
           new OpenLayers.Control.Navigation()
@@ -51,9 +51,9 @@ with IHeaderContributor {
       map.addLayer(new OpenLayers.Layer.WMS("GeoServer WMS", "../wms",
           {
             layers: "%6$s",
-            styles: "cssdemo",
+            styles: "%7$s",
             format: "image/png",
-            random: %7$d
+            random: %8$d
           }
         )
       );
@@ -65,6 +65,7 @@ with IHeaderContributor {
         bbox.getMinX, bbox.getMinY, bbox.getMaxX, bbox.getMaxY,
         getMarkupId(),
         resource.getPrefixedName(),
+        style.getName(),
         rand.nextInt(),
         bbox.getSpan(0).max(bbox.getSpan(1)) / 256.0
     ))
