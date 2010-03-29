@@ -53,7 +53,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
         createDirectory(lib, log)
         copyFilesFlat((libraries +++ jarPath).getFiles, lib, log)
         copy(assembly.get, base, log)
-        (base ** "*").getPaths foreach (x => log.info(x))
         zip(
           (base ** "*") get,
           outputPath / (artifactBaseName + ".zip"),
