@@ -39,6 +39,28 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val jai = "javax.media" % "jai_core" % "1.1.3"
 
     val specs = "org.scala-tools.testing" % "specs_2.7.7" % "1.6.1" % "test"
+
+    lazy val packageBinary = task {
+      import FileUtilities._
+      doInTemporaryDirectory(log) { temp =>
+        val lib = (Path.fromFile(temp) ##) / "lib"
+        val bin = (mainSourcePath / "assembly" ##) ** "*"
+        val libraries = mainDependencies.libraries +++ Path.finder(buildScalaInstance.jars)
+        createDirectory(lib, log)
+        copyFilesFlat((libraries +++ jarPath).getFiles, lib, log)
+        zip(
+          ((bin) +++ (lib * "*")) get,
+          outputPath / (artifactBaseName + ".zip"),
+          false,
+          log
+        ) map { 
+          Left[String, String](_) 
+        } getOrElse { Right[String, String]("hello") }
+      }
+      None
+    }
+
+    override def packageAction = super.packageAction dependsOn packageBinary
   }
 
   class SphinxProject(val info: ProjectInfo) 
