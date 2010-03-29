@@ -40,16 +40,22 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
     val specs = "org.scala-tools.testing" % "specs_2.7.7" % "1.6.1" % "test"
 
+    override def artifactID = "geoscript_%s".format(buildScalaVersion)
+
     lazy val packageBinary = task {
       import FileUtilities._
       doInTemporaryDirectory(log) { temp =>
-        val lib = (Path.fromFile(temp) ##) / "lib"
-        val bin = (mainSourcePath / "assembly" ##) ** "*"
-        val libraries = mainDependencies.libraries +++ Path.finder(buildScalaInstance.jars)
+        val base = (Path.fromFile(temp) ##) / artifactBaseName
+        val lib = base / "lib"
+        val assembly = (mainSourcePath / "assembly" ##) ** "*"
+        val libraries = 
+          mainDependencies.libraries +++ Path.finder(buildScalaInstance.jars)
         createDirectory(lib, log)
         copyFilesFlat((libraries +++ jarPath).getFiles, lib, log)
+        copy(assembly.get, base, log)
+        (base ** "*").getPaths foreach (x => log.info(x))
         zip(
-          ((bin) +++ (lib * "*")) get,
+          (base ** "*") get,
           outputPath / (artifactBaseName + ".zip"),
           false,
           log
@@ -60,7 +66,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
       None
     }
 
-    override def packageAction = super.packageAction dependsOn packageBinary
+    override def packageAction = packageBinary dependsOn super.packageAction
   }
 
   class SphinxProject(val info: ProjectInfo) 
