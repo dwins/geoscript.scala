@@ -53,7 +53,8 @@ class FilterTest extends FilterOps with JUnitSuite with MustMatchersForJUnit {
       ("A <= 1", "A < 1", "A < 1"),
       ("A LIKE 'abc%'", "A NOT LIKE 'abc%'", "EXCLUDE"),
       ("A > 2 AND A < 4", "A > 4", "EXCLUDE"),
-      ("A > 2 OR A < 4", "A > 4", "A > 4")
+      ("A > 2 OR A < 4", "A > 4", "A > 4"),
+      ("PERSONS >= 4000000", "PERSONS < 4000000", "EXCLUDE")
     ) map {
       case (lhs, rhs, expected) => 
         (ECQL.toFilter(lhs), ECQL.toFilter(rhs), ECQL.toFilter(expected))

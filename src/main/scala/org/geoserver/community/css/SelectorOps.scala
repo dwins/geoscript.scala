@@ -37,37 +37,43 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
    * This method is probably incomplete and simply returns the first argument
    * when the input is not accounted for.
    */
-  def constrain(x: Selector, y: Selector): Selector = {
-    (x, y) match {
-      case (Exclude(_), _) => Exclude
-      case (AcceptSelector, f) => f
-      case (a, NotSelector(b)) if a == b => Exclude
-      case (f@IdSelector(a), IdSelector(b)) => {
-        if (a == b) f else Exclude
+  def constrain(x: Selector, y: Selector): Selector =
+    constrainOption(x, y) getOrElse x
+
+  def constrainOption(x: Selector, y: Selector): Option[Selector] =
+    if (constraintRules isDefinedAt (x, y)) Some(constraintRules((x, y)))
+    else None
+
+  private val constraintRules
+  : PartialFunction[(Selector, Selector), Selector] = {
+    case (Exclude(_), _) => Exclude
+    case (AcceptSelector, f) => f
+    case (a, NotSelector(b)) if a == b => Exclude
+    case (f@IdSelector(a), IdSelector(b)) => {
+      if (a == b) f else Exclude
+    }
+    case (f@TypenameSelector(a), TypenameSelector(b)) => {
+      if (a == b) f else Exclude
+    }
+    case (x@PseudoSelector("scale", op1, a), PseudoSelector("scale", op2, b)) =>
+      (op1, op2) match {
+        case (">", ">") => 
+          PseudoSelector("scale", ">", (a.toDouble max b.toDouble).toString)
+        case ("<", "<") => 
+          PseudoSelector("scale", "<", (a.toDouble min b.toDouble).toString)
+        case (">", "<") if a.toDouble >= b.toDouble =>
+          NotSelector(AcceptSelector)
+        case ("<", ">") if a.toDouble <= b.toDouble =>
+          NotSelector(AcceptSelector)
+        case _ => x
       }
-      case (f@TypenameSelector(a), TypenameSelector(b)) => {
-        if (a == b) f else Exclude
-      }
-      case (PseudoSelector("scale", op1, a), PseudoSelector("scale", op2, b)) => {
-        (op1, op2) match {
-          case (">", ">") => PseudoSelector("scale", ">", (a.toDouble max b.toDouble).toString)
-          case ("<", "<") => PseudoSelector("scale", "<", (a.toDouble min b.toDouble).toString)
-          case (">", "<") if a.toDouble >= b.toDouble => NotSelector(AcceptSelector)
-          case ("<", ">") if a.toDouble <= b.toDouble => NotSelector(AcceptSelector)
-          case _ => x
-        }
-      }
-      case (a: DataSelector, b: DataSelector) => {
-        val aFilter = a.asFilter
-        constrain(aFilter, b.asFilter) match {
+    case (a: DataSelector, b: DataSelector)
+      if constrainOption(a.asFilter, b.asFilter) != None
+      => constrainOption(a.asFilter, b.asFilter).get match {
           case org.opengis.filter.Filter.EXCLUDE => Exclude
           case org.opengis.filter.Filter.INCLUDE => AcceptSelector
-          case f if f == aFilter => a
           case f => WrappedFilter(f)
         }
-      }
-      case _ => x
-    }
   }
 
   /**
@@ -94,7 +100,7 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
       case (a, b) if a == b => true
       case (Exclude(_), _) => true
       case (a, NotSelector(b)) if a == b => false
-      case (AcceptSelector, _) => true
+      case (_, AcceptSelector) => true
       case (a: DataSelector, b: DataSelector) => 
         redundant(a.asFilter, b.asFilter)
       case _ => false
@@ -108,11 +114,47 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
    * must be satisfied for a feature to be accepted.)
    */
   def simplify(xs: List[Selector]): List[Selector] = {
-    if (xs isEmpty) Nil
-    else if (xs.tail isEmpty) xs.head :: Nil
-    else {
-      val first = xs.foldLeft (AcceptSelector: Selector) (constrain)
-      first :: simplify(xs.tail.filter(!redundant(first, _)))
+    def conflicting(x: Selector, y: Selector) = constrain(x, y) == Exclude
+
+    def step(xs: List[Selector], simple: List[Selector]): List[Selector] = {
+      if (xs isEmpty) 
+        simple
+      else if (xs exists (x => simple.exists(conflicting(_, x)))) 
+        List(Exclude)
+      else if (xs.tail isEmpty) 
+        xs.head :: simple
+      else {
+        val (constrained, unapplied) =
+          (xs foldLeft (AcceptSelector: Selector, Nil: List[Selector])) {
+            (accum, next) => 
+            val (constrained, unapplied) = accum
+            if (redundant(constrained, next)) {
+              (constrained, next :: unapplied)
+            } else {
+              constrainOption(next, constrained) match {
+                case Some(constrained) => (constrained, unapplied)
+                case None => (constrained, next :: unapplied)
+              }
+            }
+          }
+        if (unapplied.length < xs.length) {
+          step(
+            unapplied.filter(!redundant(constrained, _)),
+            constrained :: simple
+          )
+        } else {
+          step(
+            unapplied.tail.filter(!redundant(constrained, _)),
+            unapplied.head :: constrained :: simple
+          )
+        }
+      }
+    }
+
+    step(xs, Nil) match {
+      case Nil => List(Exclude)
+      case xs if xs contains Exclude => List(Exclude)
+      case xs => xs
     }
   }
 }

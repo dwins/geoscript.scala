@@ -35,30 +35,29 @@ trait FilterOps {
   private def conflicting(a: Filter, b: Filter) =
     constrain(a, b) == Filter.EXCLUDE
 
+  private def operatorConstraintRules[A](rA: Comparable[A], rB: Comparable[A])
+  : PartialFunction[(Symbol, Symbol), Filter => Filter] = {
+    val cmp = rA.compareTo(rB.asInstanceOf[A])
+    return {
+      case ('=,            '=)       if cmp != 0 => { _ => Filter.EXCLUDE }
+      case ('=,            '=)       if cmp == 0 => identity
+      case ('= | '< | '<=, '>)       if cmp <= 0 => { _ => Filter.EXCLUDE }
+      case ('= | '> | '>=, '<)       if cmp >= 0 => { _ => Filter.EXCLUDE }
+      case ('<=,           '<=)      if cmp <= 0 => identity
+      case ('<,            '< | '<=) if cmp <= 0 => identity
+      case ('<=,           '< | '<=) if cmp <  0 => identity
+      case ('>=,           '>=)      if cmp >= 0 => identity
+      case ('>,            '> | '>=) if cmp >= 0 => identity
+      case ('>=,           '> | '>=) if cmp >  0 => identity
+    }
+  }
+
   private val constraintRules: PartialFunction[(Filter, Filter),Filter] = {
-    case (a, b) if redundant(a, b) => a
     case (Filter.INCLUDE, f) => f
-    case (BinOp(('=), lA, Lit(rA)), BinOp('=, lB, Lit(rB))) 
-      if equivalent(lA, lB) && rA != rB
-      => Filter.EXCLUDE
-    case (BinOp(('= | '< | '<=), lA, Lit(rA)), BinOp('>, lB, Lit(rB))) 
-      if equivalent(lA, lB) && rA <= rB
-      => Filter.EXCLUDE
-    case (BinOp(('= | '> | '>=), lA, Lit(rA)), BinOp('<, lB, Lit(rB))) 
-      if equivalent(lA, lB) && rA >= rB
-      => Filter.EXCLUDE
-    case (filter@BinOp('<=, lA, Lit(rA)), BinOp('< | '<=, lB, Lit(rB)))
-      if equivalent(lA, lB) && rA < rB
-      => filter
-    case (filter@BinOp('<, lA, Lit(rA)), BinOp('< | '<=, lB, Lit(rB)))
-      if equivalent(lA, lB) && rA <= rB
-      => filter
-    case (filter@BinOp('>=, lA, Lit(rA)), BinOp('> | '>=, lB, Lit(rB)))
-      if equivalent(lA, lB) && rA > rB
-      => filter
-    case (filter@BinOp('>, lA, Lit(rA)), BinOp('< | '>=, lB, Lit(rB)))
-      if equivalent(lA, lB) && rA >= rB
-      => filter
+    case (a@BinOp(opA, lA, Lit(rA)), BinOp(opB, lB, Lit(rB)))
+      if (equivalent(lA, lB)) &&
+         (operatorConstraintRules(rA, rB) isDefinedAt (opA, opB))
+      => operatorConstraintRules(rA, rB)((opA, opB)) (a)
     case (a: Not, b) if equivalent(a.getFilter, b) =>
       Filter.EXCLUDE
     case (a: And, b) =>
@@ -80,6 +79,7 @@ trait FilterOps {
         case 1 => children.get(0)
         case _ => filters.or(children)
       }
+    case (a, b) if redundant(a, b) => a
   }
 
   private val redundancyRules: PartialFunction[(Filter, Filter), Boolean] = {
@@ -108,14 +108,13 @@ trait FilterOps {
     case _ => false
   }
 
+  def constrainOption(a: Filter, b: Filter): Option[Filter] = 
+    if (constraintRules isDefinedAt (a, b)) Some(constraintRules((a, b)))
+    else if (constraintRules isDefinedAt (b, a)) Some(constraintRules((b, a)))
+    else None
+
   def constrain(a: Filter, b: Filter): Filter = 
-    if (constraintRules isDefinedAt (a, b)) {
-      constraintRules((a, b)) 
-    } else if (constraintRules isDefinedAt (b, a)) {
-      constraintRules((b, a))
-    } else {
-      a
-    }
+    constrainOption(a, b) getOrElse a
 
   def redundant(a: Filter, b: Filter): Boolean =
     redundancyRules((negate(negate(a)), negate(negate(b))))
