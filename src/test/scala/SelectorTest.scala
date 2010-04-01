@@ -76,11 +76,4 @@ with JUnitSuite with MustMatchersForJUnit {
       case _ => false
     } must be (false)
   }
-
-  @Test def scales {
-    val a = ExpressionSelector("a=1")
-    // constrain(a, a) must be (a)
-    // simplify(a :: a :: Nil) must be (a :: Nil)
-    simplify(a :: NotSelector(a) :: Nil) must be (Exclude :: Nil)
-  }
 }

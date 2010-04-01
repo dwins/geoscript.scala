@@ -490,10 +490,10 @@ object Translator extends CssOps with SelectorOps {
     }
 
     def omitScales(min: Double, max: Double)(r: SimpleRule) = {
-      val selectors = r.selectors filter { _ match {
-        case PseudoSelector("scale", _, _) => false
-        case _ => true
-      }}
+      val selectors = r.selectors map {
+        case PseudoSelector("scale", _, _) => AcceptSelector
+        case x => x
+      }
 
       SimpleRule(r.comment, selectors, r.properties)
     }
