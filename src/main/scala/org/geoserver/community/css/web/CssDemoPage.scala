@@ -257,11 +257,20 @@ existing SLD.
   }
 
   val layerSelectionForm = new Form("layer-selection")
+  val layerResources = catalog.getResources(classOf[FeatureTypeInfo])
+  java.util.Collections.sort(
+    layerResources,
+    new java.util.Comparator[FeatureTypeInfo] {
+      override def compare(a: FeatureTypeInfo, b: FeatureTypeInfo): Int = 
+         a.getName().compareTo(b.getName())
+    }
+  )
+
   layerSelectionForm.add(
     new DropDownChoice(
       "layername",
       new PropertyModel(this, "layerInfo"),
-      catalog.getResources(classOf[FeatureTypeInfo]),
+      layerResources,
       new IChoiceRenderer {
         override def getDisplayValue(choice: AnyRef) = {
           val resource = choice.asInstanceOf[ResourceInfo]
@@ -279,14 +288,21 @@ existing SLD.
     )
   )
 
+  val styleResources = new java.util.ArrayList[StyleInfo]
+  styleResources.addAll(catalog.getStyles())
+  java.util.Collections.sort(
+    styleResources,
+    new java.util.Comparator[StyleInfo] {
+      override def compare(a: StyleInfo, b: StyleInfo): Int = 
+        a.getName().compareTo(b.getName())
+    }
+  )
+
   layerSelectionForm.add(
     new DropDownChoice(
       "stylename",
       new PropertyModel(this, "styleInfo"),
-      { val l = new java.util.ArrayList[StyleInfo]
-        l.addAll(catalog.getStyles())
-        l
-      },
+      styleResources,
       new IChoiceRenderer {
         override def getDisplayValue(choice: AnyRef) = 
           choice.asInstanceOf[StyleInfo].getName()
