@@ -28,6 +28,16 @@ with IHeaderContributor {
         div#%1$s div.olMap {
           height: 100%%;
         }
+
+        div#%1$s div.olControlScale {
+          background: white;
+          border-color: black;
+          border-style: solid;
+          border-width: 2px 0px 0px 2px;
+          bottom: 0px;
+          padding: 3px;
+          right: 0px;
+        }
       </style>
     """.format(getMarkupId()))
 
@@ -35,7 +45,9 @@ with IHeaderContributor {
       "../openlayers/OpenLayers.js"
     )
 
-    response.renderOnLoadJavascript("""
+    val olLoader = new java.util.Formatter(new java.util.Locale("zxx"))
+
+    olLoader.format("""
       OpenLayers.DOTS_PER_INCH= 25.4 / 0.28;
 
       var cfg = {
@@ -43,9 +55,10 @@ with IHeaderContributor {
         maxResolution: %9$f,
         controls: [
           new OpenLayers.Control.PanZoomBar(),
+          new OpenLayers.Control.Scale(),
           new OpenLayers.Control.Navigation()
         ]
-      }
+      };
 
       var map = new OpenLayers.Map("%5$s", cfg);
       map.addLayer(new OpenLayers.Layer.WMS("GeoServer WMS", "../wms",
@@ -54,6 +67,8 @@ with IHeaderContributor {
             styles: "%7$s",
             format: "image/png",
             random: %8$d
+          }, {
+            singleTile: true
           }
         )
       );
@@ -61,14 +76,19 @@ with IHeaderContributor {
       map.zoomToMaxExtent();
       window.olMaps = window.olMaps || {};
       window.olMaps["%5$s"] = map;
-    """.format(
-        bbox.getMinX, bbox.getMinY, bbox.getMaxX, bbox.getMaxY,
+    """,
+        bbox.getMinX(): java.lang.Double, 
+        bbox.getMinY(): java.lang.Double, 
+        bbox.getMaxX(): java.lang.Double,
+        bbox.getMaxY(): java.lang.Double,
         getMarkupId(),
         resource.getPrefixedName(),
         style.getName(),
-        rand.nextInt(),
-        bbox.getSpan(0).max(bbox.getSpan(1)) / 256.0
-    ))
+        rand.nextInt(): java.lang.Integer,
+        bbox.getSpan(0).max(bbox.getSpan(1)) / 256.0: java.lang.Double
+    )
+
+    response.renderOnLoadJavascript(olLoader.toString())
   }
 
   /*
