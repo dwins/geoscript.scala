@@ -33,8 +33,7 @@ import org.apache.wicket.markup.html.form.IChoiceRenderer
 import org.apache.wicket.markup.html.form.SubmitLink
 import org.apache.wicket.markup.html.form.TextArea
 import org.apache.wicket.markup.html.form.TextField
-import org.apache.wicket.markup.html.panel.EmptyPanel
-import org.apache.wicket.markup.html.panel.Panel
+import org.apache.wicket.markup.html.panel.{ EmptyPanel, Fragment, Panel }
 import org.apache.wicket.model.CompoundPropertyModel
 import org.apache.wicket.model.IModel
 import org.apache.wicket.model.Model
@@ -120,7 +119,7 @@ with CssDemoConstants {
     }
   }
 
-  class StylePanel(id: String, model: IModel) extends Panel(id, model) {
+  class StylePanel(id: String, model: IModel, map: OpenLayersMapPanel) extends Panel(id, model) {
     var styleBody = {
       val file = GeoserverDataDirectory.findStyleFile(cssSource)
       if (file != null && file.exists) {
@@ -223,7 +222,12 @@ existing SLD.
       if (states != null) {
         states
       } else {
-        catalog.getResources(classOf[FeatureTypeInfo]).get(0)
+        val ftypes = catalog.getResources(classOf[FeatureTypeInfo])
+        if (ftypes.size > 0) {
+          ftypes.get(0)
+        } else {
+          null
+        }
       }
     }
   }
@@ -256,132 +260,141 @@ existing SLD.
     }
   }
 
-  val layerSelectionForm = new Form("layer-selection")
-  val layerResources = catalog.getResources(classOf[FeatureTypeInfo])
-  java.util.Collections.sort(
-    layerResources,
-    new java.util.Comparator[FeatureTypeInfo] {
-      override def compare(a: FeatureTypeInfo, b: FeatureTypeInfo): Int = 
-         a.getName().compareTo(b.getName())
-    }
-  )
+  if (layerInfo != null && styleInfo != null) {
+    val mainContent = new Fragment("main-content", "normal") {
+      val layerSelectionForm = new Form("layer-selection")
+      val layerResources = catalog.getResources(classOf[FeatureTypeInfo])
+      java.util.Collections.sort(
+        layerResources,
+        new java.util.Comparator[FeatureTypeInfo] {
+          override def compare(a: FeatureTypeInfo, b: FeatureTypeInfo): Int = 
+             a.getName().compareTo(b.getName())
+        }
+      )
 
-  layerSelectionForm.add(
-    new DropDownChoice(
-      "layername",
-      new PropertyModel(this, "layerInfo"),
-      layerResources,
-      new IChoiceRenderer {
-        override def getDisplayValue(choice: AnyRef) = {
-          val resource = choice.asInstanceOf[ResourceInfo]
-          val layers = getCatalog.getLayers(resource)
-          if (layers != null && layers.size > 0) {
-            "%s [%s]".format(layers.get(0).getName, resource.getPrefixedName)
-          } else {
-            choice.asInstanceOf[ResourceInfo].getPrefixedName
+      layerSelectionForm.add(
+        new DropDownChoice(
+          "layername",
+          new PropertyModel(CssDemoPage.this, "layerInfo"),
+          layerResources,
+          new IChoiceRenderer {
+            override def getDisplayValue(choice: AnyRef) = {
+              val resource = choice.asInstanceOf[ResourceInfo]
+              val layers = getCatalog.getLayers(resource)
+              if (layers != null && layers.size > 0) {
+                "%s [%s]".format(layers.get(0).getName, resource.getPrefixedName)
+              } else {
+                choice.asInstanceOf[ResourceInfo].getPrefixedName
+              }
+            }
+
+            override def getIdValue(choice: AnyRef, index: Int) =
+              choice.asInstanceOf[ResourceInfo].getId
+          }
+        )
+      )
+
+      val styleResources = new java.util.ArrayList[StyleInfo]
+      styleResources.addAll(catalog.getStyles())
+      java.util.Collections.sort(
+        styleResources,
+        new java.util.Comparator[StyleInfo] {
+          override def compare(a: StyleInfo, b: StyleInfo): Int = 
+            a.getName().compareTo(b.getName())
+        }
+      )
+
+      layerSelectionForm.add(
+        new DropDownChoice(
+          "stylename",
+          new PropertyModel(CssDemoPage.this, "styleInfo"),
+          styleResources,
+          new IChoiceRenderer {
+            override def getDisplayValue(choice: AnyRef) = 
+              choice.asInstanceOf[StyleInfo].getName()
+
+            override def getIdValue(choice: AnyRef, index: Int) =
+              choice.asInstanceOf[StyleInfo].getId
+          }
+        )
+      )
+
+      layerSelectionForm.add(new SubmitLink("submit", layerSelectionForm) {
+          override def onSubmit() {
+            val params = new org.apache.wicket.PageParameters
+            params.put("layer", layerInfo.getPrefixedName())
+            params.put("style", styleInfo.getName())
+            setResponsePage(classOf[CssDemoPage], params)
           }
         }
+      )
+      
+      val createPanel: Panel = new CreateLinkPanel("create") {
+        setOutputMarkupId(true)
 
-        override def getIdValue(choice: AnyRef, index: Int) =
-          choice.asInstanceOf[ResourceInfo].getId
+        add(new AjaxLink("create-style", new Model("Create")) {
+          override def onClick(target: AjaxRequestTarget) {
+            createPanel.replaceWith(namePanel)
+            target.addComponent(namePanel)
+          }
+        })
       }
-    )
-  )
 
-  val styleResources = new java.util.ArrayList[StyleInfo]
-  styleResources.addAll(catalog.getStyles())
-  java.util.Collections.sort(
-    styleResources,
-    new java.util.Comparator[StyleInfo] {
-      override def compare(a: StyleInfo, b: StyleInfo): Int = 
-        a.getName().compareTo(b.getName())
+      val namePanel: Panel = new NamePanel("create") {
+        setOutputMarkupId(true)
+        var stylename = new Model("New style name")
+
+        add(new Form("create-style") {
+          add(new TextField("new-style-name", stylename))
+
+          add(new SubmitLink("new-style-submit", this))
+
+          add(new AjaxLink("new-style-cancel", new Model("Cancel")) {
+            override def onClick(target: AjaxRequestTarget) {
+              namePanel.replaceWith(createPanel)
+              target.addComponent(createPanel)
+            }
+          })
+
+          override def onSubmit() {
+            val name = stylename.getObject().asInstanceOf[String]
+            createCssTemplate(name)
+
+            val params = new org.apache.wicket.PageParameters
+            params.put("layer", layerInfo.getPrefixedName())
+            params.put("style", name)
+            setResponsePage(classOf[CssDemoPage], params)
+            setRedirect(true)
+          }
+        })
+      }
+
+      layerSelectionForm.add(createPanel)
+
+      add(layerSelectionForm)
+
+      val map = new OpenLayersMapPanel("map", layerInfo, styleInfo)
+      add(map)
+
+      val feedback2 =
+        new org.apache.wicket.markup.html.panel.FeedbackPanel("feedback-low")
+      feedback2.setOutputMarkupId(true)
+      add(feedback2)
+
+      val tabs = new java.util.ArrayList[ITab]
+      val model = new CompoundPropertyModel(CssDemoPage.this)
+      tabs.add(new PanelCachingTab(new AbstractTab(new Model("Style")) {
+        override def getPanel(id: String): Panel = new StylePanel(id, model, map)
+      }))
+      tabs.add(new PanelCachingTab(new AbstractTab(new Model("Data")) {
+        override def getPanel(id: String): Panel = new DataPanel(id, model)
+      }))
+
+      add(new AjaxTabbedPanel("tabs", tabs))
     }
-  )
 
-  layerSelectionForm.add(
-    new DropDownChoice(
-      "stylename",
-      new PropertyModel(this, "styleInfo"),
-      styleResources,
-      new IChoiceRenderer {
-        override def getDisplayValue(choice: AnyRef) = 
-          choice.asInstanceOf[StyleInfo].getName()
-
-        override def getIdValue(choice: AnyRef, index: Int) =
-          choice.asInstanceOf[StyleInfo].getId
-      }
-    )
-  )
-
-  layerSelectionForm.add(new SubmitLink("submit", layerSelectionForm) {
-      override def onSubmit() {
-        val params = new org.apache.wicket.PageParameters
-        params.put("layer", layerInfo.getPrefixedName())
-        params.put("style", styleInfo.getName())
-        setResponsePage(classOf[CssDemoPage], params)
-      }
-    }
-  )
-  
-  val createPanel: Panel = new CreateLinkPanel("create") {
-    setOutputMarkupId(true)
-
-    add(new AjaxLink("create-style", new Model("Create")) {
-      override def onClick(target: AjaxRequestTarget) {
-        createPanel.replaceWith(namePanel)
-        target.addComponent(namePanel)
-      }
-    })
+    add(mainContent) 
+  } else {
+    add(new Fragment("main-content", "loading-failure"))
   }
-
-  val namePanel: Panel = new NamePanel("create") {
-    setOutputMarkupId(true)
-    var stylename = new Model("New style name")
-
-    add(new Form("create-style") {
-      add(new TextField("new-style-name", stylename))
-
-      add(new SubmitLink("new-style-submit", this))
-
-      add(new AjaxLink("new-style-cancel", new Model("Cancel")) {
-        override def onClick(target: AjaxRequestTarget) {
-          namePanel.replaceWith(createPanel)
-          target.addComponent(createPanel)
-        }
-      })
-
-      override def onSubmit() {
-        val name = stylename.getObject().asInstanceOf[String]
-        createCssTemplate(name)
-
-        val params = new org.apache.wicket.PageParameters
-        params.put("layer", layerInfo.getPrefixedName())
-        params.put("style", name)
-        setResponsePage(classOf[CssDemoPage], params)
-        setRedirect(true)
-      }
-    })
-  }
-
-  layerSelectionForm.add(createPanel)
-
-  add(layerSelectionForm)
-
-  val map = new OpenLayersMapPanel("map", layerInfo, styleInfo)
-  add(map)
-
-  val feedback2 = new org.apache.wicket.markup.html.panel.FeedbackPanel("feedback-low")
-  feedback2.setOutputMarkupId(true)
-  add(feedback2)
-
-  val tabs = new java.util.ArrayList[ITab]
-  val model = new CompoundPropertyModel(this)
-  tabs.add(new PanelCachingTab(new AbstractTab(new Model("Style")) {
-    override def getPanel(id: String): Panel = new StylePanel(id, model)
-  }))
-  tabs.add(new PanelCachingTab(new AbstractTab(new Model("Data")) {
-    override def getPanel(id: String): Panel = new DataPanel(id, model)
-  }))
-
-  add(new AjaxTabbedPanel("tabs", tabs))
 }
