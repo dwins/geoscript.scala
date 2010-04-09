@@ -5,7 +5,7 @@
 * {
   label: "Label";
   halo-radius: 2px;
-  mark: symbol(square);
-  stroke: black;
-  fill: black;
+  mark: symbol(star);
+  stroke: red;
+  fill: red;
 }
