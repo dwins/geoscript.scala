@@ -102,9 +102,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
       .attribute("http://www.w3.org/1999/xlink", "href")
       .get must be ("http://example.com/example.gif")
     (lineGraphic \ "ExternalGraphic" \ "Format").text must be ("image/gif")
-    // TODO: These tests fail, looks like we're not passing these parameters through
-    // (lineGraphic \ "Rotation").text must be ("12")
-    // (lineGraphic \ "Opacity").text.toDouble must be (0.8 plusOrMinus 0.0001)
+    (lineGraphic \ "Rotation").text must be ("12")
 
     val pointsyms = comprehensive \\ "Rule" \ "PointSymbolizer"
     pointsyms.length must be (1)

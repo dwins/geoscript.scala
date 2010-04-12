@@ -194,7 +194,7 @@ object Translator extends CssOps with SelectorOps {
           val mark = buildMark(
             strokeParams._2,
             width.getOrElse(filters.literal(16)),
-            rotation
+            filters.literal(0)
           )
 
           val externalGraphic =
@@ -204,7 +204,7 @@ object Translator extends CssOps with SelectorOps {
           )
 
           if (mark != null || externalGraphic != null) {
-            styles.createGraphic(externalGraphic, mark, null, null, null, null)
+            styles.createGraphic(externalGraphic, mark, null, null, null, rotation)
           } else null
         }
 
