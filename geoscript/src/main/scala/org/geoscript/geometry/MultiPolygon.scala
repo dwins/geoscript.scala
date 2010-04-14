@@ -14,6 +14,11 @@ object MultiPolygon {
   private val preparingFactory = new PreparedGeometryFactory()
 
   private class Wrapper(val underlying: jts.MultiPolygon) extends MultiPolygon {
+    def members: Seq[Polygon] = 
+      0 until underlying.getNumGeometries map { n =>
+        Polygon(underlying.getGeometryN(n).asInstanceOf[jts.Polygon])
+      }
+
     override def prepare() = 
     if (prepared) {
       this
@@ -32,6 +37,13 @@ object MultiPolygon {
     val underlying: jts.MultiPolygon, 
     override val projection: Projection
   ) extends MultiPolygon {
+
+    def members: Seq[Polygon] = 
+      0 until underlying.getNumGeometries map { n =>
+        Polygon(
+          underlying.getGeometryN(n).asInstanceOf[jts.Polygon]
+        ) in projection
+      }
 
     override def prepare() = 
       if (prepared) {
@@ -53,13 +65,15 @@ object MultiPolygon {
    */
   def apply(polygons: jts.MultiPolygon): MultiPolygon = new Wrapper(polygons) 
 
-  /**
-   * Create a MultiPolygon from a sequence of Polygons
-   */
-  def apply(polygons: Seq[jts.Polygon]): MultiPolygon =
-    new Wrapper( 
-      ModuleInternals.factory.createMultiPolygon(polygons.toArray) 
-    ) 
+  def apply(polygons: Iterable[Polygon]): MultiPolygon = 
+    new Wrapper(ModuleInternals.factory.createMultiPolygon(
+      (polygons map (_.underlying) toSeq) toArray
+    ))
+
+  def apply(polygons: Polygon*): MultiPolygon = 
+    new Wrapper(ModuleInternals.factory.createMultiPolygon(
+      polygons map (_.underlying) toArray
+    ))
 }
 
 /**
@@ -67,6 +81,7 @@ object MultiPolygon {
  * a single geometry.
  */
 trait MultiPolygon extends Geometry {
+  def members: Seq[Polygon]
   override val underlying: jts.MultiPolygon
   override def in(dest: Projection): MultiPolygon
   override def transform(dest: Projection): MultiPolygon = 

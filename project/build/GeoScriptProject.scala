@@ -37,6 +37,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
     val scalaSwing = "org.scala-lang" % "scala-swing" % ("2.7.7")
     val jai = "javax.media" % "jai_core" % "1.1.3"
+    val jsonLib = "net.sf.json-lib" % "json-lib" % "[2.2,2.3[" % "compile" classifier "jdk15"
 
     val specs = "org.scala-tools.testing" % "specs_2.7.7" % "1.6.1" % "test"
 

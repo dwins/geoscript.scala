@@ -14,6 +14,12 @@ object Polygon {
   import ModuleInternals.factory._
 
   private class Wrapper(val underlying: jts.Polygon) extends Polygon {
+    def shell: LineString = LineString(underlying.getExteriorRing())
+    def holes: Seq[LineString] = 
+      0 until underlying.getNumInteriorRing map {
+        n => LineString(underlying.getInteriorRingN(n))
+      }
+
     override def prepare() = 
       if (prepared) {
         this
@@ -32,6 +38,14 @@ object Polygon {
     val underlying: jts.Polygon,
     override val projection: Projection
   ) extends Polygon {
+    def shell: LineString =
+      LineString(underlying.getExteriorRing()) in projection
+
+    def holes: Seq[LineString] = 
+      0 until underlying.getNumInteriorRing map {
+        n => LineString(underlying.getInteriorRingN(n)) in projection
+      }
+
     override def prepare() = 
       if (prepared) {
         this
@@ -70,10 +84,11 @@ object Polygon {
  * A polygon represents a contiguous area, possibly with holes.
  */
 trait Polygon extends Geometry {
+  def shell: LineString
+  def holes: Seq[LineString]
+  def rings: Seq[LineString] = Seq(shell) ++ holes
   override val underlying: jts.Polygon
-
   override def in(dest: Projection): Polygon
-
   override def transform(dest: Projection): Polygon = 
     Polygon(projection.to(dest)(underlying)) in dest
 }

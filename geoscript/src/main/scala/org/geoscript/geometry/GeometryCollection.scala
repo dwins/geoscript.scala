@@ -11,6 +11,11 @@ import com.vividsolutions.jts.{geom => jts}
 object GeometryCollection {
   private val preparingFactory = new PreparedGeometryFactory()
   private class Wrapped(val underlying: jts.GeometryCollection) extends GeometryCollection {
+    def members: Seq[Geometry] = 
+      0 until underlying.getNumGeometries map { n => 
+        Geometry(underlying.getGeometryN(n))
+      }
+
     override def prepare() = 
       if (prepared) {
         this
@@ -29,6 +34,11 @@ object GeometryCollection {
     val underlying: jts.GeometryCollection,
     override val projection: Projection
   ) extends GeometryCollection {
+
+    def members: Seq[Geometry] = 
+      0 until underlying.getNumGeometries map { n => 
+        Geometry(underlying.getGeometryN(n)) in projection
+      }
 
     override def prepare() = 
       if (prepared) {
@@ -49,6 +59,11 @@ object GeometryCollection {
    * Create a GeometryCollection by wrapping a "raw" JTS GeometryCollection.
    */
   def apply(raw: jts.GeometryCollection): GeometryCollection = new Wrapped(raw)
+
+  def apply(geoms: Geometry*): GeometryCollection = 
+    new Wrapped(ModuleInternals.factory.createGeometryCollection(
+      geoms map(_.underlying) toArray
+    ))
 }
 
 /**
@@ -58,6 +73,7 @@ object GeometryCollection {
  * the sum of the areas of its constituent geometry objects.
  */
 trait GeometryCollection extends Geometry {
+  def members: Seq[Geometry]
   override val underlying: jts.GeometryCollection
   override def in(proj: Projection): GeometryCollection
   override def transform(dest: Projection): GeometryCollection = 

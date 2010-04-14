@@ -13,6 +13,11 @@ object MultiPoint {
   private val preparingFactory = new PreparedGeometryFactory()
 
   private class Wrapper(val underlying: jts.MultiPoint) extends MultiPoint {
+    def members: Seq[Point] =
+      0 until underlying.getNumGeometries map {
+        n => Point(underlying.getGeometryN(n).asInstanceOf[jts.Point])
+      }
+
     override def prepare() = 
       if (prepared) {
         this
@@ -31,6 +36,13 @@ object MultiPoint {
     val underlying: jts.MultiPoint, 
     override val projection: Projection
   ) extends MultiPoint {
+    def members: Seq[Point] =
+      0 until underlying.getNumGeometries map { n => 
+        Point(
+          underlying.getGeometryN(n).asInstanceOf[jts.Point]
+        ) in projection
+      }
+
     override def prepare() = 
       if (prepared) {
         this
@@ -66,6 +78,7 @@ object MultiPoint {
  * single geometry.
  */
 trait MultiPoint extends Geometry {
+  def members: Seq[Point]
   override val underlying: jts.MultiPoint
   override def in(dest: Projection): MultiPoint
   override def transform(dest: Projection): MultiPoint = 

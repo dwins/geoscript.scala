@@ -13,6 +13,11 @@ import org.geoscript.projection.Projection
 object MultiLineString {
   private val preparingFactory = new PreparedGeometryFactory()
   private class Wrapper(val underlying: jts.MultiLineString) extends MultiLineString {
+    override def members: Seq[LineString] = 
+      0 until underlying.getNumGeometries map { n => 
+        LineString(underlying.getGeometryN(n).asInstanceOf[jts.LineString])
+      }
+      
     override def prepare() = 
       if (prepared) {
         this
@@ -33,6 +38,14 @@ object MultiLineString {
     val underlying: jts.MultiLineString, 
     override val projection: Projection
   ) extends MultiLineString {
+
+    override def members: Seq[LineString] = 
+      0 until underlying.getNumGeometries map { n => 
+        LineString(
+          underlying.getGeometryN(n).asInstanceOf[jts.LineString]
+        ) in projection
+      }
+
     override def prepare() = 
       if (prepared) {
         this
@@ -48,19 +61,21 @@ object MultiLineString {
     def in(dest: Projection): MultiLineString = 
       new Projected(projection.to(dest)(underlying), dest)
   }
+
+  def apply(lines: Iterable[LineString]): MultiLineString = 
+    new Wrapper(ModuleInternals.factory.createMultiLineString(
+      (lines map (_.underlying) toSeq) toArray
+    ))
+
+  def apply(lines: LineString*): MultiLineString = 
+    new Wrapper(ModuleInternals.factory.createMultiLineString(
+      lines map (_.underlying) toArray
+    ))
   
   /**
    * Create a MultiLineString by wrapping a "raw" JTS MultiLineString.
    */
   def apply(lines: jts.MultiLineString): MultiLineString = new Wrapper(lines)
-
-  /**
-   * Create a MultiLineString from a list of JTS LineStrings
-   */
-  def apply(lines: Seq[jts.LineString]): MultiLineString = 
-    new Wrapper( 
-      ModuleInternals.factory.createMultiLineString(lines.toArray) 
-    )
 }
 
 /**
@@ -69,10 +84,9 @@ object MultiLineString {
  * is the sum of the length of its constituent linestrings.
  */
 trait MultiLineString extends Geometry {
+  def members: Seq[LineString]
   override val underlying: jts.MultiLineString
   override def in(dest: Projection): MultiLineString
-
   override def transform(dest: Projection): MultiLineString = 
     MultiLineString(projection.to(dest)(underlying)) in dest
-
 }

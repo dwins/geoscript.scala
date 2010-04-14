@@ -62,6 +62,13 @@ object Point {
       ModuleInternals.factory.createPoint(new jts.Coordinate(x, y))
     )
 
+  def apply(c: (Number, Number)): Point =
+    new Wrapper(
+      ModuleInternals.factory.createPoint(new jts.Coordinate(
+        c._1.doubleValue(), c._2.doubleValue()
+      ))
+    )
+
   /**
    * Create a Point by wrapping a "raw" JTS Point.
    */

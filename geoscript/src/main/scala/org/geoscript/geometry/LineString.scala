@@ -13,16 +13,21 @@ object LineString {
   private val preparingFactory = new PreparedGeometryFactory()
 
   private class Wrapper(val underlying: jts.LineString) extends LineString {
-    override def prepare() = 
-    if (prepared) {
-      this
-    } else {
-      val prep =
-        preparingFactory.create(underlying).asInstanceOf[jts.LineString]
-      new Wrapper(prep) {
-        override def prepared = true
+    def vertices: Seq[Point] = 
+      0 until underlying.getNumPoints map { n =>
+        Point(underlying.getPointN(n))
       }
-    }
+
+    override def prepare() = 
+      if (prepared) {
+        this
+      } else {
+        val prep =
+          preparingFactory.create(underlying).asInstanceOf[jts.LineString]
+        new Wrapper(prep) {
+          override def prepared = true
+        }
+      }
 
     def in(dest: Projection) = new Projected(underlying, dest)
   }
@@ -31,6 +36,11 @@ object LineString {
     val underlying: jts.LineString,
     override val projection: Projection
   ) extends LineString {
+
+    def vertices: Seq[Point] = 
+      0 until underlying.getNumPoints map { n =>
+        Point(underlying.getPointN(n)) in projection
+      }
     
     override def prepare() = 
       if (prepared) {
@@ -47,6 +57,11 @@ object LineString {
       new Projected(projection.to(dest)(underlying), dest)
   }
 
+  def apply(coords: Iterable[Point]): LineString = 
+    new Wrapper(ModuleInternals.factory.createLineString(
+      (coords map (_.underlying.getCoordinate()) toSeq).toArray
+    ))
+
   /**
    * Create a LineString by wrapping a "raw" JTS LineString.
    */
@@ -55,10 +70,10 @@ object LineString {
   /**
    * Create a LineString from JTS Coordinates.
    */
-  def apply(coords: jts.Coordinate*): LineString =
-    new Wrapper(
-      ModuleInternals.factory.createLineString(coords toArray)
-    )
+  def apply(coords: Point*): LineString =
+    new Wrapper(ModuleInternals.factory.createLineString(
+      (coords map (_.underlying.getCoordinate()) toSeq).toArray
+    ))
 }
 
 /**
@@ -66,7 +81,9 @@ object LineString {
  * representing geometries such as roads or rivers.
  */
 trait LineString extends Geometry {
+  def vertices: Seq[Point]
   override val underlying: jts.LineString
+  def isClosed: Boolean = underlying.isClosed
   override def in(dest: Projection): LineString
   override def transform(dest: Projection): LineString = 
     LineString(projection.to(dest)(underlying)) in dest
