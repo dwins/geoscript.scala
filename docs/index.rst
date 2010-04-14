@@ -14,10 +14,10 @@ GeoScript Scala
 
 GeoScript Scala is a GeoScript implementation for the Scala programming language.
 
-   :ref:`Quickstart <quickstart>`
+   :doc:`Quickstart <quickstart>`
      Get up and running with GeoScript
     
-   :ref:`Scala Introduction <scala_introduction>`
+   :doc:`Scala Introduction <introduction>`
      An introduction to the Scala language 
 
    `Learning <../learning>`_
@@ -27,4 +27,4 @@ GeoScript Scala is a GeoScript implementation for the Scala programming language
      A library of examples and howto's
 
    `API <api>`_
-     The GeoScript API reference
+     The GeoScript Scala API reference

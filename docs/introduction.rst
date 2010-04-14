@@ -1,26 +1,35 @@
-.. _scala_introduction:
-
 Introduction to Scala
 ======================
 
-GeoScript.scala is implemented in Scala, a functional/object hybrid language with strong facilities for Java interoperability.  In order to use it effectively, you will need to understand some basics of Scala syntax.  This guide explains some of the Scala constructs most frequently used in GeoScript.scala code. 
+GeoScript.scala is implemented in Scala, a functional/object hybrid language
+with strong facilities for Java interoperability.  In order to use it
+effectively, you will need to understand some basics of Scala syntax.  This
+guide explains some of the Scala constructs most frequently used in
+GeoScript.scala code. 
 
 
 Variables
 ---------
 
-Variables in Scala must be declared before they are used.  This is accomplished using the ``val`` or ``var`` statement::
+Variables in Scala must be declared before they are used.  This is accomplished
+using the ``val`` or ``var`` statement::
 
     val a = "12"
     var b = List(1, 2, 3)
 
-Variables declared with ``val`` can only be assigned once. Variables declared with ``var`` may be overwritten.
+Variables declared with ``val`` can only be assigned once. Variables declared
+with ``var`` may be overwritten.
 
 
 Type Annotations
 ----------------
 
-All values in Scala have a type associated with them.  In the examples above, we allowed Scala to "infer" the types based on the values on the other side of the expression.  However, sometimes Scala is unable to infer types and it is necessary to provide them explicitly.  We can also specify types where Scala would normally infer them in order to use a more generic type, or to add an extra sanity check to code::
+All values in Scala have a type associated with them.  In the examples above,
+we allowed Scala to "infer" the types based on the values on the other side of
+the expression.  However, sometimes Scala is unable to infer types and it is
+necessary to provide them explicitly.  We can also specify types where Scala
+would normally infer them in order to use a more generic type, or to add an
+extra sanity check to code::
 
     val a: Int = "12" // Fails, since "12" is a String, not an Int
     var b // Fails since we are not providing an initial value from which to infer the type
@@ -28,7 +37,9 @@ All values in Scala have a type associated with them.  In the examples above, we
 Blocks
 ------
 
-In Scala, we can set aside a sub-section of code as a "block" by wrapping it in curly braces.  This is useful to limit scope.  Blocks automatically return the result of their final statement::
+In Scala, we can set aside a sub-section of code as a "block" by wrapping it in
+curly braces.  This is useful to limit scope.  Blocks automatically return the
+result of their final statement::
 
     val total: Int = {
         val a = 1
@@ -51,16 +62,27 @@ Function definitions in Scala use the ``def`` keyword::
 
     makeBetter("mousetrap") // returns "better mousetrap"
 
-For single-statement function definitions we can also omit the curly-braces (similar to how statements and blocks are interchangeable)::
+For single-statement function definitions we can also omit the curly-braces
+(similar to how statements and blocks are interchangeable)::
 
     def oneLiner(s: String): Int = s.length
 
-The Scala compiler doesn't infer the types of function arguments.  Function return types *can* be inferred, but it is generally wise to declare them anyway.  Scala will not compile code where functions that differ only in their argument lists have implicit return types.
+The Scala compiler doesn't infer the types of function arguments.  Function
+return types *can* be inferred, but it is generally wise to declare them
+anyway.  Scala will not compile code where functions that differ only in their
+argument lists have implicit return types.
 
 Objects and Classes
 -------------------
 
-Since Scala is an object-oriented language, it deals with objects, or "instances" of "classes".  For example, the string literal "abc" is an instance of the String class.  GeoScript provides several classes for you.  In general, you won't need to define your own classes when using GeoScript.  Aside from types that can be expressed as literals, you can create objects using the ``new`` keyword.  Many classes also (or instead) provide factories called "companion objects" that can be used to create instances of those objects without the ``new``::
+Since Scala is an object-oriented language, it deals with objects, or
+"instances" of "classes".  For example, the string literal "abc" is an instance
+of the String class.  GeoScript provides several classes for you.  In general,
+you won't need to define your own classes when using GeoScript.  Aside from
+types that can be expressed as literals, you can create objects using the
+``new`` keyword.  Many classes also (or instead) provide factories called
+"companion objects" that can be used to create instances of those objects
+without the ``new``::
     
     class Message(msg: String) {
       def greet() { println(msg) }
