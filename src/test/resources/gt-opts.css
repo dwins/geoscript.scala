@@ -1,6 +1,5 @@
 /**
  * Example usage of GeoTools-specific extension properties
- * Each example shows the default value for the property.
  */
 * {
   label: [name];
@@ -18,4 +17,5 @@
   -gt-label-force-ltr: true;
   -gt-label-conflict-resolution: true;
   -gt-label-fit-goodness: 0.50;
+  -gt-label-priority: [priority];
 }

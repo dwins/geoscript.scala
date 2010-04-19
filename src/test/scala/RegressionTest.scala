@@ -96,6 +96,10 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
     val sym = rule.symbolizers.get(0)
     sym must have (parent (classOf[org.geotools.styling.LineSymbolizer]))
     val lineSym = sym.asInstanceOf[org.geotools.styling.LineSymbolizer]
+    lineSym must not be (null)
+    lineSym.getStroke() must not be (null)
+    lineSym.getStroke().getGraphicStroke() must not be (null)
+    lineSym.getStroke().getGraphicStroke().graphicalSymbols must not be (null)
     val mark = lineSym.getStroke.getGraphicStroke.graphicalSymbols.get(0)
     mark must have (parent (classOf[org.geotools.styling.Mark]))
     mark.asInstanceOf[org.geotools.styling.Mark]

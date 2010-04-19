@@ -306,4 +306,29 @@ trait CssOps {
       case _ => None
     }
   }
+
+  /**
+   * Expand a list of CSS-style properties to a list of name-&gt;value
+   * maps.  For each value list in some key property, a mapping of all the
+   * properties is defined.
+   */
+  def expand(props: List[Property], key: String)
+  : List[Map[String, List[Value]]] = {
+    if (props == Nil) Nil 
+    else {
+      val keylist = props.find(_.name == key) getOrElse Property(key, Nil)
+      val names = props map (_.name)
+
+      def ensureLength(xs: List[List[Value]]): List[List[Value]] = 
+        Stream.const(xs).flatMap(x => x).take(keylist.values.length).toList
+
+      val normalizedLists = props map { x => ensureLength(x.values) }
+
+      val kvpairs = List.transpose(
+        (names zip normalizedLists) map { case (n, l) => l.map((n, _)) }
+      )
+
+      kvpairs map { pairs => Map(pairs: _*) }
+    }
+  }
 }

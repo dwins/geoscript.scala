@@ -116,6 +116,13 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     val textsyms = comprehensive \\ "Rule" \ "TextSymbolizer"
     textsyms.length must be (1)
     (textsyms \ "Label" \ "PropertyName") must be ("PROPNAME")
+    textsyms \ "LabelPlacement" must have (length(1))
+    textsyms \ "LabelPlacement" \ "PointPlacement" \ "AnchorPoint" must have (length(1))
+    (textsyms \ "LabelPlacement" \\ "AnchorPointX").text must be ("0.5")
+    (textsyms \ "LabelPlacement" \\ "AnchorPointY").text must be ("0.0")
+    textsyms \ "LabelPlacement" \ "PointPlacement" \ "Displacement" must have (length(1))
+    (textsyms \ "LabelPlacement" \\ "DisplacementX").text must be ("1")
+    (textsyms \ "LabelPlacement" \\ "DisplacementY").text must be ("2")
     val fontparams = textsyms \ "Font" \ "CssParameter"
     fontparams(0).attribute("name").get must be ("font-family")
     fontparams(1).attribute("name").get must be ("font-size")
@@ -159,12 +166,14 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     vendor("goodnessOfFit") must be (Some("0.50"))
     vendor("conflictResolution") must be (Some("true"))
     vendor("removeOverlaps") must be (Some("false"))
-    vendor("allowOveruns") must be (Some("true"))
+    vendor("allowOverrun") must be (Some("true"))
     vendor("minGroupDistance") must be (Some("-1"))
     vendor("spaceAround") must be (Some("0"))
     vendor("group") must be (Some("false"))
     vendor("maxDisplacement") must be (Some("0"))
     vendor("forceLeftToRight") must be (Some("true"))
     vendor("spaceAround") must be (Some("0"))
+
+    vendorOptions \\ "Priority" \ "PropertyName" must be ("priority")
   }
 }

@@ -58,4 +58,27 @@ class CssTest extends CssOps with JUnitSuite with MustMatchersForJUnit {
     Specificity(cql) must be > (Specificity(any))
     Specificity(id) must be > (Specificity(any))
   }
+
+  @Test def expansion {
+    val xs = List(
+      Property("stroke", List(Literal("red")) :: List(Literal("green")) :: Nil),
+      Property("opacity", List(Literal("0.70")) :: Nil),
+      Property("width", 
+        List(Literal("10")) :: List(Literal("8")) :: List(Literal("6")) :: Nil
+      )
+    )
+
+    val expanded = expand(xs, "stroke")
+    expanded must have (length(2)) // length of stroke's property list
+    expanded(0)("stroke")  must be (List(Literal("red")))
+    expanded(1)("stroke")  must be (List(Literal("green")))
+    expanded(0)("opacity") must be (List(Literal("0.70")))
+    expanded(1)("opacity") must be (List(Literal("0.70")))
+    expanded(0)("width")   must be (List(Literal("10")))
+    expanded(1)("width")   must be (List(Literal("8")))
+
+    expand(xs, "opacity") must have (length(1))
+    expand(xs, "width") must have (length(3))
+    expand(xs, "fill") must have (length(0))
+  }
 }

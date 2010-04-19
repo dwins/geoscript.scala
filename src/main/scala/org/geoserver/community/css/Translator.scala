@@ -28,7 +28,7 @@ object Translator extends CssOps with SelectorOps {
     "-gt-label-repeat" -> "repeat",
     "-gt-label-all-group" -> "allGroup",
     "-gt-label-remove-overlaps" -> "removeOverlaps",
-    "-gt-label-allow-overruns" -> "allowOveruns",
+    "-gt-label-allow-overruns" -> "allowOverrun",
     "-gt-label-follow-line" -> "followLine",
     "-gt-label-max-angle-delta" -> "maxAngleDelta",
     "-gt-label-auto-wrap" -> "autoWrap",
@@ -120,6 +120,23 @@ object Translator extends CssOps with SelectorOps {
     case _ => null
   }
 
+  def anchor(xs: List[Value]): gt.AnchorPoint = xs map {
+    case Literal(l) => filters.literal(scale(l))
+    case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
+    case _ => null
+  } take 2 match {
+    case List(x, y) => styles.createAnchorPoint(x, y)
+    case _ => null
+  }
+
+  def displacement(xs: List[Value]): List[OGCExpression] = xs map {
+    case Literal(body) =>
+      filters.literal(body.replaceFirst("px$", ""))
+    case Expression(cql) =>
+      org.geotools.filter.text.ecql.ECQL.toExpression(cql)
+    case _ => null
+  }
+
   def lengthArray(xs: List[Value]): Array[Float] = {
     xs.flatMap(_ match {
       case Literal(body) => Some(body.toFloat)
@@ -160,35 +177,21 @@ object Translator extends CssOps with SelectorOps {
    * given Rule.
    */
   def symbolize(properties: List[Property]) = {
-    def property(name: String): Option[Property] =
-      properties.find { _.name == name }
-
-    def propVal(name: String, index: Int): Option[List[Value]] = 
-      properties.find { 
-        _.name == name 
-      } map { 
-        x => x.values(index % x.values.length) 
-      }
-
-    def lineSymbolizer: List[LineSymbolizer] = {
-      val prop = property("stroke")
-      prop.map(_.values).getOrElse(Nil).zipWithIndex.map { x =>
-        val (paint, i) = x
-        val strokeParams = fill(paint)
+    val lineSyms: List[LineSymbolizer] = 
+      expand(properties, "stroke") map { props => 
+        val strokeParams = fill(props("stroke"))
         val stroke = strokeParams._3
-        val dashArray = propVal("stroke-dasharray", i).map(lengthArray).getOrElse(null)
-        val dashOffset = propVal("stroke-dashoffset", i).map(length).getOrElse(null)
-        val linecap = propVal("stroke-linecap", i).map(expression).getOrElse(null)
-        val linejoin = propVal("stroke-linejoin", i).map(expression).getOrElse(null)
-        val miterLimit = propVal("stroke-miterlimit", i).getOrElse(null)
-        val opacity = propVal("stroke-opacity", i).map(scale).getOrElse(null)
-        val width = propVal("stroke-width", i).map(length)
-        val strokeRepeat =
-          propVal("stroke-repeat", i).map(keyword).getOrElse("repeat")
-        val rotation =
-          propVal("stroke-rotation", i).map(angle).getOrElse(filters.literal(0))
-        val geom = (propVal("stroke-geometry", i) orElse propVal("geometry", i))
-          .map(expression).getOrElse(null)
+        val dashArray = props.get("stroke-dasharray") map lengthArray getOrElse null
+        val dashOffset = props.get("stroke-dashoffset") map length getOrElse null
+        val linecap = props.get("stroke-linecap") map expression getOrElse null
+        val linejoin = props.get("stroke-linejoin") map expression getOrElse null
+        val miterLimit = props.get("stroke-miterlimit") getOrElse null
+        val opacity = props.get("stroke-opacity") map scale getOrElse null
+        val width = props.get("stroke-width") map length
+        val strokeRepeat = props.get("stroke-repeat") map keyword getOrElse "repeat"
+        val rotation = props.get("stroke-rotation") map angle getOrElse filters.literal(0)
+        val geom = 
+          props.get("stroke-geometry") orElse props.get("geometry") map expression getOrElse null
 
         val graphic = {
           val mark = buildMark(
@@ -200,7 +203,7 @@ object Translator extends CssOps with SelectorOps {
           val externalGraphic =
             buildExternalGraphic(
             strokeParams._1,
-            propVal("stroke-mime", i).map(keyword)
+            props.get("stroke-mime").map(keyword)
           )
 
           if (mark != null || externalGraphic != null) {
@@ -229,26 +232,26 @@ object Translator extends CssOps with SelectorOps {
         sym.setGeometry(geom)
         sym
       }
-    }
 
-    def polygonSymbolizer: List[PolygonSymbolizer] = {
-      val prop = property("fill")
-        prop.map(_.values).getOrElse(Nil).zipWithIndex.map { x =>
-        val (fillValue, i) = x
-        val fillParams = fill(fillValue)
-        val size = propVal("fill-size", i).map(length)
-        val rotation = propVal("fill-rotation", i).map(angle)
-        val opacity = propVal("fill-opacity", i).map(scale).getOrElse(null)
-        val geom = (propVal("fill-geometry", i) orElse propVal("geometry", i))
-          .map(expression).getOrElse(null)
+    val polySyms: List[PolygonSymbolizer] = 
+      expand(properties, "fill") map { props =>
+        val fillParams = fill(props("fill"))
+        val size = props.get("fill-size") map length
+        val rotation = props.get("fill-rotation") map angle
+        val opacity = props.get("fill-opacity") map scale getOrElse null
+        val geom =
+          props.get("fill-geometry") orElse props.get("geometry") map expression getOrElse null
+
         val graphic = {
           val mark = buildMark(
             fillParams._2,
             size.getOrElse(filters.literal(16)),
             rotation.getOrElse(filters.literal(0))
           )
+
           val externalGraphic =
-            buildExternalGraphic(fillParams._1, propVal("fill-mime", i).map(keyword))
+            buildExternalGraphic(fillParams._1, props.get("fill-mime").map(keyword))
+
           if (mark != null || externalGraphic != null) {
             styles.createGraphic(
               externalGraphic,
@@ -269,63 +272,56 @@ object Translator extends CssOps with SelectorOps {
         sym.setGeometry(geom)
         sym
       }
-    }
 
-    def pointSymbolizer: List[PointSymbolizer] = {
-      val prop = property("mark")
-      prop.map(_.values).getOrElse(Nil).zipWithIndex.map { x =>
-        val (markValue, i) = x
-        val fillParams = fill(markValue)
-        val opacity = propVal("mark-opacity", i).map(scale).getOrElse(null)
+    val pointSyms: List[PointSymbolizer] = 
+      expand(properties, "mark") map { props => 
+        val fillParams = fill(props("mark"))
+        val opacity = props.get("mark-opacity").map(scale).getOrElse(null)
         val size =
-          propVal("mark-size", i).map(length).getOrElse(filters.literal(16))
+          props.get("mark-size").map(length).getOrElse(filters.literal(16))
         val rotation =
-          propVal("mark-rotation", i).map(angle).getOrElse(filters.literal(0))
-        val geom = (propVal("mark-geometry", i) orElse propVal("geometry", i))
+          props.get("mark-rotation").map(angle).getOrElse(filters.literal(0))
+        val geom = (props.get("mark-geometry") orElse props.get("geometry"))
           .map(expression).getOrElse(null)
 
         val graphic = {
-          val mimetype = propVal("mark-mime", i).map(keyword)
+          val mimetype = props.get("mark-mime").map(keyword)
           val mark = buildMark(fillParams._2, size, rotation)
           val externalGraphic = buildExternalGraphic(fillParams._1, mimetype)
 
-          if (mark != null || externalGraphic != null) {
-            styles.createGraphic(
-              externalGraphic,
-              mark,
-              null,
-              opacity,
-              size,
-              rotation
-            )
-          } else null
+          styles.createGraphic(
+            externalGraphic,
+            mark,
+            null,
+            opacity,
+            size,
+            rotation
+          )
         }
 
-        if (graphic != null) {
-          val sym = styles.createPointSymbolizer(graphic, null)
-          sym.setGeometry(geom)
-          sym
-        } else null
+        val sym = styles.createPointSymbolizer(graphic, null)
+        sym.setGeometry(geom)
+        sym
       }
-    }
 
-    def textSymbolizer: List[TextSymbolizer] = {
-      val prop = property("label")
-      prop.map(_.values).getOrElse(Nil).zipWithIndex.map { x =>
-        val (label, i) = x
-        val fillParams = propVal("font-fill", i).map(fill)
-        val fontFamily = propVal("font-family", i)
-        val fontOpacity = propVal("font-opacity", i).map(scale)
-        val geom = (propVal("label-geometry", i) orElse propVal("geometry", i))
+    val textSyms: List[TextSymbolizer] =
+      expand(properties, "label") map { props => 
+        val fillParams = props.get("font-fill").map(fill)
+        val fontFamily = props.get("font-family")
+        val fontOpacity = props.get("font-opacity").map(scale)
+        val anchorPoint = props.get("label-anchor").map(anchor)
+        val offset = props.get("label-offset").map(displacement)
+        val rotation = props.get("label-rotation").map(angle)
+        val geom = (props.get("label-geometry") orElse props.get("geometry"))
           .map(expression).getOrElse(null)
 
         val font = fontFamily.getOrElse(Nil).map { familyName => {
           val fontStyle =
-            propVal("font-style", i).map(expression).getOrElse(filters.literal("normal"))
+            props.get("font-style").map(expression).getOrElse(filters.literal("normal"))
           val fontWeight =
-            propVal("font-weight", i).map(expression).getOrElse(filters.literal("normal"))
+            props.get("font-weight").map(expression).getOrElse(filters.literal("normal"))
           val fontSize =
-            propVal("font-size", i).map(length).getOrElse(filters.literal("10"))
+            props.get("font-size").map(length).getOrElse(filters.literal("10"))
           styles.createFont(familyName, fontStyle, fontWeight, fontSize)
         }}.toArray
 
@@ -336,7 +332,7 @@ object Translator extends CssOps with SelectorOps {
             filters.literal(0)
           )
           val externalGraphic =
-            buildExternalGraphic(fillParams._1, propVal("fill-mime", i).map(keyword))
+            buildExternalGraphic(fillParams._1, props.get("fill-mime").map(keyword))
           if (mark != null || externalGraphic != null) {
             styles.createGraphic(
               externalGraphic,
@@ -349,38 +345,54 @@ object Translator extends CssOps with SelectorOps {
           } else null
         }).getOrElse(null)
 
-        val haloRadius = propVal("halo-radius", i).map(length)
+        val haloRadius = props.get("halo-radius").map(length)
 
         val halo = if (haloRadius.isDefined) {
-          val haloColor = propVal("halo-color", i)
+          val haloColor = props.get("halo-color")
             .map(x => color(x.first)).getOrElse(null)
-          val haloOpacity = propVal("halo-opacity", i).map(scale).getOrElse(null)
+          val haloOpacity = props.get("halo-opacity").map(scale).getOrElse(null)
           styles.createHalo(
             styles.createFill(haloColor, haloOpacity),
             haloRadius.get
           )
         } else null
 
+        val placement = offset match {
+          case Some(List(d)) => styles.createLinePlacement(d)
+          case Some(x :: y :: Nil) =>
+            styles.createPointPlacement(
+              anchorPoint.getOrElse(styles.getDefaultPointPlacement().getAnchorPoint()),
+              styles.createDisplacement(x, y),
+              rotation.getOrElse(styles.getDefaultPointPlacement().getRotation())
+            )
+          case _ => null
+        }
+
         val sym = styles.createTextSymbolizer(
           styles.createFill(fillParams.map(_._3).getOrElse(null), null, fontOpacity.getOrElse(null), fontFill),
           font,
           halo,
-          label.first,
-          null, //TODO: LabelPlacement
-          null  //The geometry, defaults to auto-detect, which is what we want
+          expression(props("label")),
+          placement,
+          null  //the geometry, but only as a string. the setter accepts an expression
         )
         sym.setGeometry(geom)
 
-        for ((cssName, sldName) <- gtVendorOpts) {
-          val vendorOpt = propVal(cssName, i).map(keyword)
-          vendorOpt.foreach(opt => sym.getOptions().put(sldName, opt))
+        for (priority <- props.get("-gt-label-priority") map expression) {
+          sym.setPriority(priority)
+        }
+
+        for (
+          (cssName, sldName) <- gtVendorOpts;
+          value <- props.get(cssName)
+        ) {
+          sym.getOptions().put(sldName, keyword(value))
         }
 
         sym
       }
-    }
 
-    (polygonSymbolizer :: lineSymbolizer :: pointSymbolizer :: textSymbolizer :: Nil)
+    (polySyms :: lineSyms :: pointSyms :: textSyms :: Nil)
   }
 
   case class SimpleRule(

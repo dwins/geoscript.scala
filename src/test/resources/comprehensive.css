@@ -25,6 +25,9 @@
   mark-rotation: 12deg;
   mark-mime: none;
   label: [PROPNAME];
+  label-offset: 1 2;
+  label-rotation: 45deg;
+  label-anchor: 50% 0%;
   font-family: "Times New Roman";
   font-fill: green;
   font-opacity: 50%;
