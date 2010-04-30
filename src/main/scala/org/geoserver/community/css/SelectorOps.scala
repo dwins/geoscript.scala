@@ -55,18 +55,18 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
     case (f@TypenameSelector(a), TypenameSelector(b)) => {
       if (a == b) f else Exclude
     }
-    case (x@PseudoSelector("scale", op1, a), PseudoSelector("scale", op2, b)) =>
-      (op1, op2) match {
-        case (">", ">") => 
-          PseudoSelector("scale", ">", (a.toDouble max b.toDouble).toString)
-        case ("<", "<") => 
-          PseudoSelector("scale", "<", (a.toDouble min b.toDouble).toString)
-        case (">", "<") if a.toDouble >= b.toDouble =>
-          NotSelector(AcceptSelector)
-        case ("<", ">") if a.toDouble <= b.toDouble =>
-          NotSelector(AcceptSelector)
-        case _ => x
-      }
+    case (PseudoSelector(p, "<", a), PseudoSelector(q, "<", b)) 
+      if p == q =>
+      PseudoSelector(p, "<", (a.toDouble min b.toDouble) toString)
+    case (PseudoSelector(p, ">", a), PseudoSelector(q, ">", b)) 
+      if p == q =>
+      PseudoSelector(p, ">", (a.toDouble max b.toDouble) toString)
+    case (PseudoSelector(p, "<", a), PseudoSelector(q, ">", b)) 
+      if p == q && a.toDouble <= b.toDouble => 
+      Exclude
+    case (PseudoSelector(p, ">", a), PseudoSelector(q, "<", b)) 
+      if p == q && a.toDouble >= b.toDouble => 
+      Exclude
     case (a: DataSelector, b: DataSelector)
       if constrainOption(a.asFilter, b.asFilter) != None
       => constrainOption(a.asFilter, b.asFilter).get match {
@@ -98,9 +98,9 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
   def redundant(x: Selector, y: Selector): Boolean = {
     (x, y) match {
       case (a, b) if a == b => true
-      case (Exclude(_), _) => true
+      case (AcceptSelector, _) => true
+      case (Exclude(_), _) => false
       case (a, NotSelector(b)) if a == b => false
-      case (_, AcceptSelector) => true
       case (a: DataSelector, b: DataSelector) => 
         redundant(a.asFilter, b.asFilter)
       case _ => false
@@ -117,26 +117,29 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
     def conflicting(x: Selector, y: Selector) = constrain(x, y) == Exclude
 
     def step(xs: List[Selector], simple: List[Selector]): List[Selector] = {
-      if (xs isEmpty) 
+      if (xs isEmpty) {
         simple
-      else if (xs exists (x => simple.exists(conflicting(_, x)))) 
+      } else if (xs exists (x => simple.exists(conflicting(_, x)))) {
         List(Exclude)
-      else if (xs.tail isEmpty) 
+      } else if (xs.tail isEmpty) {
         xs.head :: simple
-      else {
+      } else {
         val (constrained, unapplied) =
           (xs foldLeft (AcceptSelector: Selector, Nil: List[Selector])) {
             (accum, next) => 
             val (constrained, unapplied) = accum
             if (redundant(constrained, next)) {
-              (constrained, next :: unapplied)
+              (next, unapplied)
             } else {
               constrainOption(next, constrained) match {
-                case Some(constrained) => (constrained, unapplied)
-                case None => (constrained, next :: unapplied)
+                case Some(result) => 
+                  (result, unapplied)
+                case None => 
+                  (constrained, next :: unapplied)
               }
             }
           }
+
         if (unapplied.length < xs.length) {
           step(
             unapplied.filter(!redundant(constrained, _)),

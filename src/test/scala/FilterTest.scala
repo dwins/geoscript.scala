@@ -32,7 +32,7 @@ class FilterTest extends FilterOps with JUnitSuite with MustMatchersForJUnit {
 
   @Test def redundancy {
     val testcases = List(
-      ("A < 1", "A <> 1")
+      ("A <> 1", "A < 1")
     ) map { case (lhs, rhs) => (ECQL.toFilter(lhs), ECQL.toFilter(rhs)) }
 
     for ((lhs, rhs) <- testcases) {

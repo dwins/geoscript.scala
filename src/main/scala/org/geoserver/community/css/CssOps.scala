@@ -316,13 +316,22 @@ trait CssOps {
   : List[Map[String, List[Value]]] = {
     if (props == Nil) Nil 
     else {
-      val keylist = props.find(_.name == key) getOrElse Property(key, Nil)
-      val names = props map (_.name)
+      def filterKeys(xs: List[Property]): List[Property] =
+        xs match {
+          case Nil => Nil
+          case head :: tail => 
+            head :: filterKeys(tail.filter(_.name != head.name))
+        }
+
+      val cleaned = filterKeys(props)
+
+      val keylist = cleaned.find(_.name == key) getOrElse Property(key, Nil)
+      val names = cleaned map (_.name)
 
       def ensureLength(xs: List[List[Value]]): List[List[Value]] = 
         Stream.const(xs).flatMap(x => x).take(keylist.values.length).toList
 
-      val normalizedLists = props map { x => ensureLength(x.values) }
+      val normalizedLists = cleaned map { x => ensureLength(x.values) }
 
       val kvpairs = List.transpose(
         (names zip normalizedLists) map { case (n, l) => l.map((n, _)) }

@@ -35,8 +35,7 @@ class CssTest extends CssOps with JUnitSuite with MustMatchersForJUnit {
     for ((file, stream, count) <- testFiles) {
       val styleSheet = CssParser.parse(stream)
       if (!styleSheet.successful) fail(file + "\n" + styleSheet.toString)
-      if (styleSheet.get.length != count) println(styleSheet)
-      styleSheet.get.length must be (count)
+      styleSheet.get must have (length(count))
     }
   }
 

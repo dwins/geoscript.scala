@@ -33,7 +33,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
   }
 
   @Test def minimalStyle {
-    (minimal \\ "Rule").length must be (4)
+    (minimal \\ "Rule").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer" \ "Fill" \
       "CssParameter").first.attribute("name").get must be ("fill")
@@ -60,7 +60,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
   }
 
   @Test def comprehensiveStyle {
-    (comprehensive \\ "Rule").length must be (4)
+    (comprehensive \\ "Rule").length must be (1)
 
     val polysyms = (comprehensive \\ "Rule" \ "PolygonSymbolizer")
     polysyms.length must be (1)

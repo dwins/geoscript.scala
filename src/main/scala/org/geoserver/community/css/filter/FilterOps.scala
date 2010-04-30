@@ -40,6 +40,8 @@ trait FilterOps {
     val cmp = rA.compareTo(rB.asInstanceOf[A])
     return {
       case ('=,            '=)       if cmp != 0 => { _ => Filter.EXCLUDE }
+      case ('=,            '<>)      if cmp == 0 => { _ => Filter.EXCLUDE }
+      case ('=,            '<>)      if cmp != 0 => identity
       case ('=,            '=)       if cmp == 0 => identity
       case ('= | '< | '<=, '>)       if cmp <= 0 => { _ => Filter.EXCLUDE }
       case ('= | '> | '>=, '<)       if cmp >= 0 => { _ => Filter.EXCLUDE }
@@ -49,11 +51,13 @@ trait FilterOps {
       case ('>=,           '>=)      if cmp >= 0 => identity
       case ('>,            '> | '>=) if cmp >= 0 => identity
       case ('>=,           '> | '>=) if cmp >  0 => identity
+      case ('<> | '< | '>, '<>)      if cmp == 0 => identity
     }
   }
 
   private val constraintRules: PartialFunction[(Filter, Filter),Filter] = {
     case (Filter.INCLUDE, f) => f
+    case (Filter.EXCLUDE, _) => Filter.EXCLUDE
     case (a@BinOp(opA, lA, Lit(rA)), BinOp(opB, lB, Lit(rB)))
       if (equivalent(lA, lB)) &&
          (operatorConstraintRules(rA, rB) isDefinedAt (opA, opB))
@@ -79,30 +83,25 @@ trait FilterOps {
         case 1 => children.get(0)
         case _ => filters.or(children)
       }
-    case (a, b) if redundant(a, b) => a
+    case (a, b) if redundant(a, b) => b
   }
 
   private val redundancyRules: PartialFunction[(Filter, Filter), Boolean] = {
     case (a, b) if equivalent(a, b) => true
-    case (Filter.EXCLUDE, _) => true
-    case (_, Filter.INCLUDE) => true
+    case (Filter.EXCLUDE, _) => false
+    case (Filter.INCLUDE, _) => true
     case (BinOp(opA, lA, Lit(rA)), BinOp(opB, lB, Lit(rB)))
       if (equivalent(lA, lB)) 
       => (opA, opB) match {
-        case ('=, '>) => rA > rB
-        case ('=, '>=) => rA >= rB
-        case ('=, '<) => rA < rB
-        case ('=, '<=) => rA <= rB
-        case ('=, '=) => rA == rB
-        case ('<, '<) => rA < rB
-        case ('<, '<>) => rA <= rB
-        case ('<=, '<) => rA < rB
-        case ('<, '<=) => rA < rB
-        case ('<=, '<=) => rA <= rB
-        case ('>, '>) => rA > rB
-        case ('>=, '>) => rA > rB
-        case ('>, '>=) => rA > rB
-        case ('>=, '>=) => rA >= rB
+        case ('=,        '=)                  => rA == rB
+        case ('<,        '<)                  => rA >= rB
+        case ('<>,       '< | '> | '<>)       => rA == rB
+        case ('<>,       '<=)                 => rA >  rB
+        case ('<>,       '>=)                 => rA <  rB
+        case ('<= | '<,  '<)                  => rA >  rB
+        case ('<  | '<=, '<=)                 => rA >= rB
+        case ('>= | '>,  '>)                  => rA <= rB
+        case ('>= | '>,  '>=)                 => rA <  rB
         case _ => false
       }
     case _ => false
@@ -116,7 +115,15 @@ trait FilterOps {
   def constrain(a: Filter, b: Filter): Filter = 
     constrainOption(a, b) getOrElse a
 
-  def redundant(a: Filter, b: Filter): Boolean =
+  /**
+   * Test two filters to determine whether the set of features matched by the 
+   * second is a subset of those matched by the first.  That is, returns true if
+   * <code>y.accept(f)</code> implies <code>x.accept(f)</code> for all f.
+   * 
+   * This method is probably incomplete and defaults to false when the input has
+   * not been accounted for. 
+   */
+  def redundant(a: Filter, b: Filter): Boolean = 
     redundancyRules((negate(negate(a)), negate(negate(b))))
 
   def negate(x: Filter): Filter = x match {
