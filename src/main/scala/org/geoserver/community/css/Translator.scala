@@ -412,10 +412,16 @@ object Translator extends CssOps with SelectorOps {
   }
 
   case class SimpleRule(
-    comment: String,
+    description: Description,
     selectors: List[Selector],
     properties: List[Property]
   ) {
+    lazy val isSatisfiable = 
+      this.selectors exists { 
+        case Exclude(_) => false
+        case _ => true
+      }
+
     def getFilter = 
       AndSelector(selectors flatMap {
         case (d: DataSelector) => Some(d)
@@ -437,8 +443,8 @@ object Translator extends CssOps with SelectorOps {
 
     val rules = 
       styleSheet flatMap {
-        case Rule(comment, selectors, properties) =>
-          selectors map { SimpleRule(comment, _, properties) }
+        case Rule(desc, selectors, properties) =>
+          selectors map { SimpleRule(desc, _, properties) }
       }
 
     def extractTypeName(rule: SimpleRule): Option[String] =
@@ -475,7 +481,7 @@ object Translator extends CssOps with SelectorOps {
 
     def stripTypenames(rule: SimpleRule): SimpleRule = 
       SimpleRule(
-        rule.comment,
+        rule.description,
         rule.selectors map { 
           case TypenameSelector(_) => AcceptSelector
           case selector => selector
@@ -499,10 +505,18 @@ object Translator extends CssOps with SelectorOps {
         val fts = styles.createFeatureTypeStyle
         typename.foreach(fts.setFeatureTypeName(_))
         for ((rule, syms) <- group) {
-          val (minscale, maxscale) = extractScaleRange(rule)
           val sldRule = styles.createRule()
-          minscale.foreach(sldRule.setMinScaleDenominator)
-          maxscale.foreach(sldRule.setMaxScaleDenominator)
+          val (minscale, maxscale) = extractScaleRange(rule)
+
+          for (min <- minscale) 
+            sldRule.setMinScaleDenominator(min)
+          for (max <- maxscale) 
+            sldRule.setMaxScaleDenominator(max)
+          for (title <- rule.description.title)
+            sldRule.getDescription().setTitle(title)
+          for (abstrakt <- rule.description.abstrakt)
+            sldRule.getDescription().setAbstract(abstrakt)
+
           sldRule.setFilter(rule.getFilter)
           for (sym <- syms) {
             sldRule.symbolizers.add(sym)
@@ -601,9 +615,10 @@ object Translator extends CssOps with SelectorOps {
     // does this pair of "in" and "out" rules combine to form a set of selectors
     // that can possibly match anything?
     def satisfiable(x: (List[SimpleRule], List[SimpleRule])): Boolean =
-      !(compose(x._1, x._2)._1 exists { case Exclude(_) => true; case _ => false } )
+      compose(x._1, x._2).isSatisfiable
 
-    if (xs.isEmpty) (Nil, Nil) :: Nil
+    if (xs.isEmpty) 
+      List((Nil, Nil))
     else
       permute(xs.tail) flatMap { case (in, out) =>
         (xs.head :: in, out) :: (in, xs.head :: out) :: Nil
@@ -611,9 +626,7 @@ object Translator extends CssOps with SelectorOps {
   }
 
   def cascading2exclusive(xs: List[SimpleRule]): List[SimpleRule] =
-    permute(xs) map scala.Function.tupled(compose) map { 
-      case (sel, props) => SimpleRule("", sel, props)
-    }
+    permute(xs) map scala.Function.tupled(compose) 
 
   /**
    * Take a list of rules to include and a list of rules being excluded and
@@ -649,6 +662,15 @@ object Translator extends CssOps with SelectorOps {
       in.flatMap((x: SimpleRule) => x.selectors) ++
       out.flatMap((x: SimpleRule) => not(x.selectors))
 
-    (simplify(selectors), in.sort(specificity).flatMap(_.properties))
+    val sortedRules = in.sort(specificity)
+
+    val description = sortedRules.map(_.description)
+      .foldLeft(Description(None, None)) (Description.combine)
+
+    SimpleRule( 
+      description,
+      simplify(selectors), 
+      sortedRules.flatMap(_.properties)
+    )
   }
 }

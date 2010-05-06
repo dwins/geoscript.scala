@@ -49,13 +49,8 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
   }
 
   @Test def color = {
-    val styleSheet = CssParser.parse(in("/states.css")).get
-    val rules = styleSheet filter {
-      (x: Product) => x.isInstanceOf[Rule]
-    } map {
-      _.asInstanceOf[Rule]
-    }
-    val colorValue = rules(1).properties(1).values(0)
+    val rules: List[Rule]= CssParser.parse(in("/states.css")).get
+    val colorValue = rules(1).properties(0).values(0)
     colorValue.length must be (1)
     extractColor(colorValue(0)) must be ("#4DFF4D")
   }

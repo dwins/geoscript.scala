@@ -1,6 +1,39 @@
 package org.geoserver.community.css
 
-case class Comment(body: String)
+case class Description(title: Option[String], abstrakt: Option[String])
+object Description {
+  val Empty = Description(None, None)
+
+  def extract(comment: String, keyword: String): Option[String] = {
+    val pattern = ("""\s*@""" + keyword + """:?\s*""").r
+
+    comment.lines.map(_.replaceFirst("""\s*\*""", "")).find {
+      line => pattern.findPrefixOf(line) != None
+    } map { pattern.replaceFirstIn(_, "") }
+  }
+
+  def apply(comment: String): Description = {
+    val title = extract(comment, "title")
+    val abst  = extract(comment, "abstract")
+    val res = Description(title, abst)
+    res
+  }
+
+  def combine(lhs: Description, rhs: Description): Description = {
+    def merge(a: Option[String], b: Option[String]) = (a, b) match {
+      case (Some(a), Some(b)) => Some(a + " with " + b)
+      case (Some(a), None)    => Some(a)
+      case (None, Some(b))    => Some(b)
+      case (None, None)       => None
+    }
+
+    Description(
+      merge(lhs.title, rhs.title),
+      merge(lhs.abstrakt, rhs.abstrakt)
+    )
+  }
+}
+
 case class Identifier(name: String)
 case class Combinator(operator: String)
 
@@ -19,7 +52,7 @@ case class Property(name: String, values: List[List[Value]]) {
 }
 
 case class Rule(
-  comment: String, 
+  comment: Description,
   selectors: List[List[Selector]],
   properties: List[Property]
 )

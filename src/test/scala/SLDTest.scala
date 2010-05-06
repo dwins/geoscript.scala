@@ -15,9 +15,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     val xform = new org.geotools.styling.SLDTransformer
     xform.setIndentation(2)
     xform.transform(style, bos)
-    val source = scala.io.Source.fromString(bos.toString)
-    val parser = scala.xml.parsing.ConstructingParser.fromSource(source, false)
-    parser.document
+    scala.xml.XML.loadString(bos.toString())
   }
 
   val minimal = css2sld2dom("/minimal.css")
@@ -27,6 +25,9 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
 
   @Test def statesStyle {
     val css = states \\ "Rule" \ "LineSymbolizer" \ "Stroke" \ "CssParameter"
+    val titles = Set(states \\ "Rule" \ "Title" map (_.text): _*)
+    for (t <- Seq("Persons < 2M", "2M < Persons < 4M", "4M < Persons"))
+      titles must (contain(t))
     val width =
       css.filter(_.attribute("name").get.text == ("stroke-width")).first
     (width \\ "Div").isEmpty must be (false)
@@ -56,7 +57,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     (minimal \\ "Rule" \ "TextSymbolizer" \ "Label"
       \ "Literal").first.text must be ("Label")
     (minimal \\ "Rule" \ "TextSymbolizer" \ "Halo" \ "Radius")
-      .first.text must be ("2")
+      .first.text.trim must be ("2")
   }
 
   @Test def comprehensiveStyle {
@@ -74,8 +75,8 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
       .first.attribute("http://www.w3.org/1999/xlink", "href")
       .get must be ("http://example.com/example.png")
     (polyGraphic \ "ExternalGraphic" \ "Format").text must be ("image/png")
-    (polyGraphic \ "Size").text must be ("32")
-    (polyGraphic \ "Rotation").text must be ("12")
+    (polyGraphic \ "Size").text.trim must be ("32")
+    (polyGraphic \ "Rotation").text.trim must be ("12")
 
     val linesyms = (comprehensive \\ "Rule" \ "LineSymbolizer")
     linesyms.length must be (1)
@@ -88,60 +89,60 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     val strokeDashOffset = lineparams find (_.attribute("name").exists(_.text=="stroke-dashoffset"))
     val strokeDashArray = lineparams find (_.attribute("name").exists(_.text=="stroke-dasharray"))
 
-    stroke.get.text must be ("#FFFFFF")
-    strokeLinecap.get.text must be ("square")
-    strokeLinejoin.get.text must be ("mitre")
-    strokeOpacity.get.text.toDouble must be (0.7 plusOrMinus 0.0001)
-    strokeWidth.get.text must be ("2")
-    strokeDashOffset.get.text must be ("2")
-    strokeDashArray.get.text must be ("1.0 2.0 1.0 4.0")
+    stroke.get.text.trim must be ("#FFFFFF")
+    strokeLinecap.get.text.trim must be ("square")
+    strokeLinejoin.get.text.trim must be ("mitre")
+    strokeOpacity.get.text.trim.toDouble must be (0.7 plusOrMinus 0.0001)
+    strokeWidth.get.text.trim must be ("2")
+    strokeDashOffset.get.text.trim must be ("2")
+    strokeDashArray.get.text.trim must be ("1.0 2.0 1.0 4.0")
 
     val lineGraphic =
       linesyms \ "Stroke" \ "GraphicStroke" \ "Graphic"
     (lineGraphic \ "ExternalGraphic" \ "OnlineResource").first
       .attribute("http://www.w3.org/1999/xlink", "href")
       .get must be ("http://example.com/example.gif")
-    (lineGraphic \ "ExternalGraphic" \ "Format").text must be ("image/gif")
-    (lineGraphic \ "Rotation").text must be ("12")
+    (lineGraphic \ "ExternalGraphic" \ "Format").text.trim must be ("image/gif")
+    (lineGraphic \ "Rotation").text.trim must be ("12")
 
     val pointsyms = comprehensive \\ "Rule" \ "PointSymbolizer"
     pointsyms.length must be (1)
     val pointgraphic = pointsyms \\ "Graphic"
-    (pointgraphic \ "Mark" \ "WellKnownName").text must be ("circle")
+    (pointgraphic \ "Mark" \ "WellKnownName").text.trim must be ("circle")
     (pointgraphic \ "Opacity")
-      .text.toDouble must be (0.7 plusOrMinus 0.0001)
-    (pointgraphic \ "Size").text must be ("16")
-    (pointgraphic \ "Rotation").text must be ("12")
+      .text.trim.toDouble must be (0.7 plusOrMinus 0.0001)
+    (pointgraphic \ "Size").text.trim must be ("16")
+    (pointgraphic \ "Rotation").text.trim must be ("12")
 
     val textsyms = comprehensive \\ "Rule" \ "TextSymbolizer"
     textsyms.length must be (1)
     (textsyms \ "Label" \ "PropertyName") must be ("PROPNAME")
     textsyms \ "LabelPlacement" must have (length(1))
     textsyms \ "LabelPlacement" \ "PointPlacement" \ "AnchorPoint" must have (length(1))
-    (textsyms \ "LabelPlacement" \\ "AnchorPointX").text must be ("0.5")
-    (textsyms \ "LabelPlacement" \\ "AnchorPointY").text must be ("0.0")
+    (textsyms \ "LabelPlacement" \\ "AnchorPointX").text.trim must be ("0.5")
+    (textsyms \ "LabelPlacement" \\ "AnchorPointY").text.trim must be ("0.0")
     textsyms \ "LabelPlacement" \ "PointPlacement" \ "Displacement" must have (length(1))
-    (textsyms \ "LabelPlacement" \\ "DisplacementX").text must be ("1")
-    (textsyms \ "LabelPlacement" \\ "DisplacementY").text must be ("2")
+    (textsyms \ "LabelPlacement" \\ "DisplacementX").text.trim must be ("1")
+    (textsyms \ "LabelPlacement" \\ "DisplacementY").text.trim must be ("2")
     val fontparams = textsyms \ "Font" \ "CssParameter"
     fontparams(0).attribute("name").get must be ("font-family")
     fontparams(1).attribute("name").get must be ("font-size")
     fontparams(2).attribute("name").get must be ("font-style")
     fontparams(3).attribute("name").get must be ("font-weight")
-    fontparams(0).text must be ("Times New Roman")
-    fontparams(1).text must be ("17")
-    fontparams(2).text must be ("oblique")
-    fontparams(3).text must be ("bold")
+    fontparams(0).text.trim must be ("Times New Roman")
+    fontparams(1).text.trim must be ("17")
+    fontparams(2).text.trim must be ("oblique")
+    fontparams(3).text.trim must be ("bold")
     val fillparams = textsyms \ "Fill" \ "CssParameter"
     fillparams(0).attribute("name").get must be ("fill")
     fillparams(1).attribute("name").get must be ("fill-opacity")
     val halo = textsyms \ "Halo"
-    (halo \ "Radius").text must be ("2")
+    (halo \ "Radius").text.trim must be ("2")
     val haloparams = halo \ "Fill" \ "CssParameter"
     haloparams(0).attribute("name").get must be ("fill")
     haloparams(1).attribute("name").get must be ("fill-opacity")
-    haloparams(0).text must be ("#FFFFFF")
-    haloparams(1).text.toDouble must be (0.7 plusOrMinus 0.001)
+    haloparams(0).text.trim must be ("#FFFFFF")
+    haloparams(1).text.trim.toDouble must be (0.7 plusOrMinus 0.001)
   }
 
   @Test def vendorOpts {

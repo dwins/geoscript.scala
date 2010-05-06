@@ -6,17 +6,28 @@ states {
   fill-opacity: 0.7;
 }
 
+/* the parser used to extract titles from the first comment in a run, but it
+ * makes more sense for it to use the last since it is closest to the rule that
+ * it will be applied to.
+ */
+
+/*
+ * @title: Persons < 2M
+ */
 states [PERSONS<2000000] {
-  title: "Persons < 2M";
   fill: #4DFF4D;
 }
 
+/*
+ * @title: 2M < Persons < 4M
+ */
 states [PERSONS>=2000000][PERSONS<4000000] {
-  title: "2M < Persons < 4M";
   fill: #FF4D4D;
 }
 
+/*
+ * @title: 4M < Persons
+ */
 states [PERSONS>=4000000] {
-  title: "4M < Persons";
   fill: #4D4DFF;
 }

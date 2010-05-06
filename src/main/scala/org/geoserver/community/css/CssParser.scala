@@ -37,7 +37,7 @@ object CssParser extends RegexParsers {
         }
     }
 
-  private object ParsedComment extends Parser[String] {
+  private object SingleComment extends Parser[String] {
     val whiteSpace = """\s*"""r
     val comment = """/\*((?:[^/]|[^*]/)*)\*/"""r
 
@@ -59,6 +59,8 @@ object CssParser extends RegexParsers {
       }
     }
   }
+
+  private val ParsedComment = rep1(SingleComment) map { x => Description(x.last) }
 
   private val identifier = """[a-zA-Z]([a-zA-Z0-9]|[-_][a-zA-Z0-9])*"""r
   private val fid = """[a-zA-Z]([a-zA-Z0-9]|[-._][a-zA-Z0-9])*"""r
@@ -131,7 +133,7 @@ object CssParser extends RegexParsers {
   private val rule = 
     ((ParsedComment?) ~ selector ~ propertyList) map {
       case Some(comment) ~ selector ~ props => Rule(comment, selector, props)
-      case None          ~ selector ~ props => Rule("", selector, props)
+      case None          ~ selector ~ props => Rule(Description.Empty, selector, props)
     }
 
   val styleSheet = rule*
