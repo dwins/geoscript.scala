@@ -25,7 +25,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     val java_net = "Java.net Maven Repository" at 
         "http://download.java.net/maven/2/"
 
-    val gtVersion = "2.6.1"
+    val gtVersion = "2.6.3"
         
     val gtMain = "org.geotools" % "gt-main" % gtVersion
     val gtReferencing = "org.geotools" % "gt-epsg-hsql" % gtVersion
@@ -49,8 +49,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
         val base = (Path.fromFile(temp) ##) / artifactBaseName
         val lib = base / "lib"
         val assembly = (mainSourcePath / "assembly" ##) ** "*"
-        val libraries = 
-          mainDependencies.libraries +++ Path.finder(buildScalaInstance.jars)
+        val libraries = (publicClasspath ** "*.jar") +++ Path.finder(buildScalaInstance.jars)
         createDirectory(lib, log)
         copyFilesFlat((libraries +++ jarPath).getFiles, lib, log)
         copy(assembly.get, base, log)
@@ -64,7 +63,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
         } getOrElse { Right[String, String]("hello") }
       }
       None
-    }
+    } describedAs "Produce a binary distribution including runner script"
 
     override def packageAction = packageBinary dependsOn super.packageAction
   }
