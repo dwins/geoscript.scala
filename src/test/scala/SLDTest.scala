@@ -20,8 +20,10 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
 
   val minimal = css2sld2dom("/minimal.css")
   val states = css2sld2dom("/states.css")
+  val stackedSymbolizers = css2sld2dom("/stacked-symbolizers.css")
   val comprehensive = css2sld2dom("/comprehensive.css")
   val vendorOptions = css2sld2dom("/gt-opts.css")
+  val planet = css2sld2dom("/planet_polygon.css")
 
   @Test def statesStyle {
     val css = states \\ "Rule" \ "LineSymbolizer" \ "Stroke" \ "CssParameter"
@@ -176,5 +178,28 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     vendor("spaceAround") must be (Some("0"))
 
     vendorOptions \\ "Priority" \ "PropertyName" must be ("priority")
+  }
+
+
+  @Test def planetPolygon {
+    for (rule <- planet \\ "Rule") {
+      val text = rule \\ "TextSymbolizer"
+      val mark = rule \\ "PointSymbolizer"
+      val stroke = rule \\ "LineSymbolizer"
+      val fill = rule \\ "PolygonSymbolizer"
+      (text ++ mark ++ stroke ++ fill) must not have length(0)
+    }
+  }
+
+  @Test def stackedSyms {
+    stackedSymbolizers \\ "Rule" must have (length(1))
+    val rule = (stackedSymbolizers \\ "Rule").first
+    val colors = 
+    (rule \ "LineSymbolizer" \ "Stroke" \ "CssParameter") filter (
+      _.attribute("name").exists(_.text == "stroke")
+    ) map (_.text.trim)
+    colors(0) must be ("#ff0000")
+    colors(1) must be ("#008000")
+    colors(2) must be ("#0000ff")
   }
 }

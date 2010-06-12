@@ -14,15 +14,12 @@ with JUnitSuite with MustMatchersForJUnit {
     content(expected.toList)
 
   def content(expected: List[Selector]) =
-    // TODO: Make selector.equals better at this
     new HavePropertyMatcher[List[Selector], List[Selector]] {
-      def apply(actual: List[Selector]) = 
-        HavePropertyMatchResult(
-          Set(expected: _*) == Set(actual: _*),
-          "content",
-          expected,
-          actual
-        )
+      def apply(actual: List[Selector]) = {
+        val test = expected.length == actual.length && 
+          (expected.forall(e => actual.exists(a => equivalent(e, a))))
+        HavePropertyMatchResult(test, "content", expected, actual)
+      }
     }
 
   @Test def redundancy {
@@ -90,11 +87,76 @@ with JUnitSuite with MustMatchersForJUnit {
     ) must have (content(Exclude))
 
     // commented out because Filter.equals() gives a false negative on this test
-    // simplify(
-    //   List(
-    //     "PERSONS < 2000000", "INCLUDE", "PERSONS < 2000000 OR PERSONS >= 4000000", "PERSONS < 4000000", "INCLUDE"
-    //   ) map ExpressionSelector
-    // ) must have (content(ExpressionSelector("PERSONS < 2000000")))
+    simplify(
+      List(
+        "PERSONS < 2000000", "INCLUDE", "PERSONS < 2000000 OR PERSONS >= 4000000", "PERSONS < 4000000", "INCLUDE"
+      ) map ExpressionSelector
+    ) must have (content(ExpressionSelector("PERSONS < 2000000")))
+
+    simplify(
+      List(
+        ExpressionSelector("natural='wetland'"),
+        ExpressionSelector("waterway='riverbank'")
+      )
+    ) must have (content(
+      ExpressionSelector("natural='wetland'"),
+      ExpressionSelector("waterway='riverbank'")
+    ))
+
+    simplify(
+      List(
+        ExpressionSelector("natural='wetland'"),
+        OrSelector(List(
+          ExpressionSelector("waterway='riverbank'"),
+          ExpressionSelector("natural='wetland'")
+        ))
+      )
+    ) must have (content(
+      ExpressionSelector("natural='wetland'")
+    ))
+
+    simplify(
+      List(
+        ExpressionSelector("natural='wetland'"),
+        OrSelector(List(
+          ExpressionSelector("natural IS NULL"),
+          ExpressionSelector("natural='wetland'")
+        ))
+      )
+    ) must have (content(
+      ExpressionSelector("natural='wetland'")
+    ))
+
+    simplify(
+      List(
+        ExpressionSelector("natural='wetland'"),
+        OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
+      )
+    ) must have (content(
+      ExpressionSelector("natural='wetland'"), 
+      OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
+    ))
+
+    simplify(
+      List(
+        ExpressionSelector("natural='wetland'"),
+        OrSelector(List(ExpressionSelector("natural<>'water'"), ExpressionSelector("natural is null")))
+      )
+    ) must have (content(
+      ExpressionSelector("natural='wetland'") 
+    ))
+
+    simplify(
+      List(
+        ExpressionSelector("natural='wetland'"),
+        OrSelector(List(ExpressionSelector("natural<>'water'"), ExpressionSelector("natural is null"))),
+        OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
+      )
+    ) must have (content(
+      ExpressionSelector("natural='wetland'"), 
+      OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
+    ))
+//(natural='wetland' or natural is null) or (natural='wetland' or natural is null)
   }
 
   @Test def simplifyScales {

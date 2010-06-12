@@ -495,16 +495,16 @@ object Translator extends CssOps with SelectorOps {
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
 
     for ((typename, overlays) <- styleRules) {
-      val zGroups = 
+      val zGroups: List[List[(Double, SimpleRule, List[gt.Symbolizer])]] = 
         for (rule <- cascading2exclusive(overlays))
           yield groupByZ(symbolize(rule.properties)) map {
             case (z, syms) => (z, rule, syms)
           }
-          
+
       for ((_, group) <- flattenByZ(zGroups)) {
         val fts = styles.createFeatureTypeStyle
         typename.foreach(fts.setFeatureTypeName(_))
-        for ((rule, syms) <- group) {
+        for ((rule, syms) <- group if !syms.isEmpty) {
           val sldRule = styles.createRule()
           val (minscale, maxscale) = extractScaleRange(rule)
 
@@ -571,10 +571,12 @@ object Translator extends CssOps with SelectorOps {
       }
     }
 
+    import scala.util.Sorting.stableSort
+
     // we make a special case for labels; they will be rendered last anyway, so
     // we can fold them into one layer
     val (labels, symbols) = syms partition { _.isInstanceOf[TextSymbolizer] }
-    group(symbols.sort(ordering)) ++ List((0, labels map {_._2}))
+    group(stableSort(symbols, ordering _).toList) ++ List((0, labels map {_._2}))
   }
 
   /**

@@ -98,7 +98,7 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
     style.featureTypeStyles.get(0).rules.get(1)
       .getFilter must have (parent (classOf[org.opengis.filter.PropertyIsEqualTo]))
     val rule = style.featureTypeStyles.get(0).rules.get(0)
-    rule.getFilter must have (parent (classOf[org.opengis.filter.PropertyIsNotEqualTo]))
+    rule.getFilter must have (parent (classOf[org.opengis.filter.Or]))
     val sym = rule.symbolizers.get(0)
     sym must have (parent (classOf[org.geotools.styling.LineSymbolizer]))
     val lineSym = sym.asInstanceOf[org.geotools.styling.LineSymbolizer]

@@ -72,7 +72,7 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
       => constrainOption(a.asFilter, b.asFilter).get match {
           case org.opengis.filter.Filter.EXCLUDE => Exclude
           case org.opengis.filter.Filter.INCLUDE => AcceptSelector
-          case f => WrappedFilter(f)
+          case f => WrappedFilter(simplify(f))
         }
   }
 
@@ -107,6 +107,14 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
     }
   }
 
+  def equivalent(x: Selector, y: Selector): Boolean =
+    (x, y) match {
+      case (a, b) if a == b => true
+      case (a: DataSelector, b: DataSelector) =>
+        equivalent(a.asFilter, b.asFilter)
+      case _ => false
+    }
+
   /**
    * Reduce a list of Selector instances to a shorter (or at least, no longer) 
    * list of selectors that expresses the same constraint on data. (This assumes
@@ -125,17 +133,15 @@ trait SelectorOps extends org.geoserver.community.css.filter.FilterOps {
         xs.head :: simple
       } else {
         val (constrained, unapplied) =
-          (xs foldLeft (AcceptSelector: Selector, Nil: List[Selector])) {
+          (xs.tail foldLeft (xs.head, Nil: List[Selector])) {
             (accum, next) => 
             val (constrained, unapplied) = accum
             if (redundant(constrained, next)) {
               (next, unapplied)
             } else {
               constrainOption(next, constrained) match {
-                case Some(result) => 
-                  (result, unapplied)
-                case None => 
-                  (constrained, next :: unapplied)
+                case Some(result) => (result, unapplied)
+                case None => (constrained, next :: unapplied)
               }
             }
           }
