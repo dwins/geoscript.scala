@@ -113,9 +113,11 @@ with CssDemoConstants {
 
   def sldText = {
     val filename = styleInfo.getFilename()
-    val file = GeoserverDataDirectory.findStyleFile(filename)
-    Source.fromFile(file).getLines.reduceLeft {
-      (x: String, y: String) => x + y
+    val file = Some(GeoserverDataDirectory.findStyleFile(filename)) filter (null !=)
+    file map { file => 
+      Source.fromFile(file).getLines.reduceLeft {
+        (x: String, y: String) => x + y
+      }
     }
   }
 
@@ -136,7 +138,10 @@ existing SLD.
 
     val sldModel: IModel = 
       new org.apache.wicket.model.AbstractReadOnlyModel {
-        override def getObject() = sldText
+        override def getObject() = sldText getOrElse ("""
+No SLD file found for this style.  One will be generated automatically if you
+submit a CSS file.
+        """.trim)
       }
 
     val sldPreview = new Label("sld-preview", sldModel)
@@ -201,13 +206,6 @@ existing SLD.
   class CreateLinkPanel(id: String) extends Panel(id)
   class NamePanel(id: String) extends Panel(id)
 
-  val styleInfo =
-    if ((params containsKey "style") && catalog.getStyleByName(params.getString("style")) != null) {
-      catalog.getStyleByName(params.getString("style"))
-    } else {
-      getCatalog.getStyles().get(0)
-    }
-
   var layerInfo = {
     def res(a: String, b: String) =
       catalog.getResourceByName(a, b, classOf[FeatureTypeInfo])
@@ -231,6 +229,13 @@ existing SLD.
       }
     }
   }
+
+  val styleInfo =
+    if ((params containsKey "style") && catalog.getStyleByName(params.getString("style")) != null) {
+      catalog.getStyleByName(params.getString("style"))
+    } else {
+      catalog.getLayers(layerInfo).get(0).getDefaultStyle()
+    }
 
   def cssSource = styleInfo.getFilename.replaceAll("\\.sld$","") + ".css"
 
