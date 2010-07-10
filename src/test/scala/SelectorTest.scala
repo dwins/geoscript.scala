@@ -5,8 +5,9 @@ import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}
 import org.scalatest.matchers.{HavePropertyMatcher, HavePropertyMatchResult}
 import org.junit.Test
 
-class SelectorTest extends SelectorOps 
-with JUnitSuite with MustMatchersForJUnit {
+class SelectorTest extends JUnitSuite with MustMatchersForJUnit {
+  import SelectorOps._
+  
   def in(s: String) = getClass.getResourceAsStream(s)
 
   def content(expected: Selector*)
@@ -23,24 +24,17 @@ with JUnitSuite with MustMatchersForJUnit {
     }
 
   @Test def redundancy {
-    val positivecases = List(
-      ("INCLUDE", "A = 1"),
-      ("A <= 4", "A <= 2"),
-      ("A >= 2", "A >= 4")
-    ) map { case (l, r) => (ExpressionSelector(l), ExpressionSelector(r)) }
+    val e = ExpressionSelector
+    isSubSet(e("INCLUDE"), e("A = 1")) must be (true)
+    isSubSet(e("A <= 4"), e("A <= 2")) must be (true)
+    isSubSet(e("A >= 2"), e("A >= 4")) must be (true)
 
-    for ((lhs, rhs) <- positivecases) {
-      redundant(lhs, rhs) must be (true)
-    }
+    isSubSet(e("A = 1"), e("INCLUDE")) must be (false)
+    isSubSet(e("A >= 4"), e("A >= 2")) must be (false)
 
-    val negativecases = List(
-      ("A = 1", "INCLUDE"),
-      ("A >= 4", "A >= 2")
-    ) map { case (l, r) => (ExpressionSelector(l), ExpressionSelector(r)) }
-
-    for ((lhs, rhs) <- negativecases) {
-      redundant(lhs, rhs) must be (false)
-    }
+    e("EXCLUDE") must be (e("EXCLUDE"))
+    isSubSet(e("EXCLUDE"), e("EXCLUDE")) must be (true)
+    equivalent(e("EXCLUDE"), e("EXCLUDE")) must be (true)
   }
 
   @Test def simplification {
@@ -168,5 +162,6 @@ with JUnitSuite with MustMatchersForJUnit {
     constrain(minscale, maxscale) must be (minscale)
     constrainOption(minscale, maxscale) must be (None)
     simplify(selectors) must have (content(selectors))
+    intersection(minscale, SelectorOps.not(minscale)) must be (Some(Empty))
   }
 }

@@ -21,7 +21,9 @@ import org.opengis.filter.expression.{
  *
  * @author David Winslow <cdwinslow@gmail.com>
  */
-trait CssOps {
+object CssOps {
+  import SelectorOps._
+
   val colors = Map(
     "aliceblue" -> "#f0f8ff",
     "antiquewhite" -> "#faebd7",

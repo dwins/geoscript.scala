@@ -7,7 +7,9 @@ import org.junit.Test
 /**
  * General-purpose, one-size-fits-all tests for MSS parsing operations
  */
-class CssTest extends CssOps with JUnitSuite with MustMatchersForJUnit {
+class CssTest extends JUnitSuite with MustMatchersForJUnit {
+  import CssOps._
+
   private def testFiles = List(
     ("/test-basic.css", 2),
     ("/states.css", 4),

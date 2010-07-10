@@ -16,38 +16,38 @@ class TokenTest extends JUnitSuite with MustMatchersForJUnit with TypeMatcher {
     val andA = AndSelector(Nil)
     val andB = AndSelector(List(expr1))
     val andC = AndSelector(List(expr1, expr2))
-    andA.asFilter must be (org.opengis.filter.Filter.INCLUDE)
-    andB.asFilter must be (expr1.asFilter)
-    andC.asFilter must be (
-      filters.and(expr1.asFilter, expr2.asFilter)
+    andA.filterOpt.get must be (org.opengis.filter.Filter.INCLUDE)
+    andB.filterOpt.get must be (expr1.filterOpt.get)
+    andC.filterOpt.get must be (
+      filters.and(expr1.filterOpt.get, expr2.filterOpt.get)
     )
 
-    // ((NotSelector(AcceptFilter))).asFilter must be (org.opengis.filter.Filter.EXCLUDE)
+    // ((NotSelector(AcceptFilter))).filterOpt.get must be (org.opengis.filter.Filter.EXCLUDE)
   }
 
   @Test def nots = {
-    AcceptSelector.asFilter must be (org.opengis.filter.Filter.INCLUDE)
-    NotSelector(AcceptSelector).asFilter must be (org.opengis.filter.Filter.EXCLUDE)
-    NotSelector(NotSelector(AcceptSelector)).asFilter must be (org.opengis.filter.Filter.INCLUDE)
+    AcceptSelector.filterOpt.get must be (org.opengis.filter.Filter.INCLUDE)
+    NotSelector(AcceptSelector).filterOpt.get must be (org.opengis.filter.Filter.EXCLUDE)
+    NotSelector(NotSelector(AcceptSelector)).filterOpt.get must be (org.opengis.filter.Filter.INCLUDE)
   }
 
   @Test def nested = {
     import org.opengis.filter.{PropertyIsGreaterThan,Not}
     val expr = ExpressionSelector("a>b")
-    expr.asFilter must have (parent(classOf[PropertyIsGreaterThan]))
+    expr.filterOpt.get must have (parent(classOf[PropertyIsGreaterThan]))
     val not = NotSelector(expr)
-    not.asFilter must have (parent(classOf[Not]))
+    not.filterOpt.get must have (parent(classOf[Not]))
     val or = OrSelector(List(expr))
-    or.asFilter must have (parent(classOf[PropertyIsGreaterThan]))
+    or.filterOpt.get must have (parent(classOf[PropertyIsGreaterThan]))
     val nor = OrSelector(List(not))
-    nor.asFilter must have (parent(classOf[Not]))
+    nor.filterOpt.get must have (parent(classOf[Not]))
     val and = AndSelector(List(expr))
-    and.asFilter must have (parent(classOf[PropertyIsGreaterThan]))
+    and.filterOpt.get must have (parent(classOf[PropertyIsGreaterThan]))
     val nand = AndSelector(List(not))
-    nand.asFilter must have (parent(classOf[Not]))
+    nand.filterOpt.get must have (parent(classOf[Not]))
     val or_and = OrSelector(List(and))
-    or_and.asFilter must have (parent(classOf[PropertyIsGreaterThan]))
+    or_and.filterOpt.get must have (parent(classOf[PropertyIsGreaterThan]))
     val or_nand = OrSelector(List(nand))
-    or_nand.asFilter must have (parent(classOf[Not]))
+    or_nand.filterOpt.get must have (parent(classOf[Not]))
   }
 }

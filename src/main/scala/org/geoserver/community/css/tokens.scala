@@ -1,5 +1,11 @@
 package org.geoserver.community.css
 
+import filter.FilterOps.filters
+
+import java.util.Arrays
+
+import org.opengis.filter.Filter
+
 case class Description(title: Option[String], abstrakt: Option[String])
 object Description {
   val Empty = Description(None, None)
@@ -57,15 +63,20 @@ case class Rule(
   properties: List[Property]
 )
 
-abstract class Selector
+abstract class Selector {
+  def filterOpt: Option[Filter]
+}
 
 abstract class DataSelector extends Selector {
   protected val filters = 
     org.geotools.factory.CommonFactoryFinder.getFilterFactory2(null)
-  def asFilter: org.opengis.filter.Filter
+  def asFilter: Filter
+  override def filterOpt = Some(asFilter)
 }
 
-abstract class MetaSelector extends Selector
+abstract class MetaSelector extends Selector {
+  def filterOpt = None
+}
 
 case class IdSelector(id: String) extends DataSelector {
   val idSet: java.util.Set[org.opengis.filter.identity.Identifier] = {
@@ -107,12 +118,12 @@ case class WrappedFilter(filter: org.opengis.filter.Filter) extends DataSelector
   override def toString = filter.toString
 }
 
-case class NotSelector(selector: DataSelector) extends DataSelector {
-  override def asFilter = {
+case class NotSelector(selector: Selector) extends Selector {
+  override def filterOpt =
     selector match {
-      case NotSelector(sel) => sel.asFilter
+      case NotSelector(sel) => sel.filterOpt
       case sel => 
-        selector.asFilter match {
+        selector.filterOpt map {
           case org.opengis.filter.Filter.EXCLUDE =>
             org.opengis.filter.Filter.INCLUDE
           case org.opengis.filter.Filter.INCLUDE =>
@@ -120,88 +131,51 @@ case class NotSelector(selector: DataSelector) extends DataSelector {
           case f =>
             filters.not(f)
         }
-    }
   }
+}
 
-  override def toString = {
-    selector match {
-      case NotSelector(sel) => sel.toString
-      case sel => 
-        sel.asFilter match {
-          case org.opengis.filter.Filter.INCLUDE => "!!"
-          case org.opengis.filter.Filter.EXCLUDE => "*"
-          case _ => "!" + sel.toString
+case class AndSelector(children: List[Selector]) extends Selector {
+  override def filterOpt = {
+    if (children.forall(_.filterOpt.isDefined)) {
+      val operands = children map { _.filterOpt.get }
+      Some(
+        if (operands contains Filter.EXCLUDE) {
+          Filter.EXCLUDE
+        } else {
+          operands.filter(Filter.INCLUDE !=) match {
+            case Nil => Filter.INCLUDE
+            case List(f) => f
+            case l => filters.and(Arrays.asList(l.toArray:_*))
+          }
         }
+      )
+    } else {
+      None
     }
   }
 }
 
-case class AndSelector(children: List[DataSelector]) extends DataSelector {
-  override def asFilter = {
-    val operands = children map {_.asFilter}
-    if (operands.exists {_ == org.opengis.filter.Filter.EXCLUDE}) {
-      org.opengis.filter.Filter.EXCLUDE
-    } else {
-      operands.filter(org.opengis.filter.Filter.INCLUDE !=) match {
-        case Nil => org.opengis.filter.Filter.INCLUDE
-        case List(f) => f
-        case l => filters.and(java.util.Arrays.asList(l.toArray:_*))
-      }
-    }
-  }
-
-  override def toString = {
-    val operands = children map { x => (x, x.asFilter) }
-
-    if (operands.exists {_._2 == org.opengis.filter.Filter.EXCLUDE}) {
-      "!!"
-    } else {
-      operands filter {
-        _._2 != org.opengis.filter.Filter.INCLUDE
-      } map {
-        _._1
-      } match {
-        case Nil => "*"
-        case List(f) => f.toString
-        case l => "(" + l.mkString(" + ") + ")"
-      }
-    }
-  }
-}
-
-case class OrSelector(children: List[DataSelector]) extends DataSelector {
-  override def asFilter = {
-    val operands = children map {_.asFilter}
-    if (operands.exists {_ == org.opengis.filter.Filter.INCLUDE}) {
-      org.opengis.filter.Filter.INCLUDE
-    } else {
-      val parts = operands.partition(org.opengis.filter.Filter.EXCLUDE==)
-      parts._2 match {
-        case Nil => {
-          if (parts._1.isEmpty) org.opengis.filter.Filter.INCLUDE
-          else org.opengis.filter.Filter.EXCLUDE
+case class OrSelector(children: List[Selector]) extends Selector {
+  override def filterOpt = {
+    if (children.forall(_.filterOpt.isDefined)) {
+      val operands = children map { _.filterOpt.get }
+      Some(
+        if (operands.exists {_ == Filter.INCLUDE}) {
+          Filter.INCLUDE
+        } else {
+          val parts = operands.partition(Filter.EXCLUDE==)
+          parts._2 match {
+            case Nil => {
+              if (parts._1.isEmpty) Filter.INCLUDE
+              else Filter.EXCLUDE
+            }
+            case List(f) => f
+            case l => filters.or(Arrays.asList(l.toArray:_*))
+          }
         }
-        case List(f) => f
-        case l => filters.or(java.util.Arrays.asList(l.toArray:_*))
-      }
-    }
-  }
-
-  override def toString = {
-    val operands = children map { x => (x, x.asFilter) }
-
-    if (operands.exists {_._2 == org.opengis.filter.Filter.INCLUDE}) {
-      "*"
+      )
     } else {
-      operands filter {
-        _._2 != org.opengis.filter.Filter.INCLUDE
-      } map {
-        _._1
-      } match {
-        case Nil => "*"
-        case List(f) => f.toString
-        case l => "(" + l.mkString(" | ") + ")"
-      }
+      None
     }
   }
 }
