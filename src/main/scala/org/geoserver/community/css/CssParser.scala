@@ -87,6 +87,10 @@ object CssParser extends RegexParsers {
 
   val pseudoClass = (":" ~> identifier) ^^ PseudoClass
 
+  val parameterizedPseudoClass = (
+    (":" ~> identifier <~ "(") ~ (number <~ ")")
+  ) ^^ { case a ~ b => ParameterizedPseudoClass(a, b) }
+
   val url = "url(" ~> """[\.!#$%&*-~:/\p{Alnum}]+""".r <~ ")"
   val function = (identifier <~ "(") ~ (repsep(value, ",") <~ ")")
 
@@ -125,7 +129,7 @@ object CssParser extends RegexParsers {
 
   private val simpleSelector = (
     catchAllSelector | idSelector | typeNameSelector | pseudoSelector | 
-    pseudoClass | expressionSelector
+    parameterizedPseudoClass | pseudoClass | expressionSelector
   )*
 
   private val selector = rep1sep(simpleSelector, ",")

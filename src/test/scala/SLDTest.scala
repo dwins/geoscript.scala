@@ -18,14 +18,10 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     scala.xml.XML.loadString(bos.toString())
   }
 
-  val minimal = css2sld2dom("/minimal.css")
-  val states = css2sld2dom("/states.css")
-  val stackedSymbolizers = css2sld2dom("/stacked-symbolizers.css")
-  val comprehensive = css2sld2dom("/comprehensive.css")
-  val vendorOptions = css2sld2dom("/gt-opts.css")
-  val planet = css2sld2dom("/planet_polygon.css")
 
   @Test def statesStyle {
+    val states = css2sld2dom("/states.css")
+
     val css = states \\ "Rule" \ "LineSymbolizer" \ "Stroke" \ "CssParameter"
     val titles = Set(states \\ "Rule" \ "Title" map (_.text): _*)
     for (t <- Seq("Persons < 2M", "2M < Persons < 4M", "4M < Persons"))
@@ -36,6 +32,8 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
   }
 
   @Test def minimalStyle {
+    val minimal = css2sld2dom("/minimal.css")
+
     (minimal \\ "Rule").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer" \ "Fill" \
@@ -63,6 +61,8 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
   }
 
   @Test def comprehensiveStyle {
+    val comprehensive = css2sld2dom("/comprehensive.css")
+
     (comprehensive \\ "Rule").length must be (1)
 
     val polysyms = (comprehensive \\ "Rule" \ "PolygonSymbolizer")
@@ -148,6 +148,8 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
   }
 
   @Test def vendorOpts {
+    val vendorOptions = css2sld2dom("/gt-opts.css")
+
     def vendor(name: String): Option[String] = {
       (vendorOptions \\ "VendorOption") find {
         _.attribute("name") map (_.text == name) getOrElse(false)
@@ -182,6 +184,8 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
 
 
   @Test def planetPolygon {
+    val planet = css2sld2dom("/planet_polygon.css")
+
     for (rule <- planet \\ "Rule") {
       val text = rule \\ "TextSymbolizer"
       val mark = rule \\ "PointSymbolizer"
@@ -191,7 +195,9 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     }
   }
 
-  @Test def stackedSyms {
+  @Test def symbolizerStacking {
+    val stackedSymbolizers = css2sld2dom("/stacked-symbolizers.css")
+
     stackedSymbolizers \\ "Rule" must have (length(1))
     val rule = (stackedSymbolizers \\ "Rule").first
     val colors = 
@@ -201,5 +207,72 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     colors(0) must be ("#ff0000")
     colors(1) must be ("#008000")
     colors(2) must be ("#0000ff")
+  }
+
+  @Test def overrides {
+    val overrides = css2sld2dom("/overrides.css")
+
+    val fills =
+      overrides \\ "CssParameter" filter {n => (n \ "@name").text == "fill"}
+    val strokes =
+      overrides \\ "CssParameter" filter {n => (n \ "@name").text == "stroke"}
+    val marks = overrides \\ "WellKnownName" 
+
+    fills must have (length(2))
+    fills.map(_.text).toList.removeDuplicates must have (length(2))
+
+    strokes must have (length(2))
+    strokes.map(_.text).toList.removeDuplicates must have (length(2))
+
+    marks must have (length(2))
+    marks.map(_.text).toList.removeDuplicates must have (length(2))
+  }
+
+  @Test def styledMarks {
+    val defaultPoint = css2sld2dom("/default_point.css")
+    val simpleLine = css2sld2dom("/cookbook/line_simpleline.css")
+    val graphicPoint = css2sld2dom("/cookbook/point_pointasgraphic.css")
+    val capitals = css2sld2dom("/capitals.css")
+    val camping = css2sld2dom("/camping.css")
+    val hospital = css2sld2dom("/hospital.css")
+    val overrides = css2sld2dom("/mark-overrides.css")
+    val rotatedSquare = css2sld2dom("/cookbook/point_rotatedsquare.css")
+
+    defaultPoint \\ "Rule" must have (length(1))
+    defaultPoint \\ "PolygonSymbolizer" must have (length(0))
+    defaultPoint \\ "Fill" \ "CssParameter" must have (length(1))
+    defaultPoint \\ "Stroke" must have (length(0))
+
+    simpleLine \\ "Graphic" must have (length(0))
+
+    graphicPoint \\ "Size" must have (length(0))
+
+    capitals \\ "LineSymbolizer" must have (length(0))
+    capitals \\ "Stroke" \ "CssParameter" must have (length(1))
+    capitals \\ "PolygonSymbolizer" must have (length(0))
+    capitals \\ "Fill" \ "CssParameter" must have (length(1))
+
+    camping \\ "PolygonSymbolizer" \\ "Mark" \ "Stroke" must have (length(1))
+    camping \\ "PolygonSymbolizer" \\ "Mark" \ "Fill" must have (length(0))
+    camping \\ "PointSymbolizer" \\ "Mark" \ "Fill" must have (length(1))
+    camping \\ "PointSymbolizer" \\ "Mark" \ "Stroke" must have (length(0))
+
+    hospital \\ "PolygonSymbolizer" must have length(0)
+    hospital \\ "PointSymbolizer" \\ "Mark" must have length(2)
+    hospital \\ "PointSymbolizer" \\ "Mark" \ "Fill" must have length(2)
+    hospital \\ "PointSymbolizer" \\ "Mark" \ "Fill" \ "CssParameter" must have length(2)
+
+    rotatedSquare \\ "Graphic" \ "Rotation" must have length(1)
+    (rotatedSquare \\ "Graphic" \ "Rotation").text.trim must be ("45")
+
+    overrides \\ "WellKnownName" must have length(2)
+    (overrides \\ "WellKnownName" map (_.text) toList).removeDuplicates must have length(2)
+
+    val fills = overrides \\ "Mark" \ "Fill"
+    fills must have length(2)
+    (fills \ "CssParameter" 
+      filter (n => (n \ "@name" text) == "fill") 
+      map (_.text)
+    ).toList.removeDuplicates must have (length(2))
   }
 }

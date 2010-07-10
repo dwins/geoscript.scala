@@ -1,6 +1,7 @@
 package org.geoserver.community.css
 
 import org.geoserver.community.css.filter.FilterOps
+import scala.util.Sorting.stableSort
 
 import org.geotools.{styling => gt}
 import org.geotools.styling.{
@@ -44,6 +45,7 @@ object Translator { //  extends CssOps with SelectorOps {
 
   private val defaultRGB = filters.literal(colors("grey"))
 
+// externalGraphic, well-known graphic , color
   def fill(xs: List[Value]): (String, String, OGCExpression) = {
     val wellKnownMarks =
       List("circle", "square", "triangle", "star", "arrow", "hatch", "x")
@@ -57,15 +59,72 @@ object Translator { //  extends CssOps with SelectorOps {
     }
   }
 
-  def buildMark(markName: String, width: OGCExpression, rotation: OGCExpression) = {
+  def buildGraphic(
+    prefix: String,
+    props: Map[String, List[Value]],
+    markProps: List[Property]
+  ): gt.Graphic = {
+    def p(name: String) = 
+      props.get(prefix + "-" + name) orElse
+      markProps.find(_.name == name).flatMap(_.values.firstOption)
+
+    val (url, wellKnownName, _) = fill(props(prefix))
+    val mimetype = p("mime") map keyword 
+    val size = p("size") map length
+    val rotation = p("rotation") map angle
+    val opacity = p("opacity") map scale getOrElse null
+
+    val mark = buildMark(
+      wellKnownName,
+      size,
+      rotation getOrElse filters.literal(0),
+      markProps
+    )
+
+    val externalGraphic = buildExternalGraphic(url, mimetype)
+
+    if (mark != null || externalGraphic != null) {
+      styles.createGraphic(
+        externalGraphic,
+        mark,
+        null,
+        opacity,
+        size getOrElse null,
+        rotation getOrElse null
+      )
+    } else { 
+      null
+    }
+  }
+
+  def buildMark(
+    markName: String, 
+    width: Option[OGCExpression], 
+    rotation: OGCExpression,
+    markProps: List[Property]
+  ): Array[gt.Mark] = {
     if (markName != null) {
+      val strokeAndFill = (
+        expand(markProps, "stroke").firstOption.map(extractStroke(_, Nil)),
+        expand(markProps, "fill").firstOption.map(extractFill(_, Nil))
+      )
+
+      val (stroke, fill) = strokeAndFill match {
+        case (None, None) =>
+          (styles.getDefaultStroke(), styles.getDefaultFill())
+        case (s, f) => (s.getOrElse(null), f.getOrElse(null))
+      }
+
       Array(styles.createMark(
         filters.literal(markName),
-        styles.getDefaultStroke,
-        styles.getDefaultFill,
-        width,
-        rotation)
-    ) } else null
+        stroke,
+        fill,
+        filters.literal(16),
+        filters.literal(0)
+      ))
+    } else {
+      null
+    }
   }
 
   def buildExternalGraphic(url: String, mimetype: Option[String]) = {
@@ -177,15 +236,123 @@ object Translator { //  extends CssOps with SelectorOps {
       case _ => null
     }
 
+  def extractFill(props: Map[String, List[Value]], markProps: List[Property]) = {
+    val (externalGraphicUrl, wellKnownMarkName, color) = fill(props("fill"))
+    val size = props.get("fill-size") map length
+    val rotation = props.get("fill-rotation") map angle
+    val opacity = props.get("fill-opacity") map scale getOrElse null
+
+    val graphic = {
+      val mark = buildMark(
+        wellKnownMarkName,
+        size,
+        rotation.getOrElse(filters.literal(0)),
+        Nil
+      )
+
+      val externalGraphic =
+        buildExternalGraphic(externalGraphicUrl, props.get("fill-mime").map(keyword))
+
+      if (mark != null || externalGraphic != null) {
+        styles.createGraphic(
+          externalGraphic,
+          mark,
+          null,
+          null,
+          size.getOrElse(null),
+          rotation.getOrElse(null)
+        )
+      } else null
+    }
+
+    styles.createFill(color, null, opacity, graphic)
+  }
+
+  def extractStroke(props: Map[String, List[Value]], markProps: List[Property]) = {
+    val (externalGraphicUrl, wellKnownMarkName, color) = fill(props("stroke"))
+    val dashArray = props.get("stroke-dasharray") map lengthArray getOrElse null
+    val dashOffset = props.get("stroke-dashoffset") map length getOrElse null
+    val linecap = props.get("stroke-linecap") map expression getOrElse null
+    val linejoin = props.get("stroke-linejoin") map expression getOrElse null
+    val miterLimit = props.get("stroke-miterlimit") getOrElse null
+    val opacity = props.get("stroke-opacity") map scale getOrElse null
+    val width = props.get("stroke-width") map length
+    val strokeRepeat = props.get("stroke-repeat") map keyword getOrElse "repeat"
+    val rotation = props.get("stroke-rotation") map angle getOrElse filters.literal(0)
+
+    val graphic = {
+      val mark = buildMark(
+        wellKnownMarkName,
+        width,
+        filters.literal(0),
+        Nil
+      )
+
+      val externalGraphic =
+        buildExternalGraphic(
+        externalGraphicUrl,
+        props.get("stroke-mime").map(keyword)
+      )
+
+      if (mark != null || externalGraphic != null) {
+        styles.createGraphic(externalGraphic, mark, null, null, null, rotation)
+      } else null
+    }
+
+    val graphicStroke = if (strokeRepeat == "repeat") graphic else null
+    val graphicFill = if (strokeRepeat == "stipple") graphic else null
+
+    styles.createStroke(
+      color,
+      width.getOrElse(filters.literal(1)),
+      opacity,
+      linejoin,
+      linecap,
+      dashArray,
+      dashOffset,
+      graphicFill,
+      graphicStroke
+    )
+  }
+
   /**
    * Convert a set of properties to a set of Symbolizer objects attached to the
    * given Rule.
    */
-  def symbolize(properties: List[Property]) = {
+  def symbolize(rules: List[SimpleRule]) = {
+    val pseudo: Selector => Boolean = {
+      case PseudoClass(_) | ParameterizedPseudoClass(_, _) => true
+      case _ => false
+    }
+
+    val (synthetic, real) = rules partition { _.selectors.exists(pseudo) }
+
+    val properties = real flatMap { _.properties }
+
+    def orderedMarkRules(symbolizerType: String, order: Int) = {
+      def predicate(sel: Selector) = 
+        sel match {
+          case PseudoClass(sym)
+            => Set("symbol", symbolizerType) contains sym
+          case ParameterizedPseudoClass(name, param)
+            => (Set("nth-symbol", "nth-" + symbolizerType) contains name) && 
+               (param.trim == order.toString)
+          case _ => false
+        }
+
+      synthetic filter {
+        case rule if rule.selectors.exists(predicate) => true
+        case _ => false
+      } flatMap {
+        _.properties
+      }
+    }
+
     val lineSyms: List[(Double, LineSymbolizer)] = 
-      expand(properties, "stroke") map { props => 
-        val strokeParams = fill(props("stroke"))
-        val stroke = strokeParams._3
+      (expand(properties, "stroke").toStream zip
+       (Stream.from(1) map { orderedMarkRules("stroke", _) })
+      ).map { case (props, markProps) =>
+        val (_, _, stroke) = fill(props("stroke"))
         val dashArray = props.get("stroke-dasharray") map lengthArray getOrElse null
         val dashOffset = props.get("stroke-dashoffset") map length getOrElse null
         val linecap = props.get("stroke-linecap") map expression getOrElse null
@@ -202,23 +369,7 @@ object Translator { //  extends CssOps with SelectorOps {
             x => keyword("0", x).toDouble
           } getOrElse(0d)
 
-        val graphic = {
-          val mark = buildMark(
-            strokeParams._2,
-            width.getOrElse(filters.literal(16)),
-            filters.literal(0)
-          )
-
-          val externalGraphic =
-            buildExternalGraphic(
-            strokeParams._1,
-            props.get("stroke-mime").map(keyword)
-          )
-
-          if (mark != null || externalGraphic != null) {
-            styles.createGraphic(externalGraphic, mark, null, null, null, rotation)
-          } else null
-        }
+        val graphic = buildGraphic("stroke", props, markProps)
 
         val graphicStroke = if (strokeRepeat == "repeat") graphic else null
         val graphicFill = if (strokeRepeat == "stipple") graphic else null
@@ -240,10 +391,12 @@ object Translator { //  extends CssOps with SelectorOps {
           )
         sym.setGeometry(geom)
         (zIndex, sym)
-      }
+      }.toList
 
     val polySyms: List[(Double, PolygonSymbolizer)] = 
-      expand(properties, "fill") map { props =>
+      (expand(properties, "fill").toStream zip
+       (Stream.from(1) map { orderedMarkRules("fill", _) })
+      ).map { case (props, markProps) =>
         val fillParams = fill(props("fill"))
         val size = props.get("fill-size") map length
         val rotation = props.get("fill-rotation") map angle
@@ -255,27 +408,7 @@ object Translator { //  extends CssOps with SelectorOps {
             x => keyword("0", x).toDouble
           } getOrElse(0d)
 
-        val graphic = {
-          val mark = buildMark(
-            fillParams._2,
-            size.getOrElse(filters.literal(16)),
-            rotation.getOrElse(filters.literal(0))
-          )
-
-          val externalGraphic =
-            buildExternalGraphic(fillParams._1, props.get("fill-mime").map(keyword))
-
-          if (mark != null || externalGraphic != null) {
-            styles.createGraphic(
-              externalGraphic,
-              mark,
-              null,
-              null,
-              size.getOrElse(null),
-              rotation.getOrElse(null)
-            )
-          } else null
-        }
+        val graphic = buildGraphic("fill", props, markProps) 
 
         val sym = styles.createPolygonSymbolizer(
             null,
@@ -284,16 +417,12 @@ object Translator { //  extends CssOps with SelectorOps {
           )
         sym.setGeometry(geom)
         (zIndex, sym)
-      }
+      }.toList
 
     val pointSyms: List[(Double, PointSymbolizer)] = 
-      expand(properties, "mark") map { props => 
-        val fillParams = fill(props("mark"))
-        val opacity = props.get("mark-opacity").map(scale).getOrElse(null)
-        val size =
-          props.get("mark-size").map(length).getOrElse(filters.literal(16))
-        val rotation =
-          props.get("mark-rotation").map(angle).getOrElse(filters.literal(0))
+      (expand(properties, "mark").toStream zip
+       (Stream.from(1) map { orderedMarkRules("mark", _) })
+      ).map { case (props, markProps) => 
         val geom = (props.get("mark-geometry") orElse props.get("geometry"))
           .map(expression).getOrElse(null)
         val zIndex: Double = 
@@ -301,25 +430,12 @@ object Translator { //  extends CssOps with SelectorOps {
             x => keyword(x).toDouble
           } getOrElse(0d)
 
-        val graphic = {
-          val mimetype = props.get("mark-mime").map(keyword)
-          val mark = buildMark(fillParams._2, size, rotation)
-          val externalGraphic = buildExternalGraphic(fillParams._1, mimetype)
-
-          styles.createGraphic(
-            externalGraphic,
-            mark,
-            null,
-            opacity,
-            size,
-            rotation
-          )
-        }
+        val graphic = buildGraphic("mark", props, markProps)
 
         val sym = styles.createPointSymbolizer(graphic, null)
         sym.setGeometry(geom)
         (zIndex, sym)
-      }
+      }.toList
 
     val textSyms: List[(Double, TextSymbolizer)] =
       expand(properties, "label") map { props => 
@@ -349,8 +465,9 @@ object Translator { //  extends CssOps with SelectorOps {
         val fontFill = fillParams.map(fillParams => {
           val mark = buildMark(
             fillParams._2,
-            filters.literal(16),
-            filters.literal(0)
+            Some(filters.literal(16)),
+            filters.literal(0),
+            Nil // yeah we're not going to support well-known marks for font fills yet.
           )
           val externalGraphic =
             buildExternalGraphic(fillParams._1, props.get("fill-mime").map(keyword))
@@ -497,16 +614,17 @@ object Translator { //  extends CssOps with SelectorOps {
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
 
     for ((typename, overlays) <- styleRules) {
-      val zGroups: List[List[(Double, SimpleRule, List[gt.Symbolizer])]] = 
+      val zGroups: List[List[(Double, (List[SimpleRule], List[SimpleRule]), List[gt.Symbolizer])]] = 
         for (rule <- cascading2exclusive(overlays))
-          yield groupByZ(symbolize(rule.properties)) map {
+          yield groupByZ(symbolize(rule._1)) map {
             case (z, syms) => (z, rule, syms)
           }
 
       for ((_, group) <- flattenByZ(zGroups)) {
         val fts = styles.createFeatureTypeStyle
         typename.foreach(fts.setFeatureTypeName(_))
-        for ((rule, syms) <- group if !syms.isEmpty) {
+        for (((in, out), syms) <- group if !syms.isEmpty) {
+          val rule = compose(in, out)
           val sldRule = styles.createRule()
           val (minscale, maxscale) = extractScaleRange(rule)
 
@@ -532,8 +650,8 @@ object Translator { //  extends CssOps with SelectorOps {
     return sld 
   }
 
-  private def flattenByZ(zGroups: List[List[(Double, SimpleRule, List[Symbolizer])]])
-  : List[(Double, List[(SimpleRule, List[Symbolizer])])] 
+  private def flattenByZ[R](zGroups: List[List[(Double, R, List[Symbolizer])]])
+  : List[(Double, List[(R, List[Symbolizer])])] 
   = {
     def ordering(a: (Double, _, _), b: (Double, _, _)): Boolean = a._1 < b._1
 
@@ -553,12 +671,12 @@ object Translator { //  extends CssOps with SelectorOps {
       }
     }
 
-    val x: List[(Double, SimpleRule, List[Symbolizer])] =
-      zGroups.flatten[(Double, SimpleRule, List[Symbolizer])].sort(ordering)
+    val x: List[(Double, R, List[Symbolizer])] =
+      zGroups.flatten[(Double, R, List[Symbolizer])].sort(ordering)
 
     group(x)
 
-    //group(zGroups.flatten[(Double, SimpleRule, List[Symbolizer])].sort(ordering))
+    //group(zGroups.flatten[(Double, R, List[Symbolizer])].sort(ordering))
   }
 
 
@@ -573,7 +691,6 @@ object Translator { //  extends CssOps with SelectorOps {
       }
     }
 
-    import scala.util.Sorting.stableSort
 
     // we make a special case for labels; they will be rendered last anyway, so
     // we can fold them into one layer
@@ -629,8 +746,15 @@ object Translator { //  extends CssOps with SelectorOps {
       } filter satisfiable
   }
 
-  def cascading2exclusive(xs: List[SimpleRule]): List[SimpleRule] =
-    permute(xs) map scala.Function.tupled(compose) 
+  def cascading2exclusive(xs: List[SimpleRule]):
+  List[(List[SimpleRule], List[SimpleRule])] =
+    permute(xs) map {
+      case (x, y) =>
+        def ordering(a: SimpleRule, b: SimpleRule): Boolean =
+          Specificity(a.selectors) < Specificity(b.selectors)
+
+        (stableSort(x, ordering _).toList.reverse, y)
+    }
 
   /**
    * Take a list of rules to include and a list of rules being excluded and

@@ -95,6 +95,8 @@ object SelectorOps extends Simplifier[Selector] {
     p match {
       case PseudoSelector(lh, ">", rh) => Some(PseudoSelector(lh, "<", rh))
       case PseudoSelector(lh, "<", rh) => Some(PseudoSelector(lh, ">", rh))
+      case PseudoClass(_)              => Some(Exclude)
+      case ParameterizedPseudoClass(_, _) => Some(Exclude)
       case p =>
         for (filt <- p.filterOpt) yield WrappedFilter(FilterOps.not(filt))
     }

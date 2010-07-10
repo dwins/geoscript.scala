@@ -18,7 +18,9 @@ class CssTest extends JUnitSuite with MustMatchersForJUnit {
     ("/comprehensive.css", 1),
     ("/scales.css", 3),
     ("/marks.css", 2),
-    ("/gt-opts.css", 1)
+    ("/gt-opts.css", 1),
+    ("/default_point.css", 2),
+    ("/hospital.css", 3)
   ) map {
     case (file, count) => (file, getClass.getResourceAsStream(file), count)
   }

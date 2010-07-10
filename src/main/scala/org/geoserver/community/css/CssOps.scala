@@ -248,6 +248,8 @@ object CssOps {
     def apply(x: Selector): Specificity = x match {
       case _: TypenameSelector => Specificity(0, 0, 1)
       case _: PseudoSelector => Specificity(0, 1, 0)
+      case _: ParameterizedPseudoClass => Specificity(0, 0, 2)
+      case _: PseudoClass => Specificity(0, 0, 1)
       case _: IdSelector => Specificity(1, 0, 0)
       case expr: ExpressionSelector => 
         Specificity(0, countAttributes(expr.asFilter), 0)

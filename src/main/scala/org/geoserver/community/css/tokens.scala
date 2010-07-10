@@ -99,12 +99,19 @@ case class TypenameSelector(typename: String) extends MetaSelector {
   override def toString = typename
 }
 
-case class PseudoSelector(property: String, operator: String, value: String) extends MetaSelector {
+case class PseudoSelector(property: String, operator: String, value: String)
+extends MetaSelector {
   override def toString = "@%s%s%s".format(property, operator, value)
 }
 
 case class PseudoClass(name: String) extends MetaSelector {
   override def toString = ":%s".format(name)
+}
+
+case class ParameterizedPseudoClass(name: String, param: String) 
+extends MetaSelector 
+{
+  override def toString = ":%s(%s)".format(name, param)
 }
 
 case class ExpressionSelector(expression: String) extends DataSelector {
