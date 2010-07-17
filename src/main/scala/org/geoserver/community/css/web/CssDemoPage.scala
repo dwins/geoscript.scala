@@ -1,5 +1,7 @@
 package org.geoserver.community.css.web
 
+import org.geoserver.community.css._
+
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileWriter

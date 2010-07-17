@@ -695,7 +695,7 @@ object Translator { //  extends CssOps with SelectorOps {
     // we make a special case for labels; they will be rendered last anyway, so
     // we can fold them into one layer
     val (labels, symbols) = syms partition { _.isInstanceOf[TextSymbolizer] }
-    group(stableSort(symbols, ordering _).toList) ++ List((0, labels map {_._2}))
+    group(stableSort(symbols, ordering _).toList) ++ List((0d, labels map {_._2}))
   }
 
   /**

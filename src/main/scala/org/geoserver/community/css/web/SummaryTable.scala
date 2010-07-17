@@ -2,7 +2,7 @@ package org.geoserver.community.css.web
 
 import java.io.Serializable
 
-import scala.collection.jcl.Conversions._
+import scala.collection.JavaConversions._
 import scala.collection.mutable.LinkedHashMap
 
 import org.apache.wicket.Component
