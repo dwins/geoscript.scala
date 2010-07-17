@@ -17,31 +17,28 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   } } describedAs "Alias for examples' run task."
 
   class GeoScriptLibrary(info: ProjectInfo) extends DefaultProject(info) {
-    val osgeo = "OSGeo Maven Repository" at 
-        "http://download.osgeo.org/webdav/geotools/"
-    val opengeo = "OpenGeo Maven Repository" at 
-        "http://repo.opengeo.org/"
-    val specs_repo = "Specs Maven Repository" at 
-        "http://specs.googlecode.com/svn/maven2/"
-    val java_net = "Java.net Maven Repository" at 
-        "http://download.java.net/maven/2/"
-    val scalaToolsSnapshots = "Scala Tools Snapshots Repository" at 
-        "http://scala-tools.org/repo-snapshots/"
-
     val gtVersion = "2.6.1"
-        
-    val gtMain = "org.geotools" % "gt-main" % gtVersion
-    val gtReferencing = "org.geotools" % "gt-epsg-hsql" % gtVersion
-    val gtShapefile = "org.geotools" % "gt-shapefile" % gtVersion
-    val gtJDBC = "org.geotools" % "gt-jdbc" % gtVersion
-    val gtDirectory = "org.geotools" % "gt-directory" % gtVersion 
-    val gtPostgis = "org.geotools.jdbc"   % "gt-jdbc-postgis" % gtVersion 
-    val gtSpatiaLite = "org.geotools.jdbc" % "gt-jdbc-spatialite" % gtVersion
 
-    val scalaSwing = "org.scala-lang" % "scala-swing" % ("2.8.0.Beta1")
-    val jai = "javax.media" % "jai_core" % "1.1.3"
+    override def repositories = super.repositories ++ Set(
+      "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
+      "OpenGeo" at "http://repo.opengeo.org/",
+      "Specs" at "http://specs.googlecode.com/svn/maven2/",
+      "Java.net" at "http://download.java.net/maven/2/",
+      "Scala Tools Snapshots" at "http://scala-tools.org/repo-snapshots/"
+    )
 
-    val specs = "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test"
+    override def libraryDependencies = super.libraryDependencies ++ Set(
+      "org.geotools" % "gt-main" % gtVersion,
+      "org.geotools" % "gt-epsg-hsql" % gtVersion,
+      "org.geotools" % "gt-shapefile" % gtVersion,
+      "org.geotools" % "gt-jdbc" % gtVersion,
+      "org.geotools" % "gt-directory" % gtVersion ,
+      "org.geotools.jdbc"   % "gt-jdbc-postgis" % gtVersion ,
+      "org.geotools.jdbc" % "gt-jdbc-spatialite" % gtVersion,
+      "org.scala-lang" % "scala-swing" % ("2.8.0.Beta1"),
+      "javax.media" % "jai_core" % "1.1.3",
+      "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test"
+    )
   }
 
   class SphinxProject(val info: ProjectInfo) 
