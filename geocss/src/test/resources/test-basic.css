@@ -1,0 +1,14 @@
+/* wait what? */
+
+a {
+    b: c,
+       d;
+    e: fg;
+}
+
+foo#id {
+    bar: baz, fubar;
+    glorf: 10px;
+    test: 2;
+    string: "a; bc,";
+}
