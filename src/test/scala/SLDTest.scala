@@ -37,13 +37,13 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     (minimal \\ "Rule").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer" \ "Fill" \
-      "CssParameter").first.attribute("name").get must be ("fill")
+      "CssParameter").first.attribute("name").get.text must be ("fill")
     (minimal \\ "Rule" \ "PolygonSymbolizer" \ "Fill" \
       "CssParameter").first.text must be ("#ff0000")
 
     (minimal \\ "Rule" \ "LineSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "LineSymbolizer" \ "Stroke" \
-      "CssParameter").first.attribute("name").get must be ("stroke")
+      "CssParameter").first.attribute("name").get.text must be ("stroke")
     (minimal \\ "Rule" \ "LineSymbolizer" \ "Stroke" \
       "CssParameter").first.text must be ("#ff0000")
 
@@ -68,14 +68,14 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     val polysyms = (comprehensive \\ "Rule" \ "PolygonSymbolizer")
     polysyms.length must be (1)
     val polyparams = (polysyms \ "Fill" \ "CssParameter")
-    polyparams(0).attribute("name").get must be ("fill")
-    polyparams(1).attribute("name").get must be ("fill-opacity")
+    polyparams(0).attribute("name").get.text must be ("fill")
+    polyparams(1).attribute("name").get.text must be ("fill-opacity")
     (polyparams)(0).text must be ("#FFFFFF")
     (polyparams)(1).text.toDouble must be (0.7 plusOrMinus 0.0001)
     val polyGraphic = polysyms \ "Fill" \ "GraphicFill" \ "Graphic"
     (polyGraphic \ "ExternalGraphic" \ "OnlineResource")
       .first.attribute("http://www.w3.org/1999/xlink", "href")
-      .get must be ("http://example.com/example.png")
+      .get.text must be ("http://example.com/example.png")
     (polyGraphic \ "ExternalGraphic" \ "Format").text must be ("image/png")
     (polyGraphic \ "Size").text.trim must be ("32")
     (polyGraphic \ "Rotation").text.trim must be ("12")
@@ -103,7 +103,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
       linesyms \ "Stroke" \ "GraphicStroke" \ "Graphic"
     (lineGraphic \ "ExternalGraphic" \ "OnlineResource").first
       .attribute("http://www.w3.org/1999/xlink", "href")
-      .get must be ("http://example.com/example.gif")
+      .get.text must be ("http://example.com/example.gif")
     (lineGraphic \ "ExternalGraphic" \ "Format").text.trim must be ("image/gif")
     (lineGraphic \ "Rotation").text.trim must be ("12")
 
@@ -118,7 +118,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
 
     val textsyms = comprehensive \\ "Rule" \ "TextSymbolizer"
     textsyms.length must be (1)
-    (textsyms \ "Label" \ "PropertyName") must be ("PROPNAME")
+    (textsyms \ "Label" \ "PropertyName").text must be ("PROPNAME")
     textsyms \ "LabelPlacement" must have (length(1))
     textsyms \ "LabelPlacement" \ "PointPlacement" \ "AnchorPoint" must have (length(1))
     (textsyms \ "LabelPlacement" \\ "AnchorPointX").text.trim must be ("0.5")
@@ -127,22 +127,22 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     (textsyms \ "LabelPlacement" \\ "DisplacementX").text.trim must be ("1")
     (textsyms \ "LabelPlacement" \\ "DisplacementY").text.trim must be ("2")
     val fontparams = textsyms \ "Font" \ "CssParameter"
-    fontparams(0).attribute("name").get must be ("font-family")
-    fontparams(1).attribute("name").get must be ("font-size")
-    fontparams(2).attribute("name").get must be ("font-style")
-    fontparams(3).attribute("name").get must be ("font-weight")
+    fontparams(0).attribute("name").get.text must be ("font-family")
+    fontparams(1).attribute("name").get.text must be ("font-size")
+    fontparams(2).attribute("name").get.text must be ("font-style")
+    fontparams(3).attribute("name").get.text must be ("font-weight")
     fontparams(0).text.trim must be ("Times New Roman")
     fontparams(1).text.trim must be ("17")
     fontparams(2).text.trim must be ("oblique")
     fontparams(3).text.trim must be ("bold")
     val fillparams = textsyms \ "Fill" \ "CssParameter"
-    fillparams(0).attribute("name").get must be ("fill")
-    fillparams(1).attribute("name").get must be ("fill-opacity")
+    fillparams(0).attribute("name").get.text must be ("fill")
+    fillparams(1).attribute("name").get.text must be ("fill-opacity")
     val halo = textsyms \ "Halo"
     (halo \ "Radius").text.trim must be ("2")
     val haloparams = halo \ "Fill" \ "CssParameter"
-    haloparams(0).attribute("name").get must be ("fill")
-    haloparams(1).attribute("name").get must be ("fill-opacity")
+    haloparams(0).attribute("name").get.text must be ("fill")
+    haloparams(1).attribute("name").get.text must be ("fill-opacity")
     haloparams(0).text.trim must be ("#FFFFFF")
     haloparams(1).text.trim.toDouble must be (0.7 plusOrMinus 0.001)
   }
@@ -179,7 +179,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     vendor("forceLeftToRight") must be (Some("true"))
     vendor("spaceAround") must be (Some("0"))
 
-    vendorOptions \\ "Priority" \ "PropertyName" must be ("priority")
+    (vendorOptions \\ "Priority" \ "PropertyName" text) must be ("priority")
   }
 
 
