@@ -2,7 +2,7 @@ import sbt._
 
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   // some common dependency configuration
-  val gtVersion = "[2.6.4,2.7.0["
+  val gtVersion = "2.6.4"
   override def repositories = super.repositories ++ Set(
     "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
     "OpenGeo" at "http://repo.opengeo.org/",
