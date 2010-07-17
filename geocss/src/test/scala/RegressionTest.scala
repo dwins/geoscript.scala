@@ -46,12 +46,6 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
     strokeOpacity.values.head must be (List(Literal("0.50")))
   }
 
-  @Test def malformedCQL = {
-    CssParser.parse(in("/badstyle.css")) must have (
-      parent (classOf[CssParser.Failure])
-    )
-  }
-
   @Test def color = {
     val rules: List[Rule]= CssParser.parse(in("/states.css")).get
     val colorValue = rules(1).properties(0).values(0)
