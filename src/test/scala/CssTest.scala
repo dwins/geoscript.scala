@@ -1,4 +1,4 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
 import scala.util.parsing.input.StreamReader
 import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}

@@ -1,4 +1,4 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
 import scala.util.parsing.input.CharSequenceReader
 import org.scalatest.matchers.{ BeMatcher, MatchResult }

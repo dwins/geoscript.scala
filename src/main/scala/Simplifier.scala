@@ -1,4 +1,4 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
 trait Simplifier[P] {
   val Empty: P

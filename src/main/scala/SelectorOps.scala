@@ -1,6 +1,6 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
-import org.geoserver.community.css.filter.FilterOps
+import org.geoscript.geocss.filter.FilterOps
 
 import org.opengis.filter.{
   BinaryComparisonOperator,
@@ -17,7 +17,7 @@ import org.opengis.filter.expression.{
  * The SelectorOps trait provides some facilities for manipulating CSS Selector 
  * objects.
  *
- * @see org.geoserver.community.css.filter.FilterOps
+ * @see org.geoscript.geocss.filter.FilterOps
  * @author David Winslow <cdwinslow@gmail.com>
  */
 object SelectorOps extends Simplifier[Selector] {

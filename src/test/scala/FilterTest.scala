@@ -1,4 +1,4 @@
-package org.geoserver.community.css.filter
+package org.geoscript.geocss.filter
 
 import org.opengis.filter.Filter
 import org.geotools.filter.text.ecql.ECQL

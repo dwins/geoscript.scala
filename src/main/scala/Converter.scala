@@ -1,4 +1,4 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
 import java.io.{ File, FileInputStream, FileOutputStream, OutputStream }
 import CssParser.{Success, NoSuccess}

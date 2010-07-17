@@ -1,6 +1,6 @@
-package org.geoserver.community.css.filter
+package org.geoscript.geocss.filter
 
-import org.geoserver.community.css.Simplifier
+import org.geoscript.geocss.Simplifier
 
 import java.util.Arrays
 import scala.collection.JavaConversions._

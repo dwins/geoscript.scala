@@ -1,4 +1,4 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
 import org.geotools.filter.text.ecql.ECQL
 import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}

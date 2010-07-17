@@ -1,9 +1,9 @@
-package org.geoserver.community.css
+package org.geoscript.geocss
 
 import math._
 import util.Sorting.stableSort
 
-import org.geoserver.community.css.filter.FilterOps
+import org.geoscript.geocss.filter.FilterOps
 
 import org.geotools.feature.NameImpl
 import org.geotools.{styling => gt}
