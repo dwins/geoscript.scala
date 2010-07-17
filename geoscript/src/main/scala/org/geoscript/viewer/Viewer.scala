@@ -7,6 +7,7 @@ import com.vividsolutions.jts.geom.{
 }
 import org.geotools.geometry.jts.LiteShape
 import swing.Swing._
+import math._
 
 /**
  * The Viewer object provides some rudimentary methods for rendering
@@ -38,7 +39,7 @@ object Viewer {
     for (geom <- gs) { envelope.expandToInclude(geom.bounds) }
 
     val scale =
-      Math.min({
+      min({
           if (envelope.getWidth > 0) 
             size._1 / envelope.getWidth 
           else 
