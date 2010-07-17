@@ -12,12 +12,11 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   )
 
   // subproject declarations
-  lazy val library = 
-    project("geoscript", "geoscript", new GeoScriptLibrary(_))
-  lazy val geocss = project("geocss", "geocss", new GeoCSS(_))
-  lazy val docs =
-    project("docs", "docs", new SphinxProject(_))
+  lazy val docs = project("docs", "docs", new SphinxProject(_))
   lazy val examples = project("examples", "examples", library)
+  lazy val geocss = project("geocss", "geocss", new GeoCSS(_))
+  lazy val library = 
+    project("geoscript", "geoscript", new GeoScriptLibrary(_), geocss)
 
   // delegate to examples for a couple of common tasks
   lazy val console = task {
