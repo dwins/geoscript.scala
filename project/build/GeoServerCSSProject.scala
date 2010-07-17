@@ -2,7 +2,10 @@ import sbt._
 
 class GeoServerCSSProject(info: ProjectInfo) extends DefaultProject(info) {
   val gtVersion="2.6-SNAPSHOT"
-  val gsVersion="2.0.3-SNAPSHOT"
+
+  override def managedStyle = ManagedStyle.Maven
+  lazy val publishTo =
+    Resolver.file("maven-local", Path.userHome / ".m2" / "repository" asFile)
 
   override def repositories = super.repositories ++ Set(
     "OpenGeo Maven Repository" at "http://repo.opengeo.org/"
@@ -16,8 +19,6 @@ class GeoServerCSSProject(info: ProjectInfo) extends DefaultProject(info) {
     "org.geotools" % "gt-epsg-hsql" % gtVersion,
     "org.geotools" % "gt-jdbc" % gtVersion,
     "org.geotools" % "gt-shapefile" % gtVersion,
-    "org.geoserver" % "main" % gsVersion % "provided",
-    "org.geoserver.web" % "web-core" % gsVersion % "provided",
     "xml-apis" % "xml-apis-xerces" % "2.7.1" from "http://repo.opengeo.org/xml-apis/xml-apis-xerces/2.7.1/xml-apis-xerces-2.7.1.jar"
   )
 }
