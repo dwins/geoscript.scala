@@ -27,7 +27,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     for (t <- Seq("Persons < 2M", "2M < Persons < 4M", "4M < Persons"))
       titles must (contain(t))
     val width =
-      css.filter(_.attribute("name").get.text == ("stroke-width")).first
+      css.filter(_.attribute("name").get.text == ("stroke-width")).head
     (width \\ "Div").isEmpty must be (false)
   }
 
@@ -37,27 +37,27 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     (minimal \\ "Rule").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "PolygonSymbolizer" \ "Fill" \
-      "CssParameter").first.attribute("name").get.text must be ("fill")
+      "CssParameter").head.attribute("name").get.text must be ("fill")
     (minimal \\ "Rule" \ "PolygonSymbolizer" \ "Fill" \
-      "CssParameter").first.text must be ("#ff0000")
+      "CssParameter").head.text must be ("#ff0000")
 
     (minimal \\ "Rule" \ "LineSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "LineSymbolizer" \ "Stroke" \
-      "CssParameter").first.attribute("name").get.text must be ("stroke")
+      "CssParameter").head.attribute("name").get.text must be ("stroke")
     (minimal \\ "Rule" \ "LineSymbolizer" \ "Stroke" \
-      "CssParameter").first.text must be ("#ff0000")
+      "CssParameter").head.text must be ("#ff0000")
 
     (minimal \\ "Rule" \ "PointSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "PointSymbolizer" \ "Graphic" \ "Mark")
       .length must be (1)
     (minimal \\ "Rule" \ "PointSymbolizer" \ "Graphic" \ "Mark" \
-      "WellKnownName").first.text must be ("star")
+      "WellKnownName").head.text must be ("star")
 
     (minimal \\ "Rule" \ "TextSymbolizer").length must be (1)
     (minimal \\ "Rule" \ "TextSymbolizer" \ "Label"
-      \ "Literal").first.text must be ("Label")
+      \ "Literal").head.text must be ("Label")
     (minimal \\ "Rule" \ "TextSymbolizer" \ "Halo" \ "Radius")
-      .first.text.trim must be ("2")
+      .head.text.trim must be ("2")
   }
 
   @Test def comprehensiveStyle {
@@ -74,7 +74,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     (polyparams)(1).text.toDouble must be (0.7 plusOrMinus 0.0001)
     val polyGraphic = polysyms \ "Fill" \ "GraphicFill" \ "Graphic"
     (polyGraphic \ "ExternalGraphic" \ "OnlineResource")
-      .first.attribute("http://www.w3.org/1999/xlink", "href")
+      .head.attribute("http://www.w3.org/1999/xlink", "href")
       .get.text must be ("http://example.com/example.png")
     (polyGraphic \ "ExternalGraphic" \ "Format").text must be ("image/png")
     (polyGraphic \ "Size").text.trim must be ("32")
@@ -101,7 +101,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
 
     val lineGraphic =
       linesyms \ "Stroke" \ "GraphicStroke" \ "Graphic"
-    (lineGraphic \ "ExternalGraphic" \ "OnlineResource").first
+    (lineGraphic \ "ExternalGraphic" \ "OnlineResource").head
       .attribute("http://www.w3.org/1999/xlink", "href")
       .get.text must be ("http://example.com/example.gif")
     (lineGraphic \ "ExternalGraphic" \ "Format").text.trim must be ("image/gif")
@@ -199,7 +199,7 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     val stackedSymbolizers = css2sld2dom("/stacked-symbolizers.css")
 
     stackedSymbolizers \\ "Rule" must have (length(1))
-    val rule = (stackedSymbolizers \\ "Rule").first
+    val rule = (stackedSymbolizers \\ "Rule").head
     val colors = 
     (rule \ "LineSymbolizer" \ "Stroke" \ "CssParameter") filter (
       _.attribute("name").exists(_.text == "stroke")
@@ -219,13 +219,13 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     val marks = overrides \\ "WellKnownName" 
 
     fills must have (length(2))
-    fills.map(_.text).toList.removeDuplicates must have (length(2))
+    fills.map(_.text).distinct must have (length(2))
 
     strokes must have (length(2))
-    strokes.map(_.text).toList.removeDuplicates must have (length(2))
+    strokes.map(_.text).distinct must have (length(2))
 
     marks must have (length(2))
-    marks.map(_.text).toList.removeDuplicates must have (length(2))
+    marks.map(_.text).distinct must have (length(2))
   }
 
   @Test def styledMarks {
@@ -266,13 +266,13 @@ class SLDTest extends JUnitSuite with MustMatchersForJUnit {
     (rotatedSquare \\ "Graphic" \ "Rotation").text.trim must be ("45")
 
     overrides \\ "WellKnownName" must have length(2)
-    (overrides \\ "WellKnownName" map (_.text) toList).removeDuplicates must have length(2)
+    (overrides \\ "WellKnownName" map (_.text)).distinct must have length(2)
 
     val fills = overrides \\ "Mark" \ "Fill"
     fills must have length(2)
     (fills \ "CssParameter" 
       filter (n => (n \ "@name" text) == "fill") 
       map (_.text)
-    ).toList.removeDuplicates must have (length(2))
+    ).distinct must have (length(2))
   }
 }

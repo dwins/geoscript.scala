@@ -1,5 +1,7 @@
 package org.geoserver.community.css
 
+import scala.math._
+
 import org.opengis.filter.{
   BinaryComparisonOperator,
   BinaryLogicOperator,
@@ -241,9 +243,8 @@ object CssOps {
       }
     }
 
-    private def countAttributes(f: org.opengis.filter.Filter) = {
-      extract(f).removeDuplicates.length
-    }
+    private def countAttributes(f: org.opengis.filter.Filter) =
+      extract(f).toSet.size
 
     def apply(x: Selector): Specificity = x match {
       case _: TypenameSelector => Specificity(0, 0, 1)
@@ -284,7 +285,7 @@ object CssOps {
         def validDouble(x: String) = 
           try { x.toDouble; true } catch { case _ => false }
 
-        def dbl(x: String) = Math.round(x.toFloat * 255f)
+        def dbl(x: String) = round(x.toFloat * 255f)
 
         if (channels.forall(validInt)) {
           Some(hex.format(r.toInt, g.toInt, b.toInt))
@@ -333,15 +334,14 @@ object CssOps {
       val names = cleaned map (_.name)
 
       def ensureLength(xs: List[List[Value]]): List[List[Value]] = 
-        Stream.const(xs).flatMap(x => x).take(keylist.values.length).toList
+        Stream.continually(xs).flatten.take(keylist.values.length).toList
 
       val normalizedLists = cleaned map { x => ensureLength(x.values) }
 
-      val kvpairs = List.transpose(
-        (names zip normalizedLists) map { case (n, l) => l.map((n, _)) }
-      )
-
-      kvpairs map { pairs => Map(pairs: _*) }
+      (names zip normalizedLists) 
+        .map { case (n, l) => l.map((n, _)) }
+        .transpose
+        .map { _.toMap }
     }
   }
 }

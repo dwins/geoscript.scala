@@ -1,8 +1,11 @@
 package org.geoserver.community.css
 
-import org.geoserver.community.css.filter.FilterOps
-import scala.util.Sorting.stableSort
+import math._
+import util.Sorting.stableSort
 
+import org.geoserver.community.css.filter.FilterOps
+
+import org.geotools.feature.NameImpl
 import org.geotools.{styling => gt}
 import org.geotools.styling.{
   LineSymbolizer,
@@ -66,7 +69,7 @@ object Translator { //  extends CssOps with SelectorOps {
   ): gt.Graphic = {
     def p(name: String) = 
       props.get(prefix + "-" + name) orElse
-      markProps.find(_.name == name).flatMap(_.values.firstOption)
+      markProps.find(_.name == name).flatMap(_.values.headOption)
 
     val (url, wellKnownName, _) = fill(props(prefix))
     val mimetype = p("mime") map keyword 
@@ -105,8 +108,8 @@ object Translator { //  extends CssOps with SelectorOps {
   ): Array[gt.Mark] = {
     if (markName != null) {
       val strokeAndFill = (
-        expand(markProps, "stroke").firstOption.map(extractStroke(_, Nil)),
-        expand(markProps, "fill").firstOption.map(extractFill(_, Nil))
+        expand(markProps, "stroke").headOption.map(extractStroke(_, Nil)),
+        expand(markProps, "fill").headOption.map(extractFill(_, Nil))
       )
 
       val (stroke, fill) = strokeAndFill match {
@@ -139,12 +142,12 @@ object Translator { //  extends CssOps with SelectorOps {
   }
 
   // GeoTools only knows about #RRGGBB, but CSS lets you use nice names as well...
-  def color(p: Property) = p.values.first.first match {
+  def color(p: Property) = p.values.head.head match {
     case Literal(body) => filters.literal(colors.getOrElse(body, body))
     case _ => null
   }
 
-  def angle(xs: List[Value]) = xs.first match {
+  def angle(xs: List[Value]) = xs.head match {
     case l: Literal =>
       filters.literal(l.body.replaceFirst("deg$", ""))
     case Expression(cql) =>
@@ -152,7 +155,7 @@ object Translator { //  extends CssOps with SelectorOps {
     case _ => null
   }
 
-  def length(xs: List[Value]): OGCExpression = xs.first match {
+  def length(xs: List[Value]): OGCExpression = xs.head match {
     case Literal(body) =>
       filters.literal(body.replaceFirst("px$", ""))
     case Expression(cql) =>
@@ -160,13 +163,13 @@ object Translator { //  extends CssOps with SelectorOps {
     case _ => null
   }
 
-  def expression(xs: List[Value]): OGCExpression = xs.first match {
+  def expression(xs: List[Value]): OGCExpression = xs.head match {
     case Literal(body) => filters.literal(body)
     case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     case _ => null
   }
 
-  def keyword(default: String, xs: List[Value]): String = xs.first match {
+  def keyword(default: String, xs: List[Value]): String = xs.head match {
     case Literal(body) => body
     case _ => default
   }
@@ -178,7 +181,7 @@ object Translator { //  extends CssOps with SelectorOps {
     else s.toFloat
   }
 
-  def scale(xs: List[Value]): OGCExpression = xs.first match {
+  def scale(xs: List[Value]): OGCExpression = xs.head match {
     case Literal(l) => filters.literal(scale(l))
     case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     case _ => null
@@ -487,7 +490,7 @@ object Translator { //  extends CssOps with SelectorOps {
 
         val halo = if (haloRadius.isDefined) {
           val haloColor = props.get("halo-color")
-            .map(x => color(x.first)).getOrElse(null)
+            .map(x => color(x.head)).getOrElse(null)
           val haloOpacity = props.get("halo-opacity").map(scale).getOrElse(null)
           styles.createHalo(
             styles.createFill(haloColor, haloOpacity),
@@ -577,19 +580,19 @@ object Translator { //  extends CssOps with SelectorOps {
           case _ => None
         }
 
-      val min = 
+      val lower = 
         scales.filter(_.operator == ">") map { _.value.toDouble } match {
           case Nil => None
-          case mins => Some(mins.reduceLeft(Math.max))
+          case mins => Some(mins.reduceLeft(max))
         }
 
-      val max = 
+      val upper = 
         scales.filter(_.operator == "<") map { _.value.toDouble } match {
           case Nil => None
-          case maxes => Some(maxes.reduceLeft(Math.min))
+          case maxes => Some(maxes.reduceLeft(min))
         }
 
-      (min, max)
+      (lower, upper)
     }
 
     def isForTypename(typename: Option[String])(rule: SimpleRule): Boolean =
@@ -608,7 +611,7 @@ object Translator { //  extends CssOps with SelectorOps {
         rule.properties
       )
 
-    val typenames = (rules map extractTypeName) removeDuplicates
+    val typenames = (rules map extractTypeName) distinct
 
     val styleRules = 
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
@@ -622,7 +625,7 @@ object Translator { //  extends CssOps with SelectorOps {
 
       for ((_, group) <- flattenByZ(zGroups)) {
         val fts = styles.createFeatureTypeStyle
-        typename.foreach(fts.setFeatureTypeName(_))
+        typename.foreach { t => fts.featureTypeNames.add(new NameImpl(t)) }
         for (((in, out), syms) <- group if !syms.isEmpty) {
           val rule = compose(in, out)
           val sldRule = styles.createRule()
@@ -658,7 +661,7 @@ object Translator { //  extends CssOps with SelectorOps {
     def foldUp[A, B](xs: List[(_, A, List[B])]): List[(A, List[B])] = {
       (xs foldLeft (Map[A, List[B]]() withDefaultValue Nil)) { (map, item) =>
         val (_, a, b) = item
-        map(a) = map(a) ++ b
+        map.updated(a, map(a) ++ b)
       } toList
     }
 
@@ -672,7 +675,7 @@ object Translator { //  extends CssOps with SelectorOps {
     }
 
     val x: List[(Double, R, List[Symbolizer])] =
-      zGroups.flatten[(Double, R, List[Symbolizer])].sort(ordering)
+      zGroups.flatten[(Double, R, List[Symbolizer])].sortWith(ordering)
 
     group(x)
 
@@ -773,7 +776,7 @@ object Translator { //  extends CssOps with SelectorOps {
       in.flatMap((x: SimpleRule) => x.selectors) ++
       out.map((x: SimpleRule) => not(x.selectors))
 
-    val sortedRules = in.sort(specificity)
+    val sortedRules = in.sortWith(specificity)
 
     val description = sortedRules.map(_.description)
       .foldLeft(Description(None, None)) (Description.combine)

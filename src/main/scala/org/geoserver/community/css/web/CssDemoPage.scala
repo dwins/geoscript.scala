@@ -268,7 +268,7 @@ submit a CSS file.
   }
 
   if (layerInfo != null && styleInfo != null) {
-    val mainContent = new Fragment("main-content", "normal") {
+    val mainContent = new Fragment("main-content", "normal", this) {
       val layerSelectionForm = new Form("layer-selection")
       val layerResources = catalog.getResources(classOf[FeatureTypeInfo])
       java.util.Collections.sort(
@@ -402,6 +402,6 @@ submit a CSS file.
 
     add(mainContent) 
   } else {
-    add(new Fragment("main-content", "loading-failure"))
+    add(new Fragment("main-content", "loading-failure", this))
   }
 }

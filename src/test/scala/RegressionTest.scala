@@ -1,5 +1,7 @@
 package org.geoserver.community.css
 
+import collection.JavaConversions._
+
 import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}
 import org.junit.Test
 
@@ -38,8 +40,8 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
       rule.properties.find(x => x.name == "fill-opacity").get
     val strokeOpacity =
       rule.properties.find(x => x.name == "stroke-opacity").get
-    fillOpacity.values.first must be (List(Literal("50%")))
-    strokeOpacity.values.first must be (List(Literal("0.50")))
+    fillOpacity.values.head must be (List(Literal("50%")))
+    strokeOpacity.values.head must be (List(Literal("0.50")))
   }
 
   @Test def malformedCQL = {
@@ -79,8 +81,9 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
   @Test def typename = {
     val styleSheet = CssParser.parse(in("/states.css")).get
     val style = Translator.css2sld(styleSheet)
-    val it = style.featureTypeStyles.iterator
-    while (it.hasNext) { it.next.getFeatureTypeName must be ("states") }
+    style.featureTypeStyles.foreach {
+      _.featureTypeNames.map(_.getLocalPart()) must be (Set("states"))
+    }
   }
 
   @Test def expression = {
@@ -95,9 +98,9 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
   @Test def stroke = {
     val styleSheet = CssParser.parse(in("/railroad.css")).get
     val style = Translator.css2sld(styleSheet)
-    style.featureTypeStyles.get(0).rules.get(1)
+    style.featureTypeStyles.get(0).rules.get(0)
       .getFilter must have (parent (classOf[org.opengis.filter.PropertyIsEqualTo]))
-    val rule = style.featureTypeStyles.get(0).rules.get(0)
+    val rule = style.featureTypeStyles.get(0).rules.get(1)
     rule.getFilter must have (parent (classOf[org.opengis.filter.Or]))
     val sym = rule.symbolizers.get(0)
     sym must have (parent (classOf[org.geotools.styling.LineSymbolizer]))
