@@ -2,10 +2,10 @@ package org.geoscript.layer
 
 import java.io.File
 
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
-import org.{geotools => gt}
-import com.vividsolutions.jts.{geom => jts}
+import org.opengis.feature.simple.{ SimpleFeature, SimpleFeatureType }
+import org.opengis.feature.`type`.{ AttributeDescriptor, GeometryDescriptor }
+import org.{ geotools => gt }
+import com.vividsolutions.jts.{ geom => jts }
 import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.feature._
@@ -37,7 +37,7 @@ trait Layer {
   /** 
    * Retrieve a GeoTools feature source for this layer.
    */
-  private def source = store.getFeatureSource(name)
+  def source = store.getFeatureSource(name)
 
   /** 
    * The Schema describing this layer's contents.
@@ -70,13 +70,7 @@ trait Layer {
    *
    * @todo: Use an Envelope object for this
    */
-  def bounds: (Double, Double, Double, Double, String) = {
-    val bbox = source.getBounds()
-    val crs = gt.referencing.CRS.lookupEpsgCode(
-      bbox.getCoordinateReferenceSystem(), true
-    )
-    (bbox.getMinX, bbox.getMinY, bbox.getMaxX, bbox.getMaxY, "EPSG:" + crs)
-  }
+  def bounds: jts.Envelope = source.getBounds()
 
   /**
    * Add a single Feature to this data set.
