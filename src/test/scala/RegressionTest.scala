@@ -2,6 +2,8 @@ package org.geoserver.community.css
 
 import collection.JavaConversions._
 
+import org.opengis.filter.{ PropertyIsEqualTo, Or }
+
 import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}
 import org.junit.Test
 
@@ -98,10 +100,17 @@ class RegressionTest extends JUnitSuite with MustMatchersForJUnit with TypeMatch
   @Test def stroke = {
     val styleSheet = CssParser.parse(in("/railroad.css")).get
     val style = Translator.css2sld(styleSheet)
-    style.featureTypeStyles.get(0).rules.get(0)
-      .getFilter must have (parent (classOf[org.opengis.filter.PropertyIsEqualTo]))
-    val rule = style.featureTypeStyles.get(0).rules.get(1)
-    rule.getFilter must have (parent (classOf[org.opengis.filter.Or]))
+
+    style.featureTypeStyles must have (size(1))
+
+    val ftStyle = style.featureTypeStyles.get(0)
+
+    ftStyle.rules must have (size(2))
+    ftStyle.rules.find( _.getFilter.isInstanceOf[PropertyIsEqualTo] ) must
+      be ('defined)
+      
+    ftStyle.rules.find(_.getFilter.isInstanceOf[Or]) must be ('defined)
+    val rule = ftStyle.rules.find(_.getFilter.isInstanceOf[Or]).get
     val sym = rule.symbolizers.get(0)
     sym must have (parent (classOf[org.geotools.styling.LineSymbolizer]))
     val lineSym = sym.asInstanceOf[org.geotools.styling.LineSymbolizer]
