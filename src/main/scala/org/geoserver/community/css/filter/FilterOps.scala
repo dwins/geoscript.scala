@@ -3,7 +3,7 @@ package org.geoserver.community.css.filter
 import org.geoserver.community.css.Simplifier
 
 import java.util.Arrays
-import scala.collection.jcl.Conversions._
+import scala.collection.JavaConversions._
 
 import org.opengis.filter.{
   And,
@@ -255,10 +255,10 @@ object FilterOps extends Simplifier[Filter] {
   }
 
   object Lit {
-    def unapply(x: Expression): Option[Comparable[_]] = 
+    def unapply(x: Expression): Option[Comparable[AnyRef]] = 
       x match {
       case lit: Literal if lit.getValue().isInstanceOf[Comparable[_]] => 
-        Some(lit.getValue().asInstanceOf[Comparable[_]])
+        Some(lit.getValue().asInstanceOf[Comparable[AnyRef]])
       case _ => None
     }
   }

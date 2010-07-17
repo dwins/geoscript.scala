@@ -185,7 +185,7 @@ trait Simplifier[P] {
           } else if (queue.size <= 1) {
             results ++ queue
           } else {
-            var equiv = queue.first
+            var equiv = queue.head
             var shelf = new collection.mutable.ListBuffer[P]()
             for (pred <- queue.drop(1)) {
               val intersected = intersection(equiv, pred)
@@ -212,7 +212,7 @@ trait Simplifier[P] {
           } else if (queue.size <= 1) {
             results ++ queue
           } else {
-            var equiv = queue.first
+            var equiv = queue.head
             var shelf = new collection.mutable.ListBuffer[P]()
             for (pred <- queue.drop(1)) {
               val unioned = union(equiv, pred)

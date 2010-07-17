@@ -8,11 +8,12 @@ class GeoServerCSSProject(info: ProjectInfo) extends DefaultProject(info) {
     Resolver.file("maven-local", Path.userHome / ".m2" / "repository" asFile)
 
   override def repositories = super.repositories ++ Set(
-    "OpenGeo Maven Repository" at "http://repo.opengeo.org/"
+    "OpenGeo Maven Repository" at "http://repo.opengeo.org/",
+    "Scala Tools Snapshost" at "http://scala-tools.org/repo-snapshots"
   )
 
   override def libraryDependencies = super.libraryDependencies ++ Set(
-    "org.scalatest" % "scalatest" % "1.0" % "test",
+    "org.scalatest" % "scalatest" % "1.2-for-scala-2.8.0.final-SNAPSHOT" % "test",
     "junit" % "junit" % "4.2" % "test",
     "org.geotools" % "gt-main" % gtVersion,
     "org.geotools" % "gt-cql" % gtVersion,
