@@ -3,6 +3,7 @@ import sbt._
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val library = 
     project("geoscript", "GeoScript Library", new GeoScriptLibrary(_))
+  lazy val geocss = project("geocss")
   lazy val docs =
     project("docs", "GeoScript Documentation", new SphinxProject(_))
   lazy val examples = project("examples", "GeoScript Examples", library)
