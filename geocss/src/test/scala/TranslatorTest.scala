@@ -1,9 +1,8 @@
 package org.geoscript.geocss
 
-import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}
-import org.junit.Test
+import org.specs._
 
-class TranslatorTest extends JUnitSuite with MustMatchersForJUnit {
+class TranslatorTest extends Specification {
   import Translator.color
 
   def body(x: Translator.OGCExpression): String = {
@@ -14,12 +13,11 @@ class TranslatorTest extends JUnitSuite with MustMatchersForJUnit {
     }
   }
 
-  @Test 
-  def colorFormats = {
-    body(color(Literal("#FFAA77"))) must be ("#ffaa77")
-    body(color(Function("rgb", List("1.0", "0.665", "0.467") map Literal))) must be ("#ffaa77")
-    body(color(Literal("#FA7"))) must be ("#ffaa77")
-    body(color(Function("rgb", List("255", "170", "119") map Literal))) must be ("#ffaa77")
+  "Short hexcodes and English names should work as colors" in {
+    body(color(Literal("#FFAA77"))) must_== ("#ffaa77")
+    body(color(Function("rgb", List("1.0", "0.665", "0.467") map Literal))) must_== ("#ffaa77")
+    body(color(Literal("#FA7"))) must_== ("#ffaa77")
+    body(color(Function("rgb", List("255", "170", "119") map Literal))) must_== ("#ffaa77")
   }
 }
 

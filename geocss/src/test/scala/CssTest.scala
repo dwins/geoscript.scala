@@ -1,68 +1,56 @@
 package org.geoscript.geocss
 
 import scala.util.parsing.input.StreamReader
-import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}
-import org.junit.Test
+import org.specs._
 
 /**
  * General-purpose, one-size-fits-all tests for MSS parsing operations
  */
-class CssTest extends JUnitSuite with MustMatchersForJUnit {
+class CssTest extends Specification with util.DataTables {
   import CssOps._
 
-  private def testFiles = List(
-    ("/test-basic.css", 2),
-    ("/states.css", 4),
-    ("/railroad.css", 2),
-    ("/minimal.css", 1),
-    ("/comprehensive.css", 1),
-    ("/scales.css", 3),
-    ("/marks.css", 2),
-    ("/gt-opts.css", 1),
-    ("/default_point.css", 2),
-    ("/hospital.css", 3)
-  ) map {
-    case (file, count) => (file, getClass.getResourceAsStream(file), count)
-  }
-
-  @Test def fileExists = testFiles foreach { _._2 must not be (null) }
-
-  @Test def grammar = {
-    for ((_, stream, _) <- testFiles) {
-      val reader = new java.io.InputStreamReader(stream)
-      val parseResult = CssParser.styleSheet(StreamReader(reader))
-      parseResult.successful must be (true)
+  "The test data should parse successfully" in {
+    "resource path"      | "rule count" |> 
+    "/test-basic.css"    ! 2            |
+    "/states.css"        ! 4            |
+    "/railroad.css"      ! 2            |
+    "/minimal.css"       ! 1            |
+    "/comprehensive.css" ! 1            |
+    "/scales.css"        ! 3            |
+    "/marks.css"         ! 2            |
+    "/gt-opts.css"       ! 1            |
+    "/default_point.css" ! 2            |
+    "/hospital.css"      ! 3            | { (file, count) => 
+      val stream = getClass.getResourceAsStream(file)
+      stream must not be null
+      val rules = CssParser.parse(stream)
+      rules.successful must beTrue
+      rules.get must haveSize(count)
     }
   }
 
-  @Test def rulesFound = {
-    for ((file, stream, count) <- testFiles) {
-      val styleSheet = CssParser.parse(stream)
-      if (!styleSheet.successful) fail(file + "\n" + styleSheet.toString)
-      styleSheet.get must have (length(count))
-    }
-  }
-
-  @Test def SLDOutput = {
-    val in = testFiles(5)._2
+  "producing an SLD should not throw any exceptions" in {
+    val in = getClass().getResourceAsStream("/scales.css")
     val styleSheet = CssParser.parse(in).get
     val style = Translator.css2sld(styleSheet)
     val xform = new org.geotools.styling.SLDTransformer
     xform.setIndentation(2)
-    xform.transform(style, new java.io.ByteArrayOutputStream)
+    val bytes = new java.io.ByteArrayOutputStream
+    xform.transform(style, bytes)
+    bytes.toByteArray.isEmpty must beFalse
   }
 
-  @Test def specificity = {
+  "Specificity comparisons should work as in the CSS standard" in { 
     val any = AcceptSelector
     val id  = IdSelector("states.9")
     val cql = ExpressionSelector("STATE_NAME LIKE '%ia'")
 
-    Specificity(id) must be > (Specificity(cql))
-    Specificity(cql) must be > (Specificity(any))
-    Specificity(id) must be > (Specificity(any))
+    Specificity(id) must be_> (Specificity(cql))
+    Specificity(cql) must be_> (Specificity(any))
+    Specificity(id) must be_> (Specificity(any))
   }
 
-  @Test def expansion {
+  "Rule expansions should repeat properties as needed" in {
     val xs = List(
       Property("stroke", List(Literal("red")) :: List(Literal("green")) :: Nil),
       Property("opacity", List(Literal("0.70")) :: Nil),
@@ -72,16 +60,21 @@ class CssTest extends JUnitSuite with MustMatchersForJUnit {
     )
 
     val expanded = expand(xs, "stroke")
-    expanded must have (length(2)) // length of stroke's property list
-    expanded(0)("stroke")  must be (List(Literal("red")))
-    expanded(1)("stroke")  must be (List(Literal("green")))
-    expanded(0)("opacity") must be (List(Literal("0.70")))
-    expanded(1)("opacity") must be (List(Literal("0.70")))
-    expanded(0)("width")   must be (List(Literal("10")))
-    expanded(1)("width")   must be (List(Literal("8")))
+    expanded must haveSize(2)
+    expanded(0) must havePairs(
+      "stroke"  -> List(Literal("red")),
+      "opacity" -> List(Literal("0.70")),
+      "width"   -> List(Literal("10"))
+    )
 
-    expand(xs, "opacity") must have (length(1))
-    expand(xs, "width") must have (length(3))
-    expand(xs, "fill") must have (length(0))
+    expanded(1) must havePairs(
+      "stroke"  -> List(Literal("green")),
+      "opacity" -> List(Literal("0.70")),
+      "width"   -> List(Literal("8"))
+    )
+
+    expand(xs, "opacity") must haveSize(1)
+    expand(xs, "width") must haveSize(3)
+    expand(xs, "fill") must haveSize(0)
   }
 }

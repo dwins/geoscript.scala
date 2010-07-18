@@ -1,14 +1,11 @@
 package org.geoscript.geocss
 
-import org.scalatest.junit.{JUnitSuite, MustMatchersForJUnit}
-import org.scalatest.matchers.{HavePropertyMatcher, HavePropertyMatchResult}
-import org.junit.Test
+import org.specs._
 
 /**
  * Tests for general simplification rules
  */
-class SimplifierTest extends JUnitSuite with MustMatchersForJUnit {
-
+class SimplifierTest extends Specification {
   sealed abstract class Predicate
   case object P extends Predicate
   case object Q extends Predicate
@@ -60,396 +57,374 @@ class SimplifierTest extends JUnitSuite with MustMatchersForJUnit {
 
   import PredicateSimplifier._
   
-  @Test 
-  def simpleSubsets {
-    // predicates that compare equal are subsets
-    isSubSet(P, P) must be (true)
-    isSubSet(Q, Q) must be (true)
-
-    // ones that don't, don't, other rules excluded
-    isSubSet(P, Q) must be (false)
-    isSubSet(Q, P) must be (false)
-
-    // any predicate is a subset of Everything
-    isSubSet(Everything, P) must be (true)
-    isSubSet(Everything, Q) must be (true)
-    isSubSet(Everything, Everything) must be (true)
-    
-    // with one exception:
-    isSubSet(Everything, Empty) must be (false)
-
-    // no predicate is a subset of Empty (the null set)
-    isSubSet(Empty, P) must be (false)
-    isSubSet(Empty, Q) must be (false)
-    isSubSet(Empty, Empty) must be (false)
-    isSubSet(Empty, Everything) must be (false)
+  "predicates that compare equal are subsets" in {
+    isSubSet(P, P) must_== (true)
+    isSubSet(Q, Q) must_== (true)
   }
 
-  @Test def simpleDisjoint {
-    // self-disjointness is definitely not the case
-    isDisjoint(P, P) must be (false)
-    isDisjoint(Q, Q) must be (false)
+  "predicates that aren't equal are not subsets, in general" in {
+    isSubSet(P, Q) must_== (false)
+    isSubSet(Q, P) must_== (false)
+  }
+
+  "any predicate is a subset of Everything" in {
+    isSubSet(Everything, P) must_== (true)
+    isSubSet(Everything, Q) must_== (true)
+    isSubSet(Everything, Everything) must_== (true)
+    // with one exception:
+    isSubSet(Everything, Empty) must_== (false)
+  }
+
+  "no predicate is a subset of Empty (the null set)" in {
+    isSubSet(Empty, P) must_== (false)
+    isSubSet(Empty, Q) must_== (false)
+    isSubSet(Empty, Empty) must_== (false)
+    isSubSet(Empty, Everything) must_== (false)
+  }
+
+  "predicates are never self-disjoint" in {
+    isDisjoint(P, P) must_== (false)
+    isDisjoint(Q, Q) must_== (false)
     
     // except for Empty
-    isDisjoint(Empty, Empty) must be (true)
+    isDisjoint(Empty, Empty) must_== (true)
+  }
 
-    // we also return false when we're just not sure
-    isDisjoint(P, Q) must be (false)
-    isDisjoint(Q, P) must be (false)
+  "disjoint tests return false in ambiguous cases" in {
+    isDisjoint(P, Q) must_== (false)
+    isDisjoint(Q, P) must_== (false)
+  }
 
-    // you can't be disjoint with Everything
-    isDisjoint(Everything, P) must be (false)
-    isDisjoint(Everything, Q) must be (false)
-    isDisjoint(P, Everything) must be (false)
-    isDisjoint(Q, Everything) must be (false)
+  "nothing is disjoint with Everything" in {
+    isDisjoint(Everything, P) must_== (false)
+    isDisjoint(Everything, Q) must_== (false)
+    isDisjoint(P, Everything) must_== (false)
+    isDisjoint(Q, Everything) must_== (false)
+  }
 
-    // you're always disjoint with Empty
-    isDisjoint(Empty, P) must be (true)
-    isDisjoint(Empty, Q) must be (true)
-    isDisjoint(P, Empty) must be (true)
-    isDisjoint(Q, Empty) must be (true)
+  "a predicate is  always disjoint with Empty" in {
+    isDisjoint(Empty, P) must_== (true)
+    isDisjoint(Empty, Q) must_== (true)
+    isDisjoint(P, Empty) must_== (true)
+    isDisjoint(Q, Empty) must_== (true)
 
     // unstoppable force, meet immovable object (the object wins this time)
-    isDisjoint(Everything, Empty) must be (true)
-    isDisjoint(Empty, Everything) must be (true)
+    isDisjoint(Everything, Empty) must_== (true)
+    isDisjoint(Empty, Everything) must_== (true)
   }
 
-  @Test
-  def simpleCovering {
+  "any predicate is covering in combination with Everything" in {
     // areCovering tests whether (a or b) is equivalent to Everything, so these
     // had better pass:
-    areCovering(Everything, P) must be (true)
-    areCovering(Everything, Q) must be (true)
+    areCovering(Everything, P) must_== (true)
+    areCovering(Everything, Q) must_== (true)
 
     // the covering test is commutative
-    areCovering(P, Everything) must be (true)
-    areCovering(Q, Everything) must be (true)
+    areCovering(P, Everything) must_== (true)
+    areCovering(Q, Everything) must_== (true)
 
-    areCovering(Everything, Empty) must be (true)
-    areCovering(Empty, Everything) must be (true)
-
-    // that's pretty much all we can say for sure, everything else should be
-    // false
-    areCovering(P, Q) must be (false)
-    areCovering(Q, P) must be (false)
-    areCovering(P, Empty) must be (false)
-    areCovering(Empty, P) must be (false)
-    areCovering(Q, Empty) must be (false)
-    areCovering(Empty, Q) must be (false)
+    areCovering(Everything, Empty) must_== (true)
+    areCovering(Empty, Everything) must_== (true)
   }
 
-  @Test
-  def simpleIntersect {
-    // if there's no intersection that doesn't add structure, give a None
-    intersection(P, Q) must be (None)
-
-    // intersecting p with p gives p
-    intersection(P, P) must be (Some(P))
-    intersection(Q, Q) must be (Some(Q))
-
-    // intersecting everything with p gives p
-    intersection(Everything, P) must be (Some(P))
-    intersection(P, Everything) must be (Some(P))
-    intersection(Everything, Q) must be (Some(Q))
-    intersection(Q, Everything) must be (Some(Q))
-
-    // intersecting Empty with anything gives Empty
-    intersection(Empty, P) must be (Some(Empty))
-    intersection(P, Empty) must be (Some(Empty))
-    intersection(Empty, Q) must be (Some(Empty))
-    intersection(Q, Empty) must be (Some(Empty))
-
-    intersection(Empty, Everything) must be (Some(Empty))
-    intersection(Everything, Empty) must be (Some(Empty))
+  "areCovering returns false in ambiguous cases" in {
+    areCovering(P, Q) must_== (false)
+    areCovering(Q, P) must_== (false)
+    areCovering(P, Empty) must_== (false)
+    areCovering(Empty, P) must_== (false)
+    areCovering(Q, Empty) must_== (false)
+    areCovering(Empty, Q) must_== (false)
   }
 
-  @Test
-  def simpleUnion {
-    // if there's no union that doesn't add structure, give a None
-    union(P, Q) must be (None)
-
-    // the union of p and p gives p
-    union(P, P) must be (Some(P))
-    union(Q, Q) must be (Some(Q))
-
-    // the union of Everything with p gives Everything
-    union(Everything, P) must be (Some(Everything))
-    union(P, Everything) must be (Some(Everything))
-    union(Everything, Q) must be (Some(Everything))
-    union(Q, Everything) must be (Some(Everything))
-
-    // the union of Empty with p gives p
-    union(Empty, P) must be (Some(P))
-    union(P, Empty) must be (Some(P))
-    union(Empty, Q) must be (Some(Q))
-    union(Q, Empty) must be (Some(Q))
-
-    union(Empty, Everything) must be (Some(Everything))
-    union(Everything, Empty) must be (Some(Everything))
+  "intersection returns None in ambiguous cases" in {
+    intersection(P, Q) must_== (None)
   }
 
-  @Test
-  def simpleSimplify {
-    // if a predicate is already simple, not much simplification to do
-    simplify(P) must be (P)
-    simplify(Q) must be (Q)
-    simplify(Everything) must be (Everything)
-    simplify(Empty) must be (Empty)
+  "self-intersection returns self" in {
+    intersection(P, P) must_== Some(P)
+    intersection(Q, Q) must_== Some(Q)
   }
 
-  @Test 
-  def negationSubsets {
+  "intersection with Everything also returns self" in {
+    intersection(Everything, P) must_== (Some(P))
+    intersection(P, Everything) must_== (Some(P))
+    intersection(Everything, Q) must_== (Some(Q))
+    intersection(Q, Everything) must_== (Some(Q))
+  }
+
+  "intersection with Empty gives Empty" in {
+    intersection(Empty, P) must_== (Some(Empty))
+    intersection(P, Empty) must_== (Some(Empty))
+    intersection(Empty, Q) must_== (Some(Empty))
+    intersection(Q, Empty) must_== (Some(Empty))
+
+    intersection(Empty, Everything) must_== (Some(Empty))
+    intersection(Everything, Empty) must_== (Some(Empty))
+  }
+
+  "union returns None in ambiguous cases" in {
+    union(P, Q) must_== (None)
+  }
+
+  "self-union returns self" in {
+    union(P, P) must_== (Some(P))
+    union(Q, Q) must_== (Some(Q))
+  }
+
+  "any predicate unioned with Everything gives Everything" in {
+    union(Everything, P) must_== (Some(Everything))
+    union(P, Everything) must_== (Some(Everything))
+    union(Everything, Q) must_== (Some(Everything))
+    union(Q, Everything) must_== (Some(Everything))
+  }
+
+  "any predicate unioned with Empty returns itself" in {
+    union(Empty, P) must_== (Some(P))
+    union(P, Empty) must_== (Some(P))
+    union(Empty, Q) must_== (Some(Q))
+    union(Q, Empty) must_== (Some(Q))
+
+    union(Empty, Everything) must_== (Some(Everything))
+    union(Everything, Empty) must_== (Some(Everything))
+  }
+
+  "simplifying simple predicates produces the original filter" in {
+    simplify(P) must_== (P)
+    simplify(Q) must_== (Q)
+    simplify(Everything) must_== (Everything)
+    simplify(Empty) must_== (Empty)
+  }
+
+  "subsets of negated predicates" in {
     // !p should not be a subset of p
-    isSubSet(P, Not(P)) must be (false)
-    isSubSet(Q, Not(Q)) must be (false)
-    isSubSet(Not(P), P) must be (false)
-    isSubSet(Not(Q), Q) must be (false)
+    isSubSet(P, Not(P)) must_== (false)
+    isSubSet(Q, Not(Q)) must_== (false)
+    isSubSet(Not(P), P) must_== (false)
+    isSubSet(Not(Q), Q) must_== (false)
 
     // but that doesn't imply anything about q
-    isSubSet(P, Not(Q)) must be (false)
-    isSubSet(Q, Not(P)) must be (false)
+    isSubSet(P, Not(Q)) must_== (false)
+    isSubSet(Q, Not(P)) must_== (false)
 
     // Everything and Empty are still "special"
-    isSubSet(Everything, Not(P)) must be (true)
-    isSubSet(Everything, Not(Q)) must be (true)
+    isSubSet(Everything, Not(P)) must_== (true)
+    isSubSet(Everything, Not(Q)) must_== (true)
 
     // And...
-    isSubSet(Everything, Not(Everything)) must be (false)
-    isSubSet(Empty, Not(Empty)) must be (false)
+    isSubSet(Everything, Not(Everything)) must_== (false)
+    isSubSet(Empty, Not(Empty)) must_== (false)
   }
 
-  @Test
-  def negationDisjoint {
+  "disjointness of negated predicates" in {
     // p is always disjoint with Not(p)
-    isDisjoint(P, Not(P)) must be (true)
-    isDisjoint(Not(P), P) must be (true)
-    isDisjoint(Q, Not(Q)) must be (true)
-    isDisjoint(Not(Q), Q) must be (true)
+    isDisjoint(P, Not(P)) must_== (true)
+    isDisjoint(Not(P), P) must_== (true)
+    isDisjoint(Q, Not(Q)) must_== (true)
+    isDisjoint(Not(Q), Q) must_== (true)
 
     // but we still don't have a clue about how P and Q interact
-    isDisjoint(P, Not(Q)) must be (false)
-    isDisjoint(Q, Not(P)) must be (false)
-    isDisjoint(Not(P), Q) must be (false)
-    isDisjoint(Not(Q), P) must be (false)
+    isDisjoint(P, Not(Q)) must_== (false)
+    isDisjoint(Q, Not(P)) must_== (false)
+    isDisjoint(Not(P), Q) must_== (false)
+    isDisjoint(Not(Q), P) must_== (false)
   }
 
-  @Test 
-  def negationCovering {
+  "covering tests on negated predicates" in {
     // a and !a always comes out to Everything
-    areCovering(P, Not(P)) must be (true)
-    areCovering(Q, Not(Q)) must be (true)
-    areCovering(Everything, Not(Everything)) must be (true)
-    areCovering(Empty, Not(Empty)) must be (true)
+    areCovering(P, Not(P)) must_== (true)
+    areCovering(Q, Not(Q)) must_== (true)
+    areCovering(Everything, Not(Everything)) must_== (true)
+    areCovering(Empty, Not(Empty)) must_== (true)
 
     // covering-ness is commutative
-    areCovering(Not(P), P) must be (true)
-    areCovering(Not(Q), Q) must be (true)
-    areCovering(Not(Everything), Everything) must be (true)
-    areCovering(Not(Empty), Empty) must be (true)
+    areCovering(Not(P), P) must_== (true)
+    areCovering(Not(Q), Q) must_== (true)
+    areCovering(Not(Everything), Everything) must_== (true)
+    areCovering(Not(Empty), Empty) must_== (true)
 
     // covering tests involving Not can still return false though
-    areCovering(Not(P), Q) must be (false)
-    areCovering(Not(Q), P) must be (false)
+    areCovering(Not(P), Q) must_== (false)
+    areCovering(Not(Q), P) must_== (false)
   }
 
-  @Test
-  def negationIntersect {
-    intersection(P, Not(P)) must be (Some(Empty))
-    intersection(Empty, Not(P)) must be (Some(Empty))
-    intersection(Q, Not(Q)) must be (Some(Empty))
-    intersection(Empty, Not(Q)) must be (Some(Empty))
+  "intersections of negated predicates" in {
+    intersection(P, Not(P)) must_== (Some(Empty))
+    intersection(Empty, Not(P)) must_== (Some(Empty))
+    intersection(Q, Not(Q)) must_== (Some(Empty))
+    intersection(Empty, Not(Q)) must_== (Some(Empty))
 
-    intersection(P, Not(Empty)) must be (Some(P))
-    intersection(P, Not(Everything)) must be (Some(Empty))
+    intersection(P, Not(Empty)) must_== (Some(P))
+    intersection(P, Not(Everything)) must_== (Some(Empty))
+  }
+ 
+  "unions of negated predicates" in {
+    union(P, Not(P)) must_== (Some(Everything))
+    union(Everything, Not(P)) must_== (Some(Everything))
+    union(Q, Not(Q)) must_== (Some(Everything))
+    union(Everything, Not(Q)) must_== (Some(Everything))
+
+    union(P, Not(Empty)) must_== (Some(Not(Empty)))
+    union(P, Not(Everything)) must_== (Some(P))
   }
 
-  @Test
-  def negationUnion {
-    union(P, Not(P)) must be (Some(Everything))
-    union(Everything, Not(P)) must be (Some(Everything))
-    union(Q, Not(Q)) must be (Some(Everything))
-    union(Everything, Not(Q)) must be (Some(Everything))
-
-    union(P, Not(Empty)) must be (Some(Not(Empty)))
-    union(P, Not(Everything)) must be (Some(P))
-  }
-
-  @Test
-  def negationSimplify {
+  "simplification of negated predicates" in {
     // if a predicate is already simple, not much simplification to do
-    simplify(Not(P)) must be (Not(P))
-    simplify(Not(Q)) must be (Not(Q))
-    simplify(Not(Everything)) must be (Empty)
-    simplify(Not(Empty)) must be (Everything)
+    simplify(Not(P)) must_== (Not(P))
+    simplify(Not(Q)) must_== (Not(Q))
+    simplify(Not(Everything)) must_== (Empty)
+    simplify(Not(Empty)) must_== (Everything)
   }
 
-  @Test
-  def intersectionSubsets {
+  "subset tests on And'ed predicates" in {
     // basics - if you add criteria, you create a subset 
-    isSubSet(P, And(Seq(P, Q))) must be (true)
-    isSubSet(P, And(Seq(Q, P))) must be (true)
-    isSubSet(P, And(Seq(Everything, P))) must be (true)
-    isSubSet(Q, And(Seq(P, Q))) must be (true)
-    isSubSet(Q, And(Seq(Q, P))) must be (true)
-    isSubSet(Q, And(Seq(Everything, Q))) must be (true)
+    isSubSet(P, And(Seq(P, Q))) must_== (true)
+    isSubSet(P, And(Seq(Q, P))) must_== (true)
+    isSubSet(P, And(Seq(Everything, P))) must_== (true)
+    isSubSet(Q, And(Seq(P, Q))) must_== (true)
+    isSubSet(Q, And(Seq(Q, P))) must_== (true)
+    isSubSet(Q, And(Seq(Everything, Q))) must_== (true)
 
     // it's not enough to be a subset of a member of the And
-    isSubSet(P, And(Seq(Everything, Q))) must be (false)
-    isSubSet(P, And(Seq(Q, Everything))) must be (false)
-    isSubSet(Q, And(Seq(Everything, P))) must be (false)
-    isSubSet(Q, And(Seq(P, Everything))) must be (false)
+    isSubSet(P, And(Seq(Everything, Q))) must_== (false)
+    isSubSet(P, And(Seq(Q, Everything))) must_== (false)
+    isSubSet(Q, And(Seq(Everything, P))) must_== (false)
+    isSubSet(Q, And(Seq(P, Everything))) must_== (false)
 
     // subset-ness is not commutative, even when Ands are involved
-    isSubSet(And(Seq(P, Q)), P) must be (false)
-    isSubSet(And(Seq(P, Q)), Q) must be (false)
+    isSubSet(And(Seq(P, Q)), P) must_== (false)
+    isSubSet(And(Seq(P, Q)), Q) must_== (false)
 
     // however, an And *can* have subsets
-    isSubSet(And(Seq(Everything, P)), P) must be (true)
-    isSubSet(And(Seq(Everything, Q)), Q) must be (true)
+    isSubSet(And(Seq(Everything, P)), P) must_== (true)
+    isSubSet(And(Seq(Everything, Q)), Q) must_== (true)
 
     // a single disjoint element is enough to throw you out as well
-    isSubSet(P, And(Seq(Not(P), Q))) must be (false)
-    isSubSet(Q, And(Seq(P, Not(Q)))) must be (false)
-    isSubSet(P, And(Seq(Not(P), P))) must be (false)
-    isSubSet(Q, And(Seq(Q, Not(Q)))) must be (false)
+    isSubSet(P, And(Seq(Not(P), Q))) must_== (false)
+    isSubSet(Q, And(Seq(P, Not(Q)))) must_== (false)
+    isSubSet(P, And(Seq(Not(P), P))) must_== (false)
+    isSubSet(Q, And(Seq(Q, Not(Q)))) must_== (false)
   }
 
-  @Test
-  def intersectionDisjoint {
+  "disjointness tests on And'ed predicates" in {
     // if a single member is disjoint, then the entire group is disjoint
-    isDisjoint(P, And(Seq(Everything, Not(P)))) must be (true)
-    isDisjoint(Q, And(Seq(Everything, Not(Q)))) must be (true)
+    isDisjoint(P, And(Seq(Everything, Not(P)))) must_== (true)
+    isDisjoint(Q, And(Seq(Everything, Not(Q)))) must_== (true)
     
     // Disjointness is associative
-    isDisjoint(And(Seq(Everything, Not(P))), P) must be (true)
-    isDisjoint(And(Seq(Everything, Not(Q))), Q) must be (true)
+    isDisjoint(And(Seq(Everything, Not(P))), P) must_== (true)
+    isDisjoint(And(Seq(Everything, Not(Q))), Q) must_== (true)
     
     // Sometimes disjointness on Ands will actually return false
-    isDisjoint(P, And(Seq(Everything, P))) must be (false)
-    isDisjoint(Q, And(Seq(Everything, Q))) must be (false)
+    isDisjoint(P, And(Seq(Everything, P))) must_== (false)
+    isDisjoint(Q, And(Seq(Everything, Q))) must_== (false)
 
     // It's also false when we just aren't sure
-    isDisjoint(P, And(Seq(Everything, Q))) must be (false)
-    isDisjoint(Q, And(Seq(Everything, P))) must be (false)
+    isDisjoint(P, And(Seq(Everything, Q))) must_== (false)
+    isDisjoint(Q, And(Seq(Everything, P))) must_== (false)
   }
 
-  @Test 
-  def intersectionCovering {
+  "covering tests on And'ed predicates" in {
     // if all members are covering, then the entire group is covering
-    areCovering(P, And(Seq(Everything, Not(P)))) must be (true)
-    areCovering(Q, And(Seq(Everything, Not(Q)))) must be (true)
+    areCovering(P, And(Seq(Everything, Not(P)))) must_== (true)
+    areCovering(Q, And(Seq(Everything, Not(Q)))) must_== (true)
 
-    areCovering(P, And(Seq(Everything, Q))) must be (false)
-    areCovering(Q, And(Seq(Everything, P))) must be (false)
+    areCovering(P, And(Seq(Everything, Q))) must_== (false)
+    areCovering(Q, And(Seq(Everything, P))) must_== (false)
 
-    areCovering(Everything, And(Seq(Everything, Empty))) must be (true)
-    areCovering(Empty, And(Seq(Everything, Empty))) must be (false)
+    areCovering(Everything, And(Seq(Everything, Empty))) must_== (true)
+    areCovering(Empty, And(Seq(Everything, Empty))) must_== (false)
   }
 
-  @Test
-  def intersectionIntersect {
-    intersection(And(Seq(P, Q)), R) must be (Some(And(Seq(P, Q, R))))
-    intersection(And(Seq(P, Q)), Q) must be (Some(And(Seq(P, Q))))
-    intersection(And(Seq(P, Q)), Not(Q)) must be (Some(Empty))
+  "intersections of And'ed predicates" in {
+    intersection(And(Seq(P, Q)), R) must_== (Some(And(Seq(P, Q, R))))
+    intersection(And(Seq(P, Q)), Q) must_== (Some(And(Seq(P, Q))))
+    intersection(And(Seq(P, Q)), Not(Q)) must_== (Some(Empty))
   }
 
-  @Test
-  def intersectionUnion {
-    union(And(Seq(P, Q)), R) must 
-      be (Some(And(Seq(Or(Seq(P, R)), Or(Seq(Q, R))))))
-    union(And(Seq(P, Q)), Q) must be (Some(Q))
-    union(And(Seq(P, Q)), Not(Q)) must be (Some(Or(Seq(P, Not(Q)))))
+  "unions of And'ed predicates" in {
+    union(And(Seq(P, Q)), R) must_== (
+      Some(And(Seq(Or(Seq(P, R)), Or(Seq(Q, R)))))
+    )
+    union(And(Seq(P, Q)), Q) must_== (Some(Q))
+    union(And(Seq(P, Q)), Not(Q)) must_== (Some(Or(Seq(P, Not(Q)))))
   }
 
-  @Test 
-  def intersectionSimplify {
-    simplify(And(Seq(P, Q))) must be (And(Seq(P, Q)))
-    simplify(And(Seq(P, P))) must be (P)
-    simplify(And(Seq(Everything, P))) must be (P)
-    simplify(And(Seq(Not(P), P))) must be (Empty)
-    simplify(And(Seq(Empty, P))) must be (Empty)
+  "simplification of And'ed predicates" in {
+    simplify(And(Seq(P, Q))) must_== (And(Seq(P, Q)))
+    simplify(And(Seq(P, P))) must_== (P)
+    simplify(And(Seq(Everything, P))) must_== (P)
+    simplify(And(Seq(Not(P), P))) must_== (Empty)
+    simplify(And(Seq(Empty, P))) must_== (Empty)
   }
 
-  @Test 
-  def unionSubsets {
+  "subsets of Or'ed predicates" in {
     // basics - if you add criteria, a subset of any criterion is a subset
-    isSubSet(Or(Seq(P, Q)), P) must be (true)
-    isSubSet(Or(Seq(P, Q)), Q) must be (true)
-    isSubSet(Or(Seq(Everything, Q)), P) must be (true)
-    isSubSet(Or(Seq(P, Everything)), Q) must be (true)
+    isSubSet(Or(Seq(P, Q)), P) must_== (true)
+    isSubSet(Or(Seq(P, Q)), Q) must_== (true)
+    isSubSet(Or(Seq(Everything, Q)), P) must_== (true)
+    isSubSet(Or(Seq(P, Everything)), Q) must_== (true)
 
     // subset-ness is still not commutative (stop asking me!)
-    isSubSet(P, Or(Seq(P, Q))) must be (false)
-    isSubSet(Q, Or(Seq(P, Q))) must be (false)
-    isSubSet(P, Or(Seq(Everything, Q))) must be (false)
-    isSubSet(Q, Or(Seq(P, Everything))) must be (false)
+    isSubSet(P, Or(Seq(P, Q))) must_== (false)
+    isSubSet(Q, Or(Seq(P, Q))) must_== (false)
+    isSubSet(P, Or(Seq(Everything, Q))) must_== (false)
+    isSubSet(Q, Or(Seq(P, Everything))) must_== (false)
 
     // however, an Or *can* be a subset
-    isSubSet(P, Or(Seq(P, P))) must be (true)
-    isSubSet(Q, Or(Seq(Q, Q))) must be (true)
+    isSubSet(P, Or(Seq(P, P))) must_== (true)
+    isSubSet(Q, Or(Seq(Q, Q))) must_== (true)
 
     // what if both arguments are Or's?
-    isSubSet(Or(Seq(P, Q)), Or(Seq(P, Q))) must be (true)
+    isSubSet(Or(Seq(P, Q)), Or(Seq(P, Q))) must_== (true)
   }
 
-  @Test
-  def unionDisjoint {
+  "disjointness tests on Or'ed predicates" in {
     // if all members are disjoint, then the entire group is disjoint
-    isDisjoint(P, Or(Seq(Empty, Not(P)))) must be (true)
-    isDisjoint(Q, Or(Seq(Empty, Not(Q)))) must be (true)
+    isDisjoint(P, Or(Seq(Empty, Not(P)))) must_== (true)
+    isDisjoint(Q, Or(Seq(Empty, Not(Q)))) must_== (true)
     
     // Disjointness is associative
-    isDisjoint(Or(Seq(Empty, Not(P))), P) must be (true)
-    isDisjoint(Or(Seq(Empty, Not(Q))), Q) must be (true)
+    isDisjoint(Or(Seq(Empty, Not(P))), P) must_== (true)
+    isDisjoint(Or(Seq(Empty, Not(Q))), Q) must_== (true)
     
     // Sometimes disjointness on Ors will actually return false
-    isDisjoint(P, Or(Seq(Empty, P))) must be (false)
-    isDisjoint(Q, Or(Seq(Empty, Q))) must be (false)
+    isDisjoint(P, Or(Seq(Empty, P))) must_== (false)
+    isDisjoint(Q, Or(Seq(Empty, Q))) must_== (false)
 
     // It's also false when we just aren't sure
-    isDisjoint(P, Or(Seq(Empty, Q))) must be (false)
-    isDisjoint(Q, Or(Seq(Empty, P))) must be (false)
+    isDisjoint(P, Or(Seq(Empty, Q))) must_== (false)
+    isDisjoint(Q, Or(Seq(Empty, P))) must_== (false)
   }
 
-  @Test 
-  def unionCovering {
+  "covering tests on Or'ed predicates" in {
     // if any members are covering, then the entire group is covering
-    areCovering(P, Or(Seq(Empty, Not(P)))) must be (true)
-    areCovering(Q, Or(Seq(Empty, Not(Q)))) must be (true)
+    areCovering(P, Or(Seq(Empty, Not(P)))) must_== (true)
+    areCovering(Q, Or(Seq(Empty, Not(Q)))) must_== (true)
 
-    areCovering(P, Or(Seq(Empty, Q))) must be (false)
-    areCovering(Q, Or(Seq(Empty, P))) must be (false)
+    areCovering(P, Or(Seq(Empty, Q))) must_== (false)
+    areCovering(Q, Or(Seq(Empty, P))) must_== (false)
 
-    areCovering(Everything, Or(Seq(Everything, Empty))) must be (true)
-    areCovering(Empty, Or(Seq(Everything, Empty))) must be (true)
+    areCovering(Everything, Or(Seq(Everything, Empty))) must_== (true)
+    areCovering(Empty, Or(Seq(Everything, Empty))) must_== (true)
   }
 
-  @Test
-  def unionIntersect {
-    intersection(Or(Seq(P, Q)), R) must be (None)
-    intersection(Or(Seq(P, Q)), Q) must be (Some(Q))
-    intersection(Or(Seq(P, Q)), Not(Q)) must be (Some(And(Seq(P, Not(Q)))))
+  "intersections of Or'ed predicates" in {
+    intersection(Or(Seq(P, Q)), R) must_== (None)
+    intersection(Or(Seq(P, Q)), Q) must_== (Some(Q))
+    intersection(Or(Seq(P, Q)), Not(Q)) must_== (Some(And(Seq(P, Not(Q)))))
   }
 
-  @Test
-  def unionUnion {
-    union(Or(Seq(P, Q)), R) must be (Some(Or(Seq(P, Q, R))))
-    union(Or(Seq(P, Q)), Q) must be (Some(Or(Seq(P, Q))))
-    union(Or(Seq(P, Q)), Not(Q)) must be (Some(Everything))
+  "unions of Or'ed predicates" in {
+    union(Or(Seq(P, Q)), R) must_== (Some(Or(Seq(P, Q, R))))
+    union(Or(Seq(P, Q)), Q) must_== (Some(Or(Seq(P, Q))))
+    union(Or(Seq(P, Q)), Not(Q)) must_== (Some(Everything))
   }
 
-  @Test 
-  def unionSimplify {
-    simplify(Or(Seq(P, Q))) must be (Or(Seq(P, Q)))
-    simplify(Or(Seq(P, P))) must be (P)
-    simplify(Or(Seq(Everything, P))) must be (Everything)
-    simplify(Or(Seq(Not(P), P))) must be (Everything)
-    simplify(Or(Seq(Empty, P))) must be (P)
+  "simplification of Or'ed predicates" in {
+    simplify(Or(Seq(P, Q))) must_== (Or(Seq(P, Q)))
+    simplify(Or(Seq(P, P))) must_== (P)
+    simplify(Or(Seq(Everything, P))) must_== (Everything)
+    simplify(Or(Seq(Not(P), P))) must_== (Everything)
+    simplify(Or(Seq(Empty, P))) must_== (P)
   }
-
-  // @Test 
-  // def miscellaneousSimplification {
-  //   simplify(And(Seq(Or(Seq(P, Not(Q))), And(Seq(R, Q))))) must
-  //     be (And(Seq(P, Q, R)))
-  // }
 }

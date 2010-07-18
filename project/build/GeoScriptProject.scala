@@ -56,8 +56,8 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
       super.repositories ++ GeoScriptProject.this.repositories
 
     override def libraryDependencies = super.libraryDependencies ++ Set(
-      "org.scalatest" % "scalatest" % "1.2-for-scala-2.8.0.final-SNAPSHOT" % "test",
       "junit" % "junit" % "4.2" % "test",
+      "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test",
       "org.geotools" % "gt-main" % gtVersion,
       "org.geotools" % "gt-cql" % gtVersion,
       "org.geotools" % "gt-epsg-hsql" % gtVersion,
