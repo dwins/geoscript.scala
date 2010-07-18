@@ -7,6 +7,6 @@ object Render {
     val states = layer.Shapefile("geoscript/src/test/resources/data/states.shp")
     val theme = style.CSS.load("geocss/src/test/resources/states.css")
     val viewport = render.Viewport(states.bounds)
-    viewport.render(Seq(states -> theme))
+    viewport.render(Seq(states -> theme)).writeTo(render.PNG("states.png"))
   }
 }

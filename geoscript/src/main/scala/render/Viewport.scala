@@ -6,8 +6,40 @@ import java.awt.RenderingHints
 import RenderingHints._
 
 package render {
+  class RichImage(private val im: java.awt.image.RenderedImage) {
+    def writeTo(formatter: java.awt.image.RenderedImage => Unit) = formatter(im)
+  }
+
+  object RichImage {
+    implicit def wrap(im: java.awt.image.RenderedImage) = new RichImage(im)
+    implicit def unwrap(ri: RichImage): java.awt.image.RenderedImage = ri.im
+  }
+
+  trait Sink { def out: java.io.OutputStream }
+
+  object Sink {
+    implicit def fromFile(f: java.io.File) =
+      new Sink { def out = new java.io.FileOutputStream(f) }
+
+    implicit def fromPath(path: String) = 
+      fromFile(new java.io.File(".", path))
+
+    implicit def fromStream(o: java.io.OutputStream) = 
+      new Sink { val out = o } 
+  }
+
+  object PNG {
+    def apply(sink: Sink)(im: java.awt.image.RenderedImage) { 
+      javax.imageio.ImageIO.write(im, "PNG", sink.out)
+    }
+  }
+
   case class Viewport(bounds: jts.Envelope) {
-    def render(layers: Seq[(layer.Layer, style.Style)]) = {
+    def draw(
+      graphics: java.awt.Graphics2D,
+      layers: Seq[(layer.Layer, style.Style)],
+      window: java.awt.Rectangle
+    ) = {
       val renderer = new org.geotools.renderer.lite.StreamingRenderer()
       renderer.setJava2DHints(new RenderingHints(Map(
         KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
@@ -20,21 +52,16 @@ package render {
         )
       }
       renderer.setContext(context)
+      renderer.paint(graphics, window, bounds)
+    }
 
-      val image = new java.awt.image.BufferedImage(
-        512, 512, java.awt.image.BufferedImage.TYPE_INT_ARGB
-      )
+    def render(layers: Seq[(layer.Layer, style.Style)]): RichImage = {
+      import java.awt.image.BufferedImage
+      val image = new BufferedImage(512, 512, BufferedImage.TYPE_INT_ARGB)
       val graphics = image.createGraphics()
-      renderer.paint(
-        graphics,
-        new java.awt.Rectangle(0, 0, 512, 512),
-        bounds
-      )
+      draw(graphics, layers, new java.awt.Rectangle(0, 0, 512, 512))
       graphics.dispose()
-      val output = new java.io.FileOutputStream("result.png")
-      javax.imageio.ImageIO.write(image, "PNG", output)
-      output.flush()
-      output.close()
+      image
     }
   }
 }
