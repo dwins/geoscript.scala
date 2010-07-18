@@ -49,8 +49,9 @@ package render {
       renderer.paint(graphics, window, bounds)
     }
 
-    def render(layers: Seq[(layer.Layer, style.Style)]): RichImage =
-      render(layers, Viewport.frame(layers))
+    def render(layers: Seq[(layer.Layer, style.Style)]): RichImage = {
+      render(layers, Viewport.frame(bounds))
+    }
 
     def render(
       layers: Seq[(layer.Layer, style.Style)],
@@ -76,12 +77,10 @@ package render {
      * fits within the given size.
      */
     def frame(
-      layers: Seq[(layer.Layer, style.Style)],
+      envelope: jts.Envelope,
       maximal: (Int, Int) = (500, 500)
     ): java.awt.Rectangle = {
-      val realWorldBounds = new jts.Envelope()
-      layers.foreach { l => realWorldBounds.expandToInclude(l._1.bounds) }
-      val aspect = realWorldBounds.getHeight() / realWorldBounds.getWidth()
+      val aspect = envelope.getHeight() / envelope.getWidth()
       val idealAspect = maximal._2.toDouble / maximal._1.toDouble
       if (aspect < idealAspect) {
         new java.awt.Rectangle(0, 0, maximal._1, (maximal._2 * aspect).toInt)
@@ -90,15 +89,29 @@ package render {
       }
     }
 
-    // /** 
-    //  * From a real-world envelope and a Rectangle representing the display
-    //  * area, expand the envelope so that it matches the aspect ratio of the
-    //  * desired viewing window.  The center of the envelope is preserved.
-    //  */
-    // def pad(envelope: jts.Envelope, window: java.awt.Rectangle)
-    // : jts.Envelope = {
-    //   val aspect = envelope.getHeight() / 
-    // }
+    /** 
+     * From a real-world envelope and a Rectangle representing the display
+     * area, expand the envelope so that it matches the aspect ratio of the
+     * desired viewing window.  The center of the envelope is preserved.
+     */
+    def pad(envelope: jts.Envelope, window: (Int, Int) = (500, 500))
+    : jts.Envelope = {
+      val aspect = envelope.getHeight() / envelope.getWidth()
+      val idealAspect = window._2 / window._1
+      if (aspect < idealAspect) {
+        val height = envelope.getHeight() * (idealAspect/aspect)
+        new jts.Envelope(
+          envelope.getMinX(), envelope.getMaxX(),
+          envelope.centre.y - height/2, envelope.centre.y + height/2
+        )
+      } else {
+        val width = envelope.getWidth() * (aspect/idealAspect)
+        new jts.Envelope(
+          envelope.centre.x - width/2, envelope.centre.x + width/2,
+          envelope.getMinY(), envelope.getMaxY()
+        )
+      }
+    }
   }
 }
 
