@@ -28,12 +28,6 @@ package render {
       new Sink { val out = o } 
   }
 
-  object PNG {
-    def apply(sink: Sink)(im: java.awt.image.RenderedImage) { 
-      javax.imageio.ImageIO.write(im, "PNG", sink.out)
-    }
-  }
-
   case class Viewport(bounds: jts.Envelope) {
     def draw(
       graphics: java.awt.Graphics2D,
@@ -63,5 +57,19 @@ package render {
       graphics.dispose()
       image
     }
+  }
+}
+
+package object render {
+  def GIF (sink: Sink)(im: java.awt.image.RenderedImage) { 
+    javax.imageio.ImageIO.write(im, "GIF", sink.out)
+  }
+
+  def JPEG (sink: Sink)(im: java.awt.image.RenderedImage) { 
+    javax.imageio.ImageIO.write(im, "JPEG", sink.out)
+  }
+
+  def PNG (sink: Sink)(im: java.awt.image.RenderedImage) { 
+    javax.imageio.ImageIO.write(im, "PNG ", sink.out)
   }
 }
