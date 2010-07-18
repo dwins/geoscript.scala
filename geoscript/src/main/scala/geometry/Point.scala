@@ -9,7 +9,7 @@ import org.geoscript.projection.Projection
  * A companion object for the Point type, providing various
  * methods for directly instantiating Point objects.
  */
-object Point {
+object Point extends (jts.Point => Point) {
   private val preparingFactory = new PreparedGeometryFactory()
 
   private class Wrapper(val underlying: jts.Point) extends Point {
@@ -73,6 +73,7 @@ object Point {
   implicit def apply(p: jts.Point): Point = new Wrapper(p)
 
   implicit def unwrap(p: Point): jts.Point = p.underlying
+  implicit def toCoord(p: Point): jts.Coordinate = p.underlying.getCoordinate()
 
   /**
    * Create a Point by wrapping a "raw" JTS Point with a projection.

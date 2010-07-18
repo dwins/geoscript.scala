@@ -227,29 +227,13 @@ trait Geometry {
    * Create a new Geometry expanding a set distance out from the boundaries of
    * this one.
    *
-   * @see buffer(Double, Int, EndCap.Style)
-   */
-  def buffer(dist: Double): Geometry = buffer(dist, 8, EndCap.Round)
-
-  /**
-   * Create a new Geometry expanding a set distance out from the boundaries of
-   * this one.
-   *
-   * @see buffer(Double, Int, EndCap.Style)
-   */
-  def buffer(dist: Double, segs: Int): Geometry = 
-    buffer(dist, segs, EndCap.Round) 
-
-  /**
-   * Create a new Geometry expanding a set distance out from the boundaries of
-   * this one.
-   *
    * @param dist: The distance to expand out.  May be positive, 0, or negative.
    * @param segs: The number of line segments to create at vertices
    * @param mode: The style to use for endcaps when buffering linear geometries
    * @see EndCap
    */
-  def buffer(dist: Double, segs: Int, mode: EndCap.Style): Geometry = 
+  def buffer(dist: Double, segs: Int = 8, mode: EndCap.Style = EndCap.Round)
+  : Geometry = 
     Geometry(underlying.buffer(dist, segs, mode.intValue), projection)
 
   /**

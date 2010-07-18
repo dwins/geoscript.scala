@@ -9,7 +9,7 @@ import org.geoscript.projection.Projection
  * A companion object for the Polygon type, providing various methods for
  * directly instantiating Polygon objects.
  */
-object Polygon {
+object Polygon extends (jts.Polygon => Polygon) {
   private val preparingFactory = new PreparedGeometryFactory()
   import ModuleInternals.factory._
 
