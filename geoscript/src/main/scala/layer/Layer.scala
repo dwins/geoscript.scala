@@ -6,7 +6,6 @@ import org.opengis.feature.simple.{ SimpleFeature, SimpleFeatureType }
 import org.opengis.feature.`type`.{ AttributeDescriptor, GeometryDescriptor }
 import org.{ geotools => gt }
 import com.vividsolutions.jts.{ geom => jts }
-import com.vividsolutions.jts.geom.Envelope
 
 import org.geoscript.feature._
 import org.geoscript.filter._
@@ -66,11 +65,8 @@ trait Layer {
 
   /**
    * Get the bounding box of this Layer, in the format:
-   * (minlong, minlat, maxlong, maxlat, srid)
-   *
-   * @todo: Use an Envelope object for this
    */
-  def bounds: jts.Envelope = source.getBounds()
+  def bounds: Box = Box(source.getBounds()) in schema.geometry.projection
 
   /**
    * Add a single Feature to this data set.

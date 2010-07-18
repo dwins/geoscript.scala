@@ -12,7 +12,7 @@ package org.geoscript
  * }
  * </pre>
  */
-trait GeoScript extends geometry.Implicits with projection.Implicits
+trait GeoScript extends geometry.Implicits
 
 /**
  * The GeoScript object provides a convenience for loading GeoScript into 

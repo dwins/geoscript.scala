@@ -1,6 +1,5 @@
 package org.geoscript
 
-import com.vividsolutions.jts.{geom => jts}
 import Stream._
 
 /**
@@ -9,7 +8,7 @@ import Stream._
  *
  * @see http://en.wikipedia.org/wiki/Geohash
  */
-object GeoHash extends geometry.Implicits {
+object GeoHash {
   private val characters = "0123456789bcdefghjkmnpqrstuvwxyz"
 
   /**
@@ -17,10 +16,10 @@ object GeoHash extends geometry.Implicits {
    * corresponds to the corners of the geometry's envelope, with a cutoff at 32
    * characters to avoid generating infinitely strings for point data.
    */
-  def geohash(geom: jts.Geometry): String = {
-    val bbox = geom.getEnvelope().asInstanceOf[jts.Envelope]
-    val blHash = geohashForever(bbox.getMinY(), bbox.getMinX())
-    val urHash = geohashForever(bbox.getMaxY(), bbox.getMaxX())
+  def geohash(geom: geometry.Geometry): String = {
+    val bbox = geom.bounds
+    val blHash = geohashForever(bbox.minY, bbox.minX)
+    val urHash = geohashForever(bbox.maxY, bbox.maxX)
 
     (blHash zip urHash)
       .takeWhile({ case (x, y) => x == y })
@@ -53,7 +52,7 @@ object GeoHash extends geometry.Implicits {
    * Decode a geohash, producing a JTS Envelope encompassing the range of
    * possible values for the input point.
    */
-  def decodeBounds(hash: String): jts.Envelope = {
+  def decodeBounds(hash: String): geometry.Box = {
     val bits = hash.flatMap {(x: Char) => 
       val bitString = characters.indexOf(x).toBinaryString
       ("00000".substring(0, 5 - bitString.length) + bitString).map('1' ==)
@@ -63,7 +62,7 @@ object GeoHash extends geometry.Implicits {
     val (minLon, maxLon) = range(lonBits, -180, 180)
     val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    new jts.Envelope(minLon, maxLon, minLat, maxLat)
+    geometry.Box(minLon, minLat, maxLon, maxLat)
   }
 
   /**

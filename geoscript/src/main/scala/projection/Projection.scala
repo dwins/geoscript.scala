@@ -84,17 +84,7 @@ object Projection {
    * object.
    */
   def apply(crs: CoordinateReferenceSystem) = new Projection(crs)
-}
 
-/**
- * The Implicits object for projections provides several convenience methods
- * for automatically wrapping and unwrapping projections.  For example:
- * <pre>
- * val p = Point(-8, 17) in "EPSG:4326"
- * val p_projected = p in "EPSG:3785"
- * </pre>
- */
-trait Implicits {
   implicit def codeToCRS(code: String) = Projection(code)
   implicit def wrapCRS(crs: CoordinateReferenceSystem) = Projection(crs)
   implicit def unwrapCRS(proj: Projection) = proj.crs
