@@ -62,14 +62,20 @@ package render {
 
 package object render {
   def GIF (sink: Sink)(im: java.awt.image.RenderedImage) { 
-    javax.imageio.ImageIO.write(im, "GIF", sink.out)
+    val out = sink.out
+    javax.imageio.ImageIO.write(im, "GIF", out)
+    out.close()
   }
 
   def JPEG (sink: Sink)(im: java.awt.image.RenderedImage) { 
-    javax.imageio.ImageIO.write(im, "JPEG", sink.out)
+    val out = sink.out
+    javax.imageio.ImageIO.write(im, "JPEG", out)
+    out.close()
   }
 
   def PNG (sink: Sink)(im: java.awt.image.RenderedImage) { 
-    javax.imageio.ImageIO.write(im, "PNG ", sink.out)
+    val out = sink.out
+    javax.imageio.ImageIO.write(im, "PNG", out)
+    out.close()
   }
 }
