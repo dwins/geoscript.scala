@@ -49,7 +49,9 @@ object MultiPoint {
   /**
    * Create a MultiPoint by wrapping a "raw" JTS MultiPoint
    */
-  def apply(points: jts.MultiPoint): MultiPoint = new Wrapper(points) 
+  implicit def apply(points: jts.MultiPoint): MultiPoint = new Wrapper(points) 
+
+  implicit def unwrap(points: MultiPoint): jts.MultiPoint = points.underlying
 
   /**
    * Create a MultiPoint from a list of input objects.  These objects can be

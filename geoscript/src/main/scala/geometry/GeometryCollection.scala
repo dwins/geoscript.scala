@@ -48,7 +48,11 @@ object GeometryCollection {
   /**
    * Create a GeometryCollection by wrapping a "raw" JTS GeometryCollection.
    */
-  def apply(raw: jts.GeometryCollection): GeometryCollection = new Wrapped(raw)
+  implicit def apply(raw: jts.GeometryCollection): GeometryCollection =
+    new Wrapped(raw)
+
+  implicit def unwrap(wrapped: GeometryCollection): jts.GeometryCollection =
+    wrapped.underlying
 }
 
 /**

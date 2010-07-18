@@ -70,7 +70,9 @@ object Point {
   /**
    * Create a Point by wrapping a "raw" JTS Point.
    */
-  def apply(p: jts.Point): Point = new Wrapper(p)
+  implicit def apply(p: jts.Point): Point = new Wrapper(p)
+
+  implicit def unwrap(p: Point): jts.Point = p.underlying
 
   /**
    * Create a Point by wrapping a "raw" JTS Point with a projection.

@@ -50,7 +50,9 @@ object Polygon {
   /**
    * Create a Polygon by wrapping a "raw" JTS Polygon.
    */
-  def apply(wrapped: jts.Polygon): Polygon = new Wrapper(wrapped)
+  implicit def apply(wrapped: jts.Polygon): Polygon = new Wrapper(wrapped)
+
+  implicit def unwrap(wrapped: Polygon): jts.Polygon = wrapped.underlying
 
   /**
    * Create a Polygon from an outer shell and a list of zero or more holes.

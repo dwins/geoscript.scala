@@ -50,7 +50,9 @@ object LineString {
   /**
    * Create a LineString by wrapping a "raw" JTS LineString.
    */
-  def apply(line: jts.LineString): LineString = new Wrapper(line)
+  implicit def apply(line: jts.LineString): LineString = new Wrapper(line)
+
+  implicit def unwrap(wrapped: LineString): jts.LineString = wrapped.underlying
 
   def apply(coords: Iterable[Point]): LineString = 
     new Wrapper(ModuleInternals.factory.createLineString(

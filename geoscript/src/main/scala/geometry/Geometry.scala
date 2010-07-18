@@ -90,7 +90,7 @@ object Geometry {
   /**
    * Create a GeoScript Geometry equivalent to a given JTS Geometry.
    */
-  def apply(geom: jts.Geometry): Geometry = {
+  implicit def apply(geom: jts.Geometry): Geometry = {
     geom match {
       case (geom: jts.Point) => Point(geom)
       case (geom: jts.Polygon) => Polygon(geom)
@@ -101,6 +101,8 @@ object Geometry {
       case (geom: jts.GeometryCollection) => GeometryCollection(geom)
     }
   }
+
+  implicit def unwrap(geom: Geometry): jts.Geometry = geom.underlying
 
   /** 
    * Find the class binding that should be used in the underlying GeoTools

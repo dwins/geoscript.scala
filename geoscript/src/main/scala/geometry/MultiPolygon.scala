@@ -51,7 +51,11 @@ object MultiPolygon {
   /**
    * Create a MultiPolygon by wrapping a "raw" JTS MultiPolygon.
    */
-  def apply(polygons: jts.MultiPolygon): MultiPolygon = new Wrapper(polygons) 
+  implicit def apply(polygons: jts.MultiPolygon): MultiPolygon =
+    new Wrapper(polygons) 
+
+  implicit def apply(polygons: MultiPolygon): jts.MultiPolygon =
+    polygons.underlying
 
   /**
    * Create a MultiPolygon from a sequence of Polygons

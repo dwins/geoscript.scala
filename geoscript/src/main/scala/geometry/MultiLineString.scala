@@ -52,7 +52,11 @@ object MultiLineString {
   /**
    * Create a MultiLineString by wrapping a "raw" JTS MultiLineString.
    */
-  def apply(lines: jts.MultiLineString): MultiLineString = new Wrapper(lines)
+  implicit def apply(lines: jts.MultiLineString): MultiLineString =
+    new Wrapper(lines)
+
+  implicit def unwrap(lines: MultiLineString): jts.MultiLineString =
+    lines.underlying
 
   /**
    * Create a MultiLineString from a list of JTS LineStrings
