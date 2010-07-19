@@ -73,6 +73,21 @@ trait Box extends Polygon {
   def height: Double
   def width: Double
 
+  def grid(granularity: Int = 4): Iterable[Box] =
+    (for {
+      x <- (0 to granularity).sliding(2)
+      y <- (0 to granularity).sliding(2)
+    } yield {
+      Box(
+        minX + (x(0) * width / granularity),
+        minY + (y(0) * height / granularity),
+        minX + (x(1) * width / granularity),
+        minY + (y(1) * height / granularity)
+      ) in projection
+    }) toIterable
+
   override def in(dest: Projection): Box
   override def transform(dest: Projection): Box = null
+  override def toString = 
+    "Box((%f, %f), (%f, %f))".format(minX, minY, maxX, maxY)
 }

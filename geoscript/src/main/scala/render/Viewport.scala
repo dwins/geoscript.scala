@@ -100,16 +100,16 @@ package render {
       val idealAspect = window._2 / window._1
       val padded = (
         if (aspect < idealAspect) {
-          val height = envelope.getHeight() * (idealAspect/aspect)
+          val height = envelope.height * (idealAspect/aspect)
           geometry.Box(
-            envelope.getMinX(), envelope.getMaxX(),
-            envelope.centre.y - height/2, envelope.centre.y + height/2
+            envelope.minX, envelope.centre.y - height/2,
+            envelope.maxX, envelope.centre.y + height/2
           )
         } else {
-          val width = envelope.getWidth() * (aspect/idealAspect)
+          val width = envelope.width * (aspect/idealAspect)
           geometry.Box(
-            envelope.centre.x - width/2, envelope.centre.x + width/2,
-            envelope.getMinY(), envelope.getMaxY()
+            envelope.centre.x - width/2, envelope.minY,
+            envelope.centre.x + width/2, envelope.maxY
           )
         }
       )
