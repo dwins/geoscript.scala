@@ -61,5 +61,18 @@ object Benchmark {
       val (sld, encodeTime) = time { encodeSLD(sldRules) }
       println(Seq(range, parseTime, transformTime, encodeTime).mkString(", "))
     }
+
+    println("values, parse_time, transform_time, encode_time") 
+    for (range <- 4 to 16 by 4) {
+      val css = (1 to range) map {
+        """
+        [A=%1$s] { label: "%1$s"; }
+        """.format(_)
+      } mkString
+      val (cssRules, parseTime) = time { CssParser.parse(css).get }
+      val (sldRules, transformTime) = time { Translator.css2sld(cssRules) }
+      val (sld, encodeTime) = time { encodeSLD(sldRules) }
+      println(Seq(range, parseTime, transformTime, encodeTime).mkString(", "))
+    }
   }
 }
