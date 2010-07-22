@@ -1,6 +1,8 @@
 package org.geoscript.geocss
 
 import org.geotools.{ styling => gt }
+import gt.Style
+import collection.JavaConversions._
 
 object Benchmark {
   val template = """
@@ -39,6 +41,10 @@ object Benchmark {
     (op, System.currentTimeMillis() - startTime)
   }
 
+  def ruleCount(sld: Style): Int = {
+    sld.featureTypeStyles.foldLeft(0) { (i, fts) => i + fts.rules.length }
+  }
+
   def main(args: Array[String]) {
     for (end <- 'A' to 'B') {
       // dry run; warm up the JIT statistics
@@ -51,18 +57,18 @@ object Benchmark {
       )
     }
 
-    println("properties, parse_time, transform_time, encode_time") 
+    println("properties, parse_time, transform_time, rule_count, encode_time") 
 
     for (end <- 'A' to 'D') {
       val range = 1 + (end - 'A')
       val css = 'A' to end map { template.format(_) } mkString
       val (cssRules, parseTime) = time { CssParser.parse(css).get }
-      val (sldRules, transformTime) = time { Translator.css2sld(cssRules) }
+      val (sldRules: Style, transformTime) = time { Translator.css2sld(cssRules) }
       val (sld, encodeTime) = time { encodeSLD(sldRules) }
-      println(Seq(range, parseTime, transformTime, encodeTime).mkString(", "))
+      println(Seq(range, parseTime, transformTime, ruleCount(sldRules), encodeTime).mkString(", "))
     }
 
-    println("values, parse_time, transform_time, encode_time") 
+    println("values, parse_time, transform_time, rule_count, encode_time") 
     for (range <- 4 to 16 by 4) {
       val css = (1 to range) map {
         """
@@ -72,7 +78,7 @@ object Benchmark {
       val (cssRules, parseTime) = time { CssParser.parse(css).get }
       val (sldRules, transformTime) = time { Translator.css2sld(cssRules) }
       val (sld, encodeTime) = time { encodeSLD(sldRules) }
-      println(Seq(range, parseTime, transformTime, encodeTime).mkString(", "))
+      println(Seq(range, parseTime, transformTime, ruleCount(sldRules), encodeTime).mkString(", "))
     }
   }
 }
