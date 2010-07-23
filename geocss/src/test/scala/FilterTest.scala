@@ -11,8 +11,10 @@ class FilterTest extends Specification {
   def in(s: String) = getClass.getResourceAsStream(s)
 
   case class beEquivalentTo(a: Filter) extends matcher.Matcher[Filter] {
-    def apply(v: => Filter) = 
-      (equivalent(a, v), "were equivalent", "not equivalent")
+    def apply(v: => Filter) = {
+      val prefix = a.toString + " and " + v.toString
+      (equivalent(a, v), prefix + " were equivalent", prefix + " were not equivalent")
+    }
   }
 
   "basic filter equivalence tests should work" in {
@@ -41,6 +43,16 @@ class FilterTest extends Specification {
     // negate(f("A > 1 OR B < 2")) must beEquivalentTo(f("(A <= 1 OR A IS NULL) AND (B >= 2 OR B IS NULL)"))
     // TODO: simplify(negate(f("A < 1 AND A <> 2"))) must beEquivalentTo(f("A IS NULL OR A >= 1"))
     // TODO: simplify(negate(negate(f("A < 1 AND A <> 2")))) must beEquivalentTo(f("A < 1"))
+  }
+
+  "negated binary operators are complicated" in {
+    import ECQL.{ toFilter => f }
+    intersection(negate(f("A < 1")), negate(f("A > 0"))) must beSome[Filter].which {
+      _ must beEquivalentTo(f("A IS NULL"))
+    }
+
+    simplify(allOf(Seq("A < 2", "A >= 2 OR A <= 4", "A > 4") map { s => negate(f(s)) } )) must
+      beEquivalentTo(f("A IS NULL"))
   }
 
   "subset tests should be aware of binary operations" in {
@@ -170,7 +182,7 @@ class FilterTest extends Specification {
 
     isSubSet(f("A >= 1"), f("A <= 1")) must beFalse
 
-    isSubSet(f("A >= 1"), f("A > 1")) must beFalse
+    isSubSet(f("A >= 1"), f("A > 1")) must beTrue
     isSubSet(f("A >= 1"), f("A > 0")) must beFalse
     isSubSet(f("A >= 1"), f("A > 2")) must beTrue
 
@@ -188,27 +200,45 @@ class FilterTest extends Specification {
 
   "constraining filters should be aware of binary operations" in {
     import ECQL.{ toFilter => f }
-    constrain(f("A < 1 OR A IS NULL"), f("A IS NOT NULL")) must beEquivalentTo(f("A < 1"))
-    constrain(f("A < 1 OR A IS NULL"), f("A < 1 OR A IS NULL")) must beEquivalentTo(f("A < 1 OR A IS NULL"))
-    constrain(f("A < 1 OR A IS NULL"), f("A <> 1 OR A IS NULL")) must beEquivalentTo(f("A < 1 OR A IS NULL"))
-    constrain(f("A < 1"), f("A > 1")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A <= 1"), f("A > 1")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A >= 1"), f("A < 1")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A = 1"), f("A > 1")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A > 1"), f("A = 1")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A = 1"), f("A <> 1")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A < 1"), f("A <> 1")) must beEquivalentTo(f("A < 1"))
-    constrain(f("A <> 1"), f("A < 1")) must beEquivalentTo(f("A < 1"))
-    constrain(f("A < 1"), f("A < 1")) must beEquivalentTo(f("A < 1"))
-    constrain(f("A < 2"), f("A < 1")) must beEquivalentTo(f("A < 1"))
-    constrain(f("A <= 1"), f("A < 1")) must beEquivalentTo(f("A < 1"))
+    intersection(f("A < 1 OR A IS NULL"), f("A IS NOT NULL")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1")) }
+    intersection(f("A < 1 OR A IS NULL"), f("A < 1 OR A IS NULL")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1 OR A IS NULL")) }
+    intersection(f("A < 1 OR A IS NULL"), f("A <> 1 OR A IS NULL")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1 OR A IS NULL")) }
+    intersection(f("A < 1"), f("A > 1")) must beSome(Filter.EXCLUDE)
+    intersection(f("A <= 1"), f("A > 1")) must beSome(Filter.EXCLUDE)
+    intersection(f("A >= 1"), f("A < 1")) must beSome(Filter.EXCLUDE)
+    intersection(f("A >= 1"), f("A <= 1")) must beSome[Filter].which {
+      _ must beEquivalentTo(f("A = 1"))
+    }
+    intersection(f("A = 1"), f("A > 1")) must beSome(Filter.EXCLUDE)
+    intersection(f("A > 1"), f("A = 1")) must beSome(Filter.EXCLUDE)
+    intersection(f("A = 1"), f("A <> 1")) must beSome(Filter.EXCLUDE)
+    intersection(f("A > 2"), f("A >= 2")) must beSome[Filter].which {
+      _ must beEquivalentTo(f("A > 2"))
+    }
+    intersection(f("A < 2"), f("A <= 2")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 2")) }
+    intersection(f("A < 1"), f("A <> 1")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1")) }
+    intersection(f("A <> 1"), f("A < 1")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1")) }
+    intersection(f("A < 1"), f("A < 1")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1")) }
+    intersection(f("A < 2"), f("A < 1")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1")) }
+    intersection(f("A <= 1"), f("A < 1")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A < 1")) }
     intersection(f("A LIKE 'abc%'"), f("A NOT LIKE 'abc%'")) must beSome(Filter.EXCLUDE)
-    constrain(f("A > 2 AND A < 4"), f("A > 4")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A IS NULL"), f("A IS NOT NULL")) must beEquivalentTo(f("EXCLUDE"))
-    constrain(f("A > 2"), f("A IS NOT NULL")) must beEquivalentTo(f("A > 2"))
-    constrain(f("A IS NOT NULL"), f("A > 2")) must beEquivalentTo(f("A > 2"))
-    constrain(f("A > 2"), f("A IS NULL OR A < 10")) must 
-      beEquivalentTo(f("A > 2 AND A < 10"))
+    intersection(f("A > 2 AND A < 4"), f("A > 4")) must beSome(Filter.EXCLUDE)
+    intersection(f("A IS NULL"), f("A IS NOT NULL")) must beSome(Filter.EXCLUDE)
+    intersection(f("A > 2"), f("A IS NOT NULL")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A > 2")) }
+    intersection(f("A IS NOT NULL"), f("A > 2")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A > 2")) }
+    intersection(f("A > 2"), f("A IS NULL OR A < 10")) must
+      beSome[Filter].which { _ must beEquivalentTo(f("A > 2 AND A < 10")) }
     // constrain(f("A > 2 OR A < 4"), f("A > 4")) must beEquivalentTo(f("A > 4"))
     // constrain(f("PERSONS >= 4000000"), f("PERSONS < 4000000")) must beEquivalentTo(f("EXCLUDE"))
     // constrain(f("A = 'bar'"), f("B = 'foo' or A = 'bar'")) must beEquivalentTo(f("A = 'bar'"))

@@ -412,6 +412,7 @@ class SimplifierTest extends Specification {
     intersection(Or(Seq(P, Q)), R) must_== (None)
     intersection(Or(Seq(P, Q)), Q) must_== (Some(Q))
     intersection(Or(Seq(P, Q)), Not(Q)) must_== (Some(And(Seq(P, Not(Q)))))
+    (intersection(Or(Seq(P, Q)), Or(Seq(P, Not(Q)))) map simplify) must_== Some(P)
   }
 
   "unions of Or'ed predicates" in {
@@ -426,5 +427,15 @@ class SimplifierTest extends Specification {
     simplify(Or(Seq(Everything, P))) must_== (Everything)
     simplify(Or(Seq(Not(P), P))) must_== (Everything)
     simplify(Or(Seq(Empty, P))) must_== (P)
+  }
+
+  "miscellaneous combinations" in {
+    union(P, Or(Seq(Not(P), Q))) must beSome(Everything)
+    union(Not(P), Or(Seq(P, Q))) must beSome(Everything)
+    simplify(Or(Seq(P, Or(Seq(Not(P), Q))))) must_== Everything
+    simplify(Or(Seq(Not(P), Or(Seq(P, Q))))) must_== Everything
+
+    intersection(P, Or(Seq(P, R))) must beSome(P)
+    simplify(And(Seq(P, Or(Seq(P, R))))) must_== P
   }
 }

@@ -208,7 +208,7 @@ trait Simplifier[P] {
         
         def reduce(results: Seq[P], queue: Seq[P]): Seq[P] = {
           if (queue.exists { p => results.exists(areCovering(p, _)) }) {
-            Seq(Empty)
+            Seq(Everything)
           } else if (queue.size <= 1) {
             results ++ queue
           } else {

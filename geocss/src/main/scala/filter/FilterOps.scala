@@ -155,7 +155,7 @@ object FilterOps extends Simplifier[Filter] {
           case ('>,  '> ) => cmp <= 0
           case ('>,  '>=) => cmp <  0
           case ('>=, '= ) => cmp <= 0
-          case ('>=, '> ) => cmp <  0
+          case ('>=, '> ) => cmp <= 0
           case ('>=, '>=) => cmp <= 0
           case _ => false
         }
@@ -208,6 +208,19 @@ object FilterOps extends Simplifier[Filter] {
             case _ => None
           }
       case _ => None
+    }
+
+  override def simpleIntersection(a: Filter, b: Filter): Option[Filter] =
+    (a, b) match {
+      case (BinOp(lh1, op1, rh@Lit(rh1)), BinOp(lh2, op2, Lit(rh2)))
+        if equivalent(lh1, lh2)
+        =>
+          val cmp = rh1 compareTo rh2
+          (op1, op2) match {
+            case ('>=, '<=) if cmp == 0 => Some(filters.equals(lh1, rh))
+            case _ => None
+          }
+       case _ => None
     }
 
   override def simpleSimplify(f: Filter) = 
