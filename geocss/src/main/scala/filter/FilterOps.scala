@@ -43,8 +43,7 @@ object FilterOps extends Simplifier[Filter] {
   def constrain(a: Filter, b: Filter) = intersection(a, b) getOrElse a 
   def relax(a: Filter, b: Filter): Filter = union(a, b) getOrElse a
 
-  def invert(pred: Filter): Filter = 
-    filters.not(pred)
+  def invert(pred: Filter): Filter = filters.not(pred)
 
   def complementExtract(pred: Filter) = 
     pred match {
@@ -53,7 +52,7 @@ object FilterOps extends Simplifier[Filter] {
     }
 
   def allOf(preds: Seq[Filter]): Filter =
-    filters.and(Arrays.asList(preds.toArray: _*))
+    filters.and(preds)
 
   def intersectionExtract(f: Filter): Option[Seq[Filter]] = 
     f match {
@@ -61,8 +60,7 @@ object FilterOps extends Simplifier[Filter] {
       case _ => None
     }
 
-  def anyOf(preds: Seq[Filter]): Filter = 
-    filters.or(Arrays.asList(preds.toArray: _*))
+  def anyOf(preds: Seq[Filter]): Filter = filters.or(preds)
 
   def unionExtract(f: Filter): Option[Seq[Filter]] = 
     f match {

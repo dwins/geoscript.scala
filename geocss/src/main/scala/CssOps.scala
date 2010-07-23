@@ -1,6 +1,7 @@
 package org.geoscript.geocss
 
 import scala.math._
+import collection.JavaConversions._
 
 import org.opengis.filter.{
   BinaryComparisonOperator,
@@ -202,44 +203,38 @@ object CssOps {
   }
 
   object Specificity {
-    private def extract(f: org.opengis.filter.Filter): List[String] = {
+    import Seq.empty
+    private def extract(f: org.opengis.filter.Filter): Seq[String] = {
       f match {
-        case b: BinaryComparisonOperator => 
+        case b: BinaryComparisonOperator =>
           extract(b.getExpression1) ++ extract(b.getExpression2)
-        case b: BinaryLogicOperator => {
-          val it = b.getChildren.iterator
-          var attributes = Nil: List[String]
-          while (it.hasNext) {
-            attributes = attributes ++ extract(it.next)
-          }
-          attributes
-        }
-        case not: Not => extract(not.getFilter)
-        case b: PropertyIsBetween => 
+        case b: BinaryLogicOperator =>
+          b.getChildren().flatMap(extract)
+        case not: Not =>
+          extract(not.getFilter)
+        case b: PropertyIsBetween =>
           extract(b.getExpression) ++
           extract(b.getLowerBoundary) ++
           extract(b.getUpperBoundary)
-        case l: PropertyIsLike => extract(l.getExpression)
-        case n: PropertyIsNull => extract(n.getExpression)
-        case _ => Nil
+        case l: PropertyIsLike =>
+          extract(l.getExpression)
+        case n: PropertyIsNull =>
+          extract(n.getExpression)
+        case _ => empty
       }
     }
 
     private def extract(expr: org.opengis.filter.expression.Expression)
-    : List[String] = {
+    : Seq[String] = {
       expr match {
         case b: BinaryExpression =>
           extract(b.getExpression1) ++ extract(b.getExpression2)
-        case f: org.opengis.filter.expression.Function => {
-          val it = f.getParameters.iterator
-          var attributes = Nil: List[String]
-          while (it.hasNext) {
-            attributes = attributes ++ extract(it.next)
-          }
-          attributes
-        } 
-        case p: PropertyName => p.getPropertyName :: Nil
-        case _ => Nil
+        case f: org.opengis.filter.expression.Function =>
+          f.getParameters().flatMap(extract)
+        case p: PropertyName =>
+          Seq(p.getPropertyName)
+        case _ =>
+          empty
       }
     }
 
@@ -252,21 +247,18 @@ object CssOps {
       case _: ParameterizedPseudoClass => Specificity(0, 0, 2)
       case _: PseudoClass => Specificity(0, 0, 1)
       case _: IdSelector => Specificity(1, 0, 0)
-      case expr: ExpressionSelector => 
+      case expr: ExpressionSelector =>
         Specificity(0, countAttributes(expr.asFilter), 0)
       case _ => Specificity(0, 0, 0)
     }
 
-    def apply(xs: List[Selector]): Specificity = {
-      xs.map(apply).foldLeft(Specificity(0, 0, 0))(
-        (x: Specificity, y: Specificity) => x + y
-      )
-    }
+    def apply(xs: Seq[Selector]): Specificity =
+      xs.map(apply).foldLeft(Specificity(0, 0, 0))(_ + _)
   }
 
   object URL {
     def unapply(value: Value): Option[String] = value match {
-      case Function("url", List(Literal(url))) => Some(url)
+      case Function("url", Seq(Literal(url))) => Some(url)
       case _ => None
     }
   }
@@ -276,13 +268,13 @@ object CssOps {
     val LongHex = """#?([a-fA-F0-9]{6})""".r
 
     def unapply(value: Value): Option[String] = value match {
-      case Function("rgb", List(Literal(r), Literal(g), Literal(b))) => 
-        val channels = List(r, g, b)
+      case Function("rgb", Seq(Literal(r), Literal(g), Literal(b))) =>
+        val channels = Seq(r, g, b)
         val hex = "#%2x%2x%2x"
         def validInt(x: String) =
           try { x.toInt; true } catch { case _ => false }
 
-        def validDouble(x: String) = 
+        def validDouble(x: String) =
           try { x.toDouble; true } catch { case _ => false }
 
         def dbl(x: String) = round(x.toFloat * 255f)
@@ -294,20 +286,20 @@ object CssOps {
         } else {
           None
         }
-      case Literal(LongHex(hex)) => 
+      case Literal(LongHex(hex)) =>
         Some("#" + hex)
-      case Literal(ShortHex(hex)) => 
+      case Literal(ShortHex(hex)) =>
         Some(hex.map(x => "" + x + x).mkString("#", "", ""))
       case Literal(name) =>
         colors.get(name)
-      case _ => 
+      case _ =>
         None
     }
   }
 
   object Symbol {
     def unapply(value: Value): Option[String] = value match {
-      case Function("symbol", Literal(symbol) :: Nil) => Some(symbol)
+      case Function("symbol", Seq(Literal(symbol))) => Some(symbol)
       case _ => None
     }
   }
@@ -319,12 +311,12 @@ object CssOps {
    */
   def expand(props: List[Property], key: String)
   : List[Map[String, List[Value]]] = {
-    if (props == Nil) Nil 
+    if (props == Nil) Nil
     else {
       def filterKeys(xs: List[Property]): List[Property] =
         xs match {
           case Nil => Nil
-          case head :: tail => 
+          case head :: tail =>
             head :: filterKeys(tail.filter(_.name != head.name))
         }
 
@@ -333,12 +325,12 @@ object CssOps {
       val keylist = cleaned.find(_.name == key) getOrElse Property(key, Nil)
       val names = cleaned map (_.name)
 
-      def ensureLength(xs: List[List[Value]]): List[List[Value]] = 
+      def ensureLength(xs: List[List[Value]]): List[List[Value]] =
         Stream.continually(xs).flatten.take(keylist.values.length).toList
 
       val normalizedLists = cleaned map { x => ensureLength(x.values) }
 
-      (names zip normalizedLists) 
+      (names zip normalizedLists)
         .map { case (n, l) => l.map((n, _)) }
         .transpose
         .map { _.toMap }
