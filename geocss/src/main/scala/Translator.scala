@@ -734,57 +734,55 @@ object Translator { //  extends CssOps with SelectorOps {
    * it prunes the search space when unsatisfiable rule combinations are
    * discovered.
    */
-  def permute(xs: List[SimpleRule])
-  : List[(List[SimpleRule], List[SimpleRule])] = {
-    // does this pair of "in" and "out" rules combine to form a set of selectors
-    // that can possibly match anything?
-    def satisfiable(x: (List[SimpleRule], List[SimpleRule])): Boolean =
-      compose(x._1, x._2).isSatisfiable
+   def combinations(xs: Seq[SimpleRule])
+   (prune: Pair[Seq[SimpleRule], Seq[SimpleRule]] => Boolean)
+   : Seq[(Seq[SimpleRule], Seq[SimpleRule])] = {
+     import Seq.empty
 
-    if (xs.isEmpty) 
-      List((Nil, Nil))
-    else
-      permute(xs.tail) flatMap { case (in, out) =>
-        (xs.head :: in, out) :: (in, xs.head :: out) :: Nil
-      } filter satisfiable
+     xs match {
+       case Seq() => Seq((empty, empty))
+       case Seq(x, xs @ _*) => 
+         combinations(xs)(prune) flatMap { 
+           case (in, out) => Seq((x +: in, out), (in, x +: out))
+         } filter prune
+     }
   }
 
-  def cascading2exclusive(xs: List[SimpleRule]):
-  List[(List[SimpleRule], List[SimpleRule])] =
-    permute(xs) map {
-      case (x, y) =>
-        def ordering(a: SimpleRule, b: SimpleRule): Boolean =
-          Specificity(a.selectors) < Specificity(b.selectors)
+  def cascading2exclusive(xs: List[SimpleRule])
+  : List[(List[SimpleRule], List[SimpleRule])] = {
+    def satisfiable(x: (Seq[SimpleRule], Seq[SimpleRule])): Boolean =
+      compose(x._1, x._2).isSatisfiable
 
-        (stableSort(x, ordering _).toList.reverse, y)
+    def ordering(a: SimpleRule, b: SimpleRule): Boolean =
+      Specificity(a.selectors) < Specificity(b.selectors)
+
+    combinations(xs)(satisfiable).toList map {
+      case (x, y) => (stableSort(x, ordering _).toList.reverse, y.toList)
     }
+  }
 
   /**
    * Take a list of rules to include and a list of rules being excluded and
    * generate a rule that combines their selectors and properties.  The 'out'
    * list has its selectors negated and its properties omitted.
    */
-  private def compose(in: List[SimpleRule], out: List[SimpleRule]) = {
-    def not(xs: List[Selector]): Selector =
-      simplify(OrSelector(xs map SelectorOps.not))
+  private def compose(in: Seq[SimpleRule], out: Seq[SimpleRule])
+  : SimpleRule = {
+    def not(xs: Seq[Selector]): Selector =
+      simplify(OrSelector(xs.toList map SelectorOps.not))
 
-    def specificity(xs: SimpleRule, ys: SimpleRule) = {
+    def specificity(xs: SimpleRule, ys: SimpleRule) =
       Specificity(xs.selectors) > Specificity(ys.selectors)
-    }
 
-    val selectors =
-      in.flatMap((x: SimpleRule) => x.selectors) ++
-      out.map((x: SimpleRule) => not(x.selectors))
-
+    val selectors = in.flatMap(_.selectors) ++ out.map(x => not(x.selectors))
     val sortedRules = in.sortWith(specificity)
-
     val description = sortedRules.map(_.description)
       .foldLeft(Description(None, None)) (Description.combine)
 
     SimpleRule( 
       description,
-      simplify(selectors), 
-      sortedRules.flatMap(_.properties)
+      simplify(selectors.toList), 
+      sortedRules.flatMap(_.properties).toList
     )
   }
 }
