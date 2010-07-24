@@ -737,14 +737,21 @@ object Translator { //  extends CssOps with SelectorOps {
    def combinations(xs: Seq[SimpleRule])
    (prune: Pair[Seq[SimpleRule], Seq[SimpleRule]] => Boolean)
    : Seq[(Seq[SimpleRule], Seq[SimpleRule])] = {
-     import Seq.empty
+     import IndexedSeq.empty
 
      xs match {
        case Seq() => Seq((empty, empty))
-       case Seq(x, xs @ _*) => 
-         combinations(xs)(prune) flatMap { 
-           case (in, out) => Seq((x +: in, out), (in, x +: out))
-         } filter prune
+       case Seq(x) => Seq((empty, Seq(x)), (Seq(x), empty))
+       case xs => 
+         val (lh, rh) = xs.splitAt(xs.length / 2)
+
+         val mixed = 
+           for {
+             (lin, lout) <- combinations(lh)(prune)
+             (rin, rout) <- combinations(rh)(prune)
+           } yield (lin ++ rin, lout ++ rout)
+
+         mixed.filter(prune)
      }
   }
 
