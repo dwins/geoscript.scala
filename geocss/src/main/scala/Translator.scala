@@ -547,6 +547,9 @@ object Translator { //  extends CssOps with SelectorOps {
         case _ => true
       }
 
+    lazy val negatedSelector =
+      OrSelector(selectors map SelectorOps.not)
+
     def getFilter = 
       AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
   }
@@ -757,8 +760,12 @@ object Translator { //  extends CssOps with SelectorOps {
 
   def cascading2exclusive(xs: List[SimpleRule])
   : List[(List[SimpleRule], List[SimpleRule])] = {
+    import SelectorOps.{ Exclude, simplify, allOf }
+
     def satisfiable(x: (Seq[SimpleRule], Seq[SimpleRule])): Boolean =
-      compose(x._1, x._2).isSatisfiable
+      simplify(
+        allOf(x._1.flatMap(_.selectors) ++ x._2.map(_.negatedSelector))
+      ) != Exclude
 
     def ordering(a: SimpleRule, b: SimpleRule): Boolean =
       Specificity(a.selectors) < Specificity(b.selectors)
@@ -775,13 +782,10 @@ object Translator { //  extends CssOps with SelectorOps {
    */
   private def compose(in: Seq[SimpleRule], out: Seq[SimpleRule])
   : SimpleRule = {
-    def not(xs: Seq[Selector]): Selector =
-      simplify(OrSelector(xs.toList map SelectorOps.not))
-
     def specificity(xs: SimpleRule, ys: SimpleRule) =
       Specificity(xs.selectors) > Specificity(ys.selectors)
 
-    val selectors = in.flatMap(_.selectors) ++ out.map(x => not(x.selectors))
+    val selectors = in.flatMap(_.selectors) ++ out.map(_.negatedSelector)
     val sortedRules = in.sortWith(specificity)
     val description = sortedRules.map(_.description)
       .foldLeft(Description(None, None)) (Description.combine)
