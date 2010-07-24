@@ -563,11 +563,7 @@ object Translator { //  extends CssOps with SelectorOps {
   def css2sld(styleSheet: List[Rule]): gt.Style = {
     val sld = styles.createStyle
 
-    val rules = 
-      styleSheet flatMap {
-        case Rule(desc, selectors, properties) =>
-          selectors map { SimpleRule(desc, _, properties) }
-      }
+    val rules = styleSheet map { case Rule(d, s, p) => SimpleRule(d, s, p) }
 
     def extractTypeName(rule: SimpleRule): Option[String] =
       rule.selectors find {

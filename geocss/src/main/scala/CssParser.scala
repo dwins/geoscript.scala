@@ -136,11 +136,12 @@ object CssParser extends RegexParsers {
 
   private val rule = 
     ((ParsedComment?) ~ selector ~ propertyList) map {
-      case Some(comment) ~ selector ~ props => Rule(comment, selector, props)
-      case None          ~ selector ~ props => Rule(Description.Empty, selector, props)
+      case comment ~ selector ~ props => 
+        val desc = comment.getOrElse(Description.Empty)
+        selector map { sel => Rule(desc, sel, props) }
     }
 
-  val styleSheet = rule*
+  val styleSheet = (rule*) map (_.flatten)
 
   def parse(input: String): ParseResult[List[Rule]] =
     parseAll(styleSheet, input)

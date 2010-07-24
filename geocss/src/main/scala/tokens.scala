@@ -59,7 +59,7 @@ case class Property(name: String, values: List[List[Value]]) {
 
 case class Rule(
   comment: Description,
-  selectors: List[List[Selector]],
+  selectors: List[Selector],
   properties: List[Property]
 )
 
