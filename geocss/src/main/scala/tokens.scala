@@ -57,6 +57,11 @@ case class Property(name: String, values: List[List[Value]]) {
   }
 }
 
+trait ContextualProperties {
+  val contexts: Map[Context, Seq[Property]]
+  def context(symbol: String, order: Int): Seq[Property]
+}
+
 case class Rule(
   description: Description,
   selectors: List[Selector],
@@ -67,6 +72,30 @@ case class Rule(
 
   def getFilter =
     AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
+
+  def defaultContext = {
+    val synthetic = selectors.exists {
+      case _: Context => true
+      case _ => false
+    }
+    if (synthetic) Nil
+    else properties
+  }
+
+  def context(symbol: String, order: Int): Seq[Property] = {
+    val keys: Set[Selector] =
+      Set(
+        ParameterizedPseudoClass("nth-" + symbol, order.toString),
+        ParameterizedPseudoClass("nth-" + "symbol", order.toString),
+        PseudoClass(symbol),
+        PseudoClass("symbol")
+      )
+
+    if (selectors.exists(keys.contains(_)))
+      properties
+    else
+      Nil
+  }
 }
 
 abstract class Selector {
@@ -83,6 +112,8 @@ abstract class DataSelector extends Selector {
 abstract class MetaSelector extends Selector {
   def filterOpt = None
 }
+
+trait Context extends MetaSelector
 
 case class IdSelector(id: String) extends DataSelector {
   val idSet: java.util.Set[org.opengis.filter.identity.Identifier] = {
@@ -110,12 +141,12 @@ extends MetaSelector {
   override def toString = "@%s%s%s".format(property, operator, value)
 }
 
-case class PseudoClass(name: String) extends MetaSelector {
+case class PseudoClass(name: String) extends Context {
   override def toString = ":%s".format(name)
 }
 
 case class ParameterizedPseudoClass(name: String, param: String) 
-extends MetaSelector 
+extends Context
 {
   override def toString = ":%s(%s)".format(name, param)
 }

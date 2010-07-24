@@ -323,33 +323,10 @@ object Translator { //  extends CssOps with SelectorOps {
    * given Rule.
    */
   def symbolize(rules: List[Rule]) = {
-    val pseudo: Selector => Boolean = {
-      case PseudoClass(_) | ParameterizedPseudoClass(_, _) => true
-      case _ => false
-    }
+    val properties = rules flatMap { _.defaultContext }
 
-    val (synthetic, real) = rules partition { _.selectors.exists(pseudo) }
-
-    val properties = real flatMap { _.properties }
-
-    def orderedMarkRules(symbolizerType: String, order: Int) = {
-      def predicate(sel: Selector) = 
-        sel match {
-          case PseudoClass(sym)
-            => Set("symbol", symbolizerType) contains sym
-          case ParameterizedPseudoClass(name, param)
-            => (Set("nth-symbol", "nth-" + symbolizerType) contains name) && 
-               (param.trim == order.toString)
-          case _ => false
-        }
-
-      synthetic filter {
-        case rule if rule.selectors.exists(predicate) => true
-        case _ => false
-      } flatMap {
-        _.properties
-      }
-    }
+    def orderedMarkRules(symbolizerType: String, order: Int) =
+      rules.flatMap(_.context(symbolizerType, order))
 
     val lineSyms: List[(Double, LineSymbolizer)] = 
       (expand(properties, "stroke").toStream zip
