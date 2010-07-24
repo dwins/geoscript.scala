@@ -58,10 +58,16 @@ case class Property(name: String, values: List[List[Value]]) {
 }
 
 case class Rule(
-  comment: Description,
+  description: Description,
   selectors: List[Selector],
   properties: List[Property]
-)
+) {
+  lazy val isSatisfiable =
+    !(selectors contains SelectorOps.Exclude)
+
+  def getFilter =
+    AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
+}
 
 abstract class Selector {
   def filterOpt: Option[Filter]
