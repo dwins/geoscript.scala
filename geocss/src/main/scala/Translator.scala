@@ -323,7 +323,7 @@ object Translator { //  extends CssOps with SelectorOps {
    * given Rule.
    */
   def symbolize(rules: List[Rule]) = {
-    val properties = rules flatMap { _.defaultContext }
+    val properties = rules flatMap { _.properties }
 
     def orderedMarkRules(symbolizerType: String, order: Int) =
       rules.flatMap(_.context(symbolizerType, order))
@@ -560,14 +560,10 @@ object Translator { //  extends CssOps with SelectorOps {
       }
 
     def stripTypenames(rule: Rule): Rule =
-      Rule(
-        rule.description,
-        rule.selectors map { 
-          case TypenameSelector(_) => AcceptSelector
-          case selector => selector
-        },
-        rule.properties
-      )
+      rule.copy(selectors = rule.selectors map {
+        case TypenameSelector(_) => AcceptSelector
+        case selector => selector
+      })
 
     val typenames = (rules map extractTypeName) distinct
 
@@ -740,7 +736,7 @@ object Translator { //  extends CssOps with SelectorOps {
     Rule(
       description,
       simplify(selectors.toList), 
-      sortedRules.flatMap(_.properties).toList
+      sortedRules.foldLeft(Map[Option[Context], Seq[Property]]())(_ ++ _.contexts)
     )
   }
 }

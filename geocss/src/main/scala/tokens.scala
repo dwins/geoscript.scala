@@ -65,7 +65,7 @@ trait ContextualProperties {
 case class Rule(
   description: Description,
   selectors: List[Selector],
-  properties: List[Property]
+  contexts: Map[Option[Context], Seq[Property]]
 ) {
   lazy val isSatisfiable =
     !(selectors contains SelectorOps.Exclude)
@@ -73,28 +73,16 @@ case class Rule(
   def getFilter =
     AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
 
-  def defaultContext = {
-    val synthetic = selectors.exists {
-      case _: Context => true
-      case _ => false
-    }
-    if (synthetic) Nil
-    else properties
-  }
+  def properties =
+    contexts.getOrElse(None, Nil)
 
   def context(symbol: String, order: Int): Seq[Property] = {
-    val keys: Set[Selector] =
-      Set(
-        ParameterizedPseudoClass("nth-" + symbol, order.toString),
-        ParameterizedPseudoClass("nth-" + "symbol", order.toString),
-        PseudoClass(symbol),
-        PseudoClass("symbol")
-      )
-
-    if (selectors.exists(keys.contains(_)))
-      properties
-    else
-      Nil
+    Seq(
+      ParameterizedPseudoClass("nth-" + symbol, order.toString),
+      ParameterizedPseudoClass("nth-" + "symbol", order.toString),
+      PseudoClass(symbol),
+      PseudoClass("symbol")
+    ) flatMap { k => contexts.getOrElse(Some(k), Nil) }
   }
 }
 
