@@ -23,10 +23,10 @@ import org.opengis.filter.expression.{
 object SelectorOps extends Simplifier[Selector] {
   // aliases for use during port
   val negate = not _
-  def simplify(sels: List[Selector]): List[Selector] = 
+  def simplify(sels: Seq[Selector]): Seq[Selector] = 
     simplify(AndSelector(sels)) match {
       case AndSelector(children) => children
-      case singleton => List(singleton)
+      case singleton => Seq(singleton)
     }
 
   val constrainOption = intersection _
@@ -109,7 +109,7 @@ object SelectorOps extends Simplifier[Selector] {
       case _ => None
     }
 
-  def allOf(ps: Seq[Selector]): Selector = AndSelector(ps.toList)
+  def allOf(ps: Seq[Selector]): Selector = AndSelector(ps)
 
   def unionExtract(p: Selector): Option[Seq[Selector]] =
     p match {
@@ -117,5 +117,5 @@ object SelectorOps extends Simplifier[Selector] {
       case _ => None
     }
   
-  def anyOf(ps: Seq[Selector]): Selector = OrSelector(ps.toList)
+  def anyOf(ps: Seq[Selector]): Selector = OrSelector(ps)
 }

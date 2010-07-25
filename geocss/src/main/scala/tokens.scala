@@ -2,6 +2,8 @@ package org.geoscript.geocss
 
 import filter.FilterOps.filters
 
+import collection.JavaConversions._
+
 import java.util.Arrays
 
 import org.opengis.filter.Filter
@@ -45,10 +47,10 @@ case class Combinator(operator: String)
 
 class Value
 case class Literal(body: String) extends Value
-case class Function(name: String, parameters: List[Value]) extends Value
+case class Function(name: String, parameters: Seq[Value]) extends Value
 case class Expression(body: String) extends Value
 
-case class Property(name: String, values: List[List[Value]]) {
+case class Property(name: String, values: Seq[Seq[Value]]) {
   override def toString = {
     "%s: %s".format(
       name,
@@ -64,7 +66,7 @@ trait ContextualProperties {
 
 case class Rule(
   description: Description,
-  selectors: List[Selector],
+  selectors: Seq[Selector],
   contexts: Seq[Pair[Option[Context], Seq[Property]]]
 ) {
   def merge(that: Rule): Rule =
@@ -98,7 +100,7 @@ case class Rule(
   }
 }
 
-object EmptyRule extends Rule(Description.Empty, List.empty, Seq.empty)
+object EmptyRule extends Rule(Description.Empty, Seq.empty, Seq.empty)
 
 abstract class Selector {
   def filterOpt: Option[Filter]
@@ -180,7 +182,7 @@ case class NotSelector(selector: Selector) extends Selector {
   }
 }
 
-case class AndSelector(children: List[Selector]) extends Selector {
+case class AndSelector(children: Seq[Selector]) extends Selector {
   override def filterOpt = {
     if (children.forall(_.filterOpt.isDefined)) {
       val operands = children map { _.filterOpt.get }
@@ -189,9 +191,9 @@ case class AndSelector(children: List[Selector]) extends Selector {
           Filter.EXCLUDE
         } else {
           operands.filter(Filter.INCLUDE !=) match {
-            case Nil => Filter.INCLUDE
-            case List(f) => f
-            case l => filters.and(Arrays.asList(l.toArray:_*))
+            case Seq() => Filter.INCLUDE
+            case Seq(f) => f
+            case fs => filters.and(fs)
           }
         }
       )
@@ -201,7 +203,7 @@ case class AndSelector(children: List[Selector]) extends Selector {
   }
 }
 
-case class OrSelector(children: List[Selector]) extends Selector {
+case class OrSelector(children: Seq[Selector]) extends Selector {
   override def filterOpt = {
     if (children.forall(_.filterOpt.isDefined)) {
       val operands = children map { _.filterOpt.get }
@@ -211,12 +213,10 @@ case class OrSelector(children: List[Selector]) extends Selector {
         } else {
           val parts = operands.partition(Filter.EXCLUDE==)
           parts._2 match {
-            case Nil => {
-              if (parts._1.isEmpty) Filter.INCLUDE
-              else Filter.EXCLUDE
-            }
-            case List(f) => f
-            case l => filters.or(Arrays.asList(l.toArray:_*))
+            case Seq() if (parts._1.isEmpty) => Filter.INCLUDE
+            case Seq() => Filter.EXCLUDE
+            case Seq(f) => f
+            case fs => filters.or(fs)
           }
         }
       )

@@ -29,15 +29,15 @@ object Converter {
     new FileOutputStream(new File(f.getParentFile, rename))
   }
 
-  def writeSLD(style: List[Rule], out: OutputStream) {
+  def writeSLD(style: Seq[Rule], out: OutputStream) {
     tx.transform(css2sld(style), out)
   }
 
-  def writeOLStyle(style: List[Rule], out: OutputStream) {
+  def writeOLStyle(style: Seq[Rule], out: OutputStream) {
     OpenLayersStyle.write(css2sld(style), out)
   }
 
-  def writeRaw(style: List[Rule], out: OutputStream) {
+  def writeRaw(style: Seq[Rule], out: OutputStream) {
     val writer = new java.io.PrintWriter(out)
     style.foreach(writer.println)
     writer.close()
@@ -46,7 +46,7 @@ object Converter {
   def main(args: Array[String]) = {
     val (options, filenames) = parse(args)
 
-    val write: (List[Rule], OutputStream) => Unit = 
+    val write: (Seq[Rule], OutputStream) => Unit = 
       options.get("output") match {
         case Some("sld") => writeSLD
         case Some("ol-style") => writeOLStyle

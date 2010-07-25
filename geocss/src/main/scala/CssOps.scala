@@ -309,15 +309,15 @@ object CssOps {
    * maps.  For each value list in some key property, a mapping of all the
    * properties is defined.
    */
-  def expand(props: List[Property], key: String)
-  : List[Map[String, List[Value]]] = {
-    if (props == Nil) Nil
+  def expand(props: Seq[Property], key: String)
+  : Seq[Map[String, Seq[Value]]] = {
+    if (props isEmpty) Seq.empty
     else {
-      def filterKeys(xs: List[Property]): List[Property] =
+      def filterKeys(xs: Seq[Property]): Seq[Property] =
         xs match {
-          case Nil => Nil
-          case head :: tail =>
-            head :: filterKeys(tail.filter(_.name != head.name))
+          case Seq() => Seq.empty
+          case Seq(head, tail @ _*) =>
+            head +: filterKeys(tail.filter(_.name != head.name))
         }
 
       val cleaned = filterKeys(props)
@@ -325,12 +325,12 @@ object CssOps {
       val keylist = cleaned.find(_.name == key) getOrElse Property(key, Nil)
       val names = cleaned map (_.name)
 
-      def ensureLength(xs: List[List[Value]]): List[List[Value]] =
-        Stream.continually(xs).flatten.take(keylist.values.length).toList
+      def ensureLength(xs: Seq[Seq[Value]]): Seq[Seq[Value]] =
+        Stream.continually(xs).flatten.take(keylist.values.length)
 
-      val normalizedLists = cleaned map { x => ensureLength(x.values) }
+      val normalized = cleaned map { x => ensureLength(x.values) }
 
-      (names zip normalizedLists)
+      (names zip normalized)
         .map { case (n, l) => l.map((n, _)) }
         .transpose
         .map { _.toMap }

@@ -36,7 +36,7 @@ class Regressions extends Specification {
   }
 
   "Colors should be accepted by the parser" in {
-    val rules: List[Rule]= CssParser.parse(in("/states.css")).get
+    val rules: Seq[Rule]= CssParser.parse(in("/states.css")).get
     val colorValue = rules(1).properties(0).values(0)
     colorValue.length must be (1)
     colorValue(0) must_== (Literal("#4DFF4D"))

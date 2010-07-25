@@ -29,7 +29,7 @@ object Translator { //  extends CssOps with SelectorOps {
   val styles = org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
   type OGCExpression = org.opengis.filter.expression.Expression
 
-  val gtVendorOpts = List(
+  val gtVendorOpts = Seq(
     "-gt-label-padding" -> "spaceAround",
     "-gt-label-group" -> "group",
     "-gt-label-max-displacement" -> "maxDisplacement",
@@ -49,23 +49,20 @@ object Translator { //  extends CssOps with SelectorOps {
   private val defaultRGB = filters.literal(colors("grey"))
 
 // externalGraphic, well-known graphic , color
-  def fill(xs: List[Value]): (String, String, OGCExpression) = {
-    val wellKnownMarks =
-      List("circle", "square", "triangle", "star", "arrow", "hatch", "x")
-
+  def fill(xs: Seq[Value]): (String, String, OGCExpression) = {
     (xs take 2) match {
-      case URL(url) :: Color(color) :: Nil => (url, null, filters.literal(color))
-      case URL(url) :: Nil => (url, null, defaultRGB)
-      case Symbol(sym) :: _ => (null, sym, defaultRGB)
-      case Color(color) :: _  => (null, null, filters.literal(color))
+      case Seq(URL(url), Color(color)) => (url, null, filters.literal(color))
+      case Seq(URL(url)) => (url, null, defaultRGB)
+      case Seq(Symbol(sym)) => (null, sym, defaultRGB)
+      case Seq(Color(color))  => (null, null, filters.literal(color))
       case _ => (null, null, defaultRGB)
     }
   }
 
   def buildGraphic(
     prefix: String,
-    props: Map[String, List[Value]],
-    markProps: List[Property]
+    props: Map[String, Seq[Value]],
+    markProps: Seq[Property]
   ): gt.Graphic = {
     def p(name: String) = 
       props.get(prefix + "-" + name) orElse
@@ -104,7 +101,7 @@ object Translator { //  extends CssOps with SelectorOps {
     markName: String, 
     width: Option[OGCExpression], 
     rotation: OGCExpression,
-    markProps: List[Property]
+    markProps: Seq[Property]
   ): Array[gt.Mark] = {
     if (markName != null) {
       val strokeAndFill = (
@@ -147,7 +144,7 @@ object Translator { //  extends CssOps with SelectorOps {
     case _ => null
   }
 
-  def angle(xs: List[Value]) = xs.head match {
+  def angle(xs: Seq[Value]) = xs.head match {
     case l: Literal =>
       filters.literal(l.body.replaceFirst("deg$", ""))
     case Expression(cql) =>
@@ -155,7 +152,7 @@ object Translator { //  extends CssOps with SelectorOps {
     case _ => null
   }
 
-  def length(xs: List[Value]): OGCExpression = xs.head match {
+  def length(xs: Seq[Value]): OGCExpression = xs.head match {
     case Literal(body) =>
       filters.literal(body.replaceFirst("px$", ""))
     case Expression(cql) =>
@@ -163,40 +160,40 @@ object Translator { //  extends CssOps with SelectorOps {
     case _ => null
   }
 
-  def expression(xs: List[Value]): OGCExpression = xs.head match {
+  def expression(xs: Seq[Value]): OGCExpression = xs.head match {
     case Literal(body) => filters.literal(body)
     case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     case _ => null
   }
 
-  def keyword(default: String, xs: List[Value]): String = xs.head match {
+  def keyword(default: String, xs: Seq[Value]): String = xs.head match {
     case Literal(body) => body
     case _ => default
   }
 
-  def keyword(xs: List[Value]): String = keyword(null:String, xs)
+  def keyword(xs: Seq[Value]): String = keyword(null:String, xs)
 
   def scale(s: String): Float = {
     if (s.endsWith("%")) s.replaceFirst("%$","").toFloat / 100.0f
     else s.toFloat
   }
 
-  def scale(xs: List[Value]): OGCExpression = xs.head match {
+  def scale(xs: Seq[Value]): OGCExpression = xs.head match {
     case Literal(l) => filters.literal(scale(l))
     case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     case _ => null
   }
 
-  def anchor(xs: List[Value]): gt.AnchorPoint = xs map {
+  def anchor(xs: Seq[Value]): gt.AnchorPoint = xs map {
     case Literal(l) => filters.literal(scale(l))
     case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     case _ => null
   } take 2 match {
-    case List(x, y) => styles.createAnchorPoint(x, y)
+    case Seq(x, y) => styles.createAnchorPoint(x, y)
     case _ => null
   }
 
-  def displacement(xs: List[Value]): List[OGCExpression] = xs map {
+  def displacement(xs: Seq[Value]): Seq[OGCExpression] = xs map {
     case Literal(body) =>
       filters.literal(body.replaceFirst("px$", ""))
     case Expression(cql) =>
@@ -204,7 +201,7 @@ object Translator { //  extends CssOps with SelectorOps {
     case _ => null
   }
 
-  def lengthArray(xs: List[Value]): Array[Float] = {
+  def lengthArray(xs: Seq[Value]): Array[Float] = {
     xs.flatMap(_ match {
       case Literal(body) => Some(body.toFloat)
       case _ => None
@@ -239,7 +236,7 @@ object Translator { //  extends CssOps with SelectorOps {
       case _ => null
     }
 
-  def extractFill(props: Map[String, List[Value]], markProps: List[Property]) = {
+  def extractFill(props: Map[String, Seq[Value]], markProps: Seq[Property]) = {
     val (externalGraphicUrl, wellKnownMarkName, color) = fill(props("fill"))
     val size = props.get("fill-size") map length
     val rotation = props.get("fill-rotation") map angle
@@ -271,7 +268,7 @@ object Translator { //  extends CssOps with SelectorOps {
     styles.createFill(color, null, opacity, graphic)
   }
 
-  def extractStroke(props: Map[String, List[Value]], markProps: List[Property]) = {
+  def extractStroke(props: Map[String, Seq[Value]], markProps: Seq[Property]) = {
     val (externalGraphicUrl, wellKnownMarkName, color) = fill(props("stroke"))
     val dashArray = props.get("stroke-dasharray") map lengthArray getOrElse null
     val dashOffset = props.get("stroke-dashoffset") map length getOrElse null
@@ -322,13 +319,13 @@ object Translator { //  extends CssOps with SelectorOps {
    * Convert a set of properties to a set of Symbolizer objects attached to the
    * given Rule.
    */
-  def symbolize(rule: Rule): List[Pair[Double, Symbolizer]] = {
-    val properties = rule.properties.toList
+  def symbolize(rule: Rule): Seq[Pair[Double, Symbolizer]] = {
+    val properties = rule.properties
 
-    def orderedMarkRules(symbolizerType: String, order: Int): List[Property] =
-      rule.context(symbolizerType, order).toList
+    def orderedMarkRules(symbolizerType: String, order: Int): Seq[Property] =
+      rule.context(symbolizerType, order)
 
-    val lineSyms: List[(Double, LineSymbolizer)] = 
+    val lineSyms: Seq[(Double, LineSymbolizer)] = 
       (expand(properties, "stroke").toStream zip
        (Stream.from(1) map { orderedMarkRules("stroke", _) })
       ).map { case (props, markProps) =>
@@ -371,9 +368,9 @@ object Translator { //  extends CssOps with SelectorOps {
           )
         sym.setGeometry(geom)
         (zIndex, sym)
-      }.toList
+      }
 
-    val polySyms: List[(Double, PolygonSymbolizer)] = 
+    val polySyms: Seq[(Double, PolygonSymbolizer)] = 
       (expand(properties, "fill").toStream zip
        (Stream.from(1) map { orderedMarkRules("fill", _) })
       ).map { case (props, markProps) =>
@@ -397,9 +394,9 @@ object Translator { //  extends CssOps with SelectorOps {
           )
         sym.setGeometry(geom)
         (zIndex, sym)
-      }.toList
+      }
 
-    val pointSyms: List[(Double, PointSymbolizer)] = 
+    val pointSyms: Seq[(Double, PointSymbolizer)] = 
       (expand(properties, "mark").toStream zip
        (Stream.from(1) map { orderedMarkRules("mark", _) })
       ).map { case (props, markProps) => 
@@ -415,9 +412,9 @@ object Translator { //  extends CssOps with SelectorOps {
         val sym = styles.createPointSymbolizer(graphic, null)
         sym.setGeometry(geom)
         (zIndex, sym)
-      }.toList
+      }
 
-    val textSyms: List[(Double, TextSymbolizer)] =
+    val textSyms: Seq[(Double, TextSymbolizer)] =
       expand(properties, "label") map { props => 
         val fillParams = props.get("font-fill").map(fill)
         val fontFamily = props.get("font-family")
@@ -476,8 +473,8 @@ object Translator { //  extends CssOps with SelectorOps {
         } else null
 
         val placement = offset match {
-          case Some(List(d)) => styles.createLinePlacement(d)
-          case Some(x :: y :: Nil) =>
+          case Some(Seq(d)) => styles.createLinePlacement(d)
+          case Some(Seq(x, y)) =>
             styles.createPointPlacement(
               anchorPoint.getOrElse(styles.getDefaultPointPlacement().getAnchorPoint()),
               styles.createDisplacement(x, y),
@@ -510,7 +507,7 @@ object Translator { //  extends CssOps with SelectorOps {
         (zIndex, sym)
       }
 
-    (polySyms ++ lineSyms ++ pointSyms ++ textSyms)
+    Seq(polySyms, lineSyms, pointSyms, textSyms).flatten
   }
 
   def specificityOrdering(a: Rule, b: Rule) =
@@ -524,11 +521,11 @@ object Translator { //  extends CssOps with SelectorOps {
    * @see org.geotools.styling.SLDTransformer if you want to serialize the
    *   resultant Style object to an XML file
    */
-  def css2sld(styleSheet: List[Rule]): gt.Style = {
+  def css2sld(styleSheet: Seq[Rule]): gt.Style = {
     val sld = styles.createStyle
 
     val rules =
-      stableSort(styleSheet, specificityOrdering _).toList.reverse
+      stableSort(styleSheet, specificityOrdering _).reverse
 
     def extractTypeName(rule: Rule): Option[String] =
       rule.selectors find {
@@ -574,7 +571,7 @@ object Translator { //  extends CssOps with SelectorOps {
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
 
     for ((typename, overlays) <- styleRules) {
-      val zGroups: List[List[(Double, Rule, List[gt.Symbolizer])]] = 
+      val zGroups: Seq[Seq[(Double, Rule, Seq[gt.Symbolizer])]] = 
         for (rule <- cascading2exclusive(overlays))
           yield groupByZ(symbolize(rule)) map {
             case (z, syms) => (z, rule, syms)
@@ -609,44 +606,44 @@ object Translator { //  extends CssOps with SelectorOps {
     return sld 
   }
 
-  private def flattenByZ[R](zGroups: List[List[(Double, R, List[Symbolizer])]])
-  : List[(Double, List[(R, List[Symbolizer])])] 
+  private def flattenByZ[R](zGroups: Seq[Seq[(Double, R, Seq[Symbolizer])]])
+  : Seq[(Double, Seq[(R, Seq[Symbolizer])])] 
   = {
     def ordering(a: (Double, _, _), b: (Double, _, _)): Boolean = a._1 < b._1
 
-    def foldUp[A, B](xs: List[(_, A, List[B])]): List[(A, List[B])] = {
-      (xs foldLeft (Map[A, List[B]]() withDefaultValue Nil)) { (map, item) =>
+    def foldUp[A, B](xs: Seq[(_, A, Seq[B])]): Seq[(A, Seq[B])] = {
+      (xs foldLeft (Map[A, Seq[B]]() withDefaultValue Nil)) { (map, item) =>
         val (_, a, b) = item
         map.updated(a, map(a) ++ b)
-      } toList
+      }.toSeq
     }
 
-    def group[A, B](xs: List[(Double, A, List[B])]): List[(Double, List[(A, List[B])])] = {
+    def group[A, B](xs: Seq[(Double, A, Seq[B])])
+    : Seq[(Double, Seq[(A, Seq[B])])] = {
       if (xs isEmpty) Nil
       else {
         val z = xs.head._1
         val (firstGroup, rest) = xs span { _._1 == z }
-        (z, foldUp(firstGroup)) :: group(rest)
+        (z, foldUp(firstGroup)) +: group(rest)
       }
     }
 
-    val x: List[(Double, R, List[Symbolizer])] =
-      zGroups.flatten[(Double, R, List[Symbolizer])].sortWith(ordering)
+    val x: Seq[(Double, R, Seq[Symbolizer])] =
+      zGroups.flatten.sortWith(ordering)
 
     group(x)
-
-    //group(zGroups.flatten[(Double, R, List[Symbolizer])].sort(ordering))
   }
 
 
-  private def groupByZ(syms: List[(Double, Symbolizer)]): List[(Double, List[Symbolizer])] = {
+  private def groupByZ(syms: Seq[(Double, Symbolizer)])
+  : Seq[(Double, Seq[Symbolizer])] = {
     def ordering(a: (Double, _), b: (Double, _)): Boolean = a._1 < b._1
-    def group[A](xs: List[(Double, A)]): List[(Double, List[A])] = {
-      if (xs isEmpty) Nil
+    def group[A](xs: Seq[(Double, A)]): Seq[(Double, Seq[A])] = {
+      if (xs isEmpty) Seq.empty
       else {
         val z = xs.head._1
         val (firstGroup, rest) = xs span { _._1 == z }
-        (z, firstGroup map {_._2}) :: group(rest)
+        (z, firstGroup map {_._2}) +: group(rest)
       }
     }
 
@@ -654,31 +651,7 @@ object Translator { //  extends CssOps with SelectorOps {
     // we make a special case for labels; they will be rendered last anyway, so
     // we can fold them into one layer
     val (labels, symbols) = syms partition { _.isInstanceOf[TextSymbolizer] }
-    group(stableSort(symbols, ordering _).toList) ++ List((0d, labels map {_._2}))
-  }
-
-  /**
-   * Transpose a nested list, so that the elements of the first list become the
-   * heads of the output lists, the elements of the second list become the
-   * second elements in the output, etc.  This method differs from
-   * List.transpose in the Scala standard library in that it does not require
-   * all elements of the input list to be the same length.  This means that the
-   * operation is not reversible for all possible inputs.
-   * 
-   * For example:
-   * <pre>
-   *   scala&gt; val row1 = 'a1 :: 'b1 :: Nil
-   *   scala&gt; val row2 = 'a2 :: 'b2 :: 'c2 :: Nil
-   *   scala&gt; print(transpose(row1 :: row2 :: Nil))
-   *   List(List('a1, 'a2), List('b1, 'b2), List('c2))
-   *   scala&gt; print(transpose(transpose(row1 :: row2 :: Nil)))
-   *   List(List('a1, 'b1, 'c2), List('a2, 'b2))
-   * </pre>
-   */
-  private def transpose[A](xss: List[List[A]]): List[List[A]] = {
-    val filtered = xss filter (!_.isEmpty)
-    if (filtered isEmpty) Nil
-    else (filtered map (_.head)) :: transpose(filtered map (_.tail))
+    group(stableSort(symbols, ordering _)) ++ Seq((0d, labels map {_._2}))
   }
 
   /**
@@ -694,7 +667,7 @@ object Translator { //  extends CssOps with SelectorOps {
      xs match {
        case Seq() => Seq(EmptyRule)
        case Seq(x, xs @ _*) =>
-         val negated = EmptyRule.copy(selectors = List(x.negatedSelector))
+         val negated = EmptyRule.copy(selectors = Seq(x.negatedSelector))
 
          for {
            combo <- combinations(xs)(prune)
@@ -702,6 +675,6 @@ object Translator { //  extends CssOps with SelectorOps {
          } yield next
      }
 
-  def cascading2exclusive(xs: List[Rule]): List[Rule] =
-    combinations(xs)(_.isSatisfiable).toList 
+  def cascading2exclusive(xs: Seq[Rule]): Seq[Rule] =
+    combinations(xs)(_.isSatisfiable)
 }

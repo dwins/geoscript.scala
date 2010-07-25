@@ -105,8 +105,8 @@ object CssParser extends RegexParsers {
   val propname: Parser[String] = """-?[a-zA-Z][_a-zA-Z0-9-]*"""r
 
   val value: Parser[Value] =
-    (url ^^ { x => Function("url", List(Literal(x))) }) | 
-    (function ^^ { case name ~ args => Function(name, args ) }) |
+    (url ^^ { x => Function("url", Seq(Literal(x))) }) | 
+    (function ^^ { case name ~ args => Function(name, args) }) |
     ((identifier|literal) ^^ Literal) |
     (expression ^? expressionPartial)
 
@@ -153,12 +153,12 @@ object CssParser extends RegexParsers {
 
   val styleSheet = (rule*) map (_.flatten)
 
-  def parse(input: String): ParseResult[List[Rule]] =
+  def parse(input: String): ParseResult[Seq[Rule]] =
     parseAll(styleSheet, input)
 
-  def parse(input: java.io.InputStream): ParseResult[List[Rule]] =
+  def parse(input: java.io.InputStream): ParseResult[Seq[Rule]] =
     parse(new java.io.InputStreamReader(input))
 
-  def parse(input: java.io.Reader): ParseResult[List[Rule]] =
+  def parse(input: java.io.Reader): ParseResult[Seq[Rule]] =
     parseAll(styleSheet, input)
 }
