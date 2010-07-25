@@ -202,7 +202,7 @@ object CssOps {
     }
   }
 
-  object Specificity {
+  object Specificity extends (Rule => Specificity) {
     import Seq.empty
     private def extract(f: org.opengis.filter.Filter): Seq[String] = {
       f match {
@@ -253,7 +253,11 @@ object CssOps {
     }
 
     def apply(xs: Seq[Selector]): Specificity =
-      xs.map(apply).foldLeft(Specificity(0, 0, 0))(_ + _)
+      xs.map(apply).foldLeft(Specificity(0, 0, 0)) { _ + _ }
+
+    def apply(xs: Rule): Specificity = apply(xs.selectors)
+
+    def order(x: Rule, y: Rule): Boolean = apply(x) < apply(y)
   }
 
   object URL {
