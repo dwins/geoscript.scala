@@ -67,12 +67,21 @@ case class Rule(
   selectors: List[Selector],
   contexts: Map[Option[Context], Seq[Property]]
 ) {
-  def merge(that: Rule): Rule = 
+  def merge(that: Rule): Rule = {
+    val mergedContexts =
+      for (k <- this.contexts.keySet ++ that.contexts.keySet) yield {
+        val concatenated =
+          this.contexts.getOrElse(k, Seq.empty) ++
+          that.contexts.getOrElse(k, Seq.empty)
+        (k, concatenated)
+      }
+
     Rule(
       Description.combine(this.description, that.description),
       SelectorOps.simplify(this.selectors ++ that.selectors),
-      this.contexts ++ that.contexts
+      mergedContexts.toMap
     )
+  }
 
   lazy val isSatisfiable =
     !(selectors contains SelectorOps.Exclude)
