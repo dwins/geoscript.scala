@@ -57,11 +57,46 @@ case class Property(name: String, values: List[List[Value]]) {
   }
 }
 
+trait ContextualProperties {
+  val contexts: Map[Context, Seq[Property]]
+  def context(symbol: String, order: Int): Seq[Property]
+}
+
 case class Rule(
-  comment: Description,
-  selectors: List[List[Selector]],
-  properties: List[Property]
-)
+  description: Description,
+  selectors: List[Selector],
+  contexts: Map[Option[Context], Seq[Property]]
+) {
+  def merge(that: Rule): Rule = 
+    Rule(
+      Description.combine(this.description, that.description),
+      SelectorOps.simplify(this.selectors ++ that.selectors),
+      this.contexts ++ that.contexts
+    )
+
+  lazy val isSatisfiable =
+    !(selectors contains SelectorOps.Exclude)
+
+  def getFilter =
+    AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
+
+  def properties =
+    contexts.getOrElse(None, Nil)
+
+  def negatedSelector =
+    OrSelector(selectors map SelectorOps.not)
+
+  def context(symbol: String, order: Int): Seq[Property] = {
+    Seq(
+      ParameterizedPseudoClass("nth-" + symbol, order.toString),
+      ParameterizedPseudoClass("nth-" + "symbol", order.toString),
+      PseudoClass(symbol),
+      PseudoClass("symbol")
+    ) flatMap { k => contexts.getOrElse(Some(k), Nil) }
+  }
+}
+
+object EmptyRule extends Rule(Description.Empty, List.empty, Map.empty)
 
 abstract class Selector {
   def filterOpt: Option[Filter]
@@ -77,6 +112,8 @@ abstract class DataSelector extends Selector {
 abstract class MetaSelector extends Selector {
   def filterOpt = None
 }
+
+trait Context extends MetaSelector
 
 case class IdSelector(id: String) extends DataSelector {
   val idSet: java.util.Set[org.opengis.filter.identity.Identifier] = {
@@ -104,12 +141,12 @@ extends MetaSelector {
   override def toString = "@%s%s%s".format(property, operator, value)
 }
 
-case class PseudoClass(name: String) extends MetaSelector {
+case class PseudoClass(name: String) extends Context {
   override def toString = ":%s".format(name)
 }
 
 case class ParameterizedPseudoClass(name: String, param: String) 
-extends MetaSelector 
+extends Context
 {
   override def toString = ":%s(%s)".format(name, param)
 }

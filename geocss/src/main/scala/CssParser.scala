@@ -127,20 +127,31 @@ object CssParser extends RegexParsers {
 
   private val typeNameSelector = identifier map TypenameSelector
 
+  private val basicSelector =
+    (catchAllSelector | idSelector | typeNameSelector | pseudoSelector |
+     expressionSelector)
+
+  private val pseudoElementSelector =
+    (parameterizedPseudoClass | pseudoClass)
+
   private val simpleSelector = (
-    catchAllSelector | idSelector | typeNameSelector | pseudoSelector | 
-    parameterizedPseudoClass | pseudoClass | expressionSelector
+    (basicSelector ^^ (Left(_))) | (pseudoElementSelector ^^ (Right(_)))
   )*
 
   private val selector = rep1sep(simpleSelector, ",")
 
-  private val rule = 
+  private val rule =
     ((ParsedComment?) ~ selector ~ propertyList) map {
-      case Some(comment) ~ selector ~ props => Rule(comment, selector, props)
-      case None          ~ selector ~ props => Rule(Description.Empty, selector, props)
+      case comment ~ selector ~ props =>
+        val desc = comment.getOrElse(Description.Empty)
+        selector map { s =>
+          val sels =     for (Left(sel)  <- s.filter(_.isLeft))  yield sel
+          val contexts = for (Right(ctx) <- s.filter(_.isRight)) yield ctx
+          Rule(desc, sels ++ contexts, Map(contexts.headOption -> props))
+        }
     }
 
-  val styleSheet = rule*
+  val styleSheet = (rule*) map (_.flatten)
 
   def parse(input: String): ParseResult[List[Rule]] =
     parseAll(styleSheet, input)
