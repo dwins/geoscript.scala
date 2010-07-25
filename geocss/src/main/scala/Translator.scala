@@ -693,18 +693,13 @@ object Translator { //  extends CssOps with SelectorOps {
    def combinations(xs: Seq[Rule])(prune: Rule => Boolean): Seq[Rule] =
      xs match {
        case Seq() => Seq(EmptyRule)
-       case Seq(x) => 
-         Seq(x, (EmptyRule.copy(selectors = List(x.negatedSelector))))
-       case xs => 
-         val (lh, rh) = xs.splitAt(xs.length / 2)
+       case Seq(x, xs @ _*) =>
+         val negated = EmptyRule.copy(selectors = List(x.negatedSelector))
 
-         val mixed = 
-           for {
-             left  <- combinations(lh)(prune)
-             right <- combinations(rh)(prune)
-           } yield (left merge right)
-
-         mixed.filter(prune)
+         for {
+           combo <- combinations(xs)(prune)
+           next <- Seq(x merge combo, combo merge negated) if prune(next)
+         } yield next
      }
 
   def cascading2exclusive(xs: List[Rule]): List[Rule] =
