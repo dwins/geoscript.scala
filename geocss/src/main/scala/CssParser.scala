@@ -147,7 +147,7 @@ object CssParser extends RegexParsers {
         selector map { s =>
           val sels =     for (Left(sel)  <- s.filter(_.isLeft))  yield sel
           val contexts = for (Right(ctx) <- s.filter(_.isRight)) yield ctx
-          Rule(desc, sels ++ contexts, Map(contexts.headOption -> props))
+          Rule(desc, sels ++ contexts, Seq(contexts.headOption -> props))
         }
     }
 

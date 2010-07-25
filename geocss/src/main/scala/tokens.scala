@@ -65,23 +65,14 @@ trait ContextualProperties {
 case class Rule(
   description: Description,
   selectors: List[Selector],
-  contexts: Map[Option[Context], Seq[Property]]
+  contexts: Seq[Pair[Option[Context], Seq[Property]]]
 ) {
-  def merge(that: Rule): Rule = {
-    val mergedContexts =
-      for (k <- this.contexts.keySet ++ that.contexts.keySet) yield {
-        val concatenated =
-          this.contexts.getOrElse(k, Seq.empty) ++
-          that.contexts.getOrElse(k, Seq.empty)
-        (k, concatenated)
-      }
-
+  def merge(that: Rule): Rule =
     Rule(
       Description.combine(this.description, that.description),
       SelectorOps.simplify(this.selectors ++ that.selectors),
-      mergedContexts.toMap
+      this.contexts ++ that.contexts
     )
-  }
 
   lazy val isSatisfiable =
     !(selectors contains SelectorOps.Exclude)
@@ -90,22 +81,24 @@ case class Rule(
     AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
 
   def properties =
-    contexts.getOrElse(None, Nil)
+    contexts.filter(_._1 == None) flatMap (_._2)
 
   def negatedSelector =
     OrSelector(selectors map SelectorOps.not)
 
   def context(symbol: String, order: Int): Seq[Property] = {
-    Seq(
+    val keys = Seq(
       ParameterizedPseudoClass("nth-" + symbol, order.toString),
       ParameterizedPseudoClass("nth-" + "symbol", order.toString),
       PseudoClass(symbol),
       PseudoClass("symbol")
-    ) flatMap { k => contexts.getOrElse(Some(k), Nil) }
+    ) map (Some(_))
+
+    contexts.filter { keys contains _._1 } flatMap (_._2)
   }
 }
 
-object EmptyRule extends Rule(Description.Empty, List.empty, Map.empty)
+object EmptyRule extends Rule(Description.Empty, List.empty, Seq.empty)
 
 abstract class Selector {
   def filterOpt: Option[Filter]
