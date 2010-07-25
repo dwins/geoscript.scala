@@ -143,7 +143,7 @@ object CssParser extends RegexParsers {
   private val rule =
     ((ParsedComment?) ~ selector ~ propertyList) map {
       case comment ~ selector ~ props =>
-        val desc = comment.getOrElse(Description.Empty)
+        val desc = comment.getOrElse(Description.empty)
         selector map { s =>
           val sels =     for (Left(sel)  <- s.filter(_.isLeft))  yield sel
           val contexts = for (Right(ctx) <- s.filter(_.isRight)) yield ctx

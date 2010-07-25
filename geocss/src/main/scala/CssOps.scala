@@ -186,10 +186,12 @@ object CssOps {
    * c: the number of other attributes and pseudo-classes in the selector
    * d: the number of element names and pseudo-elements in the selector
    *
-   * In gt-css, there is no way to inline a style in a dataset, so "a" above is
+   * In geocss, there is no way to inline a style in a dataset, so "a" above is
    * omitted and everything gets bumped up a step, so to speak.
    * 
-   * @see http://www.w3.org/TR/CSS21/cascade.html#specificity
+   * @see <a href="http://www.w3.org/TR/CSS21/cascade.html#specificity">
+   *         "Calculating a selector's specificity", CSS 2.1 Specification
+   *      </a>
    */
   case class Specificity(a: Int, b: Int, c: Int) extends Ordered[Specificity] {
     def compare(that: Specificity) = 
@@ -241,6 +243,9 @@ object CssOps {
     private def countAttributes(f: org.opengis.filter.Filter) =
       extract(f).toSet.size
 
+    /**
+     * Find the Specificity for a single Selector
+     */
     def apply(x: Selector): Specificity = x match {
       case _: TypenameSelector => Specificity(0, 0, 1)
       case _: PseudoSelector => Specificity(0, 1, 0)
@@ -252,14 +257,26 @@ object CssOps {
       case _ => Specificity(0, 0, 0)
     }
 
+    /**
+     * Find the Specificity for a selector list
+     */
     def apply(xs: Seq[Selector]): Specificity =
       xs.map(apply).foldLeft(Specificity(0, 0, 0)) { _ + _ }
 
+    /**
+     * Find the Specificity for a Rule
+     */
     def apply(xs: Rule): Specificity = apply(xs.selectors)
 
+    /**
+     * A comparison function for Seq[Rule].sortWith, etc.
+     */
     def order(x: Rule, y: Rule): Boolean = apply(x) < apply(y)
   }
 
+  /**
+   * An object that provides pattern syntax for extracting URLs from CSS Values
+   */
   object URL {
     def unapply(value: Value): Option[String] = value match {
       case Function("url", Seq(Literal(url))) => Some(url)
@@ -267,6 +284,10 @@ object CssOps {
     }
   }
 
+  /**
+   * An object that provides pattern syntax for extracting Colors from CSS
+   * Values
+   */
   object Color {
     val ShortHex = """#?([a-fA-F0-9]{3})""".r
     val LongHex = """#?([a-fA-F0-9]{6})""".r
@@ -301,6 +322,10 @@ object CssOps {
     }
   }
 
+  /** 
+   * An object that provides pattern syntax for extracting Well-Known-Mark
+   * names from CSS Values.
+   */
   object Symbol {
     def unapply(value: Value): Option[String] = value match {
       case Function("symbol", Seq(Literal(symbol))) => Some(symbol)
@@ -315,29 +340,22 @@ object CssOps {
    */
   def expand(props: Seq[Property], key: String)
   : Seq[Map[String, Seq[Value]]] = {
-    if (props isEmpty) Seq.empty
-    else {
-      def filterKeys(xs: Seq[Property]): Seq[Property] =
-        xs match {
-          case Seq() => Seq.empty
-          case Seq(head, tail @ _*) =>
-            head +: filterKeys(tail.filter(_.name != head.name))
+    props.find(_.name == key) match {
+      case None => Seq.empty
+      case Some(keyProp) =>
+        def clean(xs: Seq[Property]): Seq[Property] = {
+          val names = collection.mutable.Set.empty[String]
+          xs.filter(x => names.add(x.name))
         }
 
-      val cleaned = filterKeys(props)
+        def ensureLength(xs: Seq[Seq[Value]]): Seq[Seq[Value]] =
+          Stream.continually(xs).flatten.take(keyProp.values.length)
 
-      val keylist = cleaned.find(_.name == key) getOrElse Property(key, Nil)
-      val names = cleaned map (_.name)
+        val normalized = 
+          for (Property(name, values) <- clean(props)) 
+          yield ensureLength(values) map ((name, _))
 
-      def ensureLength(xs: Seq[Seq[Value]]): Seq[Seq[Value]] =
-        Stream.continually(xs).flatten.take(keylist.values.length)
-
-      val normalized = cleaned map { x => ensureLength(x.values) }
-
-      (names zip normalized)
-        .map { case (n, l) => l.map((n, _)) }
-        .transpose
-        .map { _.toMap }
+        normalized.transpose.map { _.toMap }
     }
   }
 }
