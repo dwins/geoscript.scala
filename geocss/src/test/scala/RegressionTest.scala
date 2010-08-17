@@ -2,7 +2,7 @@ package org.geoscript.geocss
 
 import collection.JavaConversions._
 
-import org.opengis.filter.{ PropertyIsEqualTo, Or }
+import org.opengis.filter.{ Filter, PropertyIsEqualTo, Or }
 import org.opengis.filter.expression.PropertyName
 
 import org.specs._
@@ -24,6 +24,16 @@ class Regressions extends Specification {
     val sld = Translator.css2sld(styleSheet)
     sld.featureTypeStyles must haveSize(1)
     sld.featureTypeStyles.get(0).rules must haveSize(9)
+  }
+
+  "overlapping scales should not hide filters" in {
+    val styleSheet = CssParser.parse(in("/motorvag.css")).get
+    val sld = Translator.css2sld(styleSheet)
+    sld.featureTypeStyles must haveSize(1)
+    sld.featureTypeStyles.get(0).rules must haveSize(2)
+    for (r <- sld.featureTypeStyles()(0).rules) {
+      r.getFilter() must not(beEqualTo(Filter.INCLUDE))
+    }
   }
 
   "Ratios should be expressible as decimals or percentages" in {
