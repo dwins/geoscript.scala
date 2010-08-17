@@ -5,6 +5,17 @@ trait Simplifier[P] {
   val Everything: P
 
   /**
+   * Remove logical And's and Or's from a predicate tree, producing a Seq
+   * containing all the simple predicates in the tree.
+   */
+  def flatten(pred: P): Seq[P] =
+    pred match {
+      case And(ps) => ps map(flatten) flatten
+      case Or(ps) => ps map(flatten) flatten
+      case p => Seq(p)
+    }
+
+  /**
    * Remove all predicates from a predicate tree that do not meet the
    * provided criterion, preserving logical And's and Or's.
    */
