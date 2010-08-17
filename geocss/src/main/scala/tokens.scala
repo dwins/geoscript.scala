@@ -67,11 +67,11 @@ case class Rule(
   selectors: List[Selector],
   contexts: Map[Option[Context], Seq[Property]]
 ) {
-  lazy val isSatisfiable =
-    !(selectors contains SelectorOps.Exclude)
+  lazy val isSatisfiable = !(selectors contains SelectorOps.Exclude)
 
   def getFilter =
-    AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
+    SelectorOps.trim(_.filterOpt.isDefined)(AndSelector(selectors))
+      .filterOpt.get
 
   def properties =
     contexts.getOrElse(None, Nil)
