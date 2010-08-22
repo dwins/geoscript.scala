@@ -19,17 +19,19 @@ trait Simplifier[P] {
    * Remove all predicates from a predicate tree that do not meet the
    * provided criterion, preserving logical And's and Or's.
    */
-  def trim(crit: P => Boolean)(pred: P): P =
-    pred match {
-      case And(children) =>
-        And(children map(trim(crit)) filter(Everything !=))
-      case Or(children) =>
-        Or(children map(trim(crit)) filter(Empty !=))
-      case pred if crit(pred) =>
-        pred
-      case _ =>
-        Empty
-    }
+  def trim(crit: P => Boolean)(pred: P): P = {
+    def traverse(pred: P): Option[P] =
+      pred match {
+        case And(children) =>
+          Some(And(Everything +: children.flatMap(traverse)))
+        case Or(children) =>
+          Some(Or(Empty +: children.flatMap(traverse)))
+        case pred if crit(pred) => Some(pred)
+        case _ => None
+      }
+
+    traverse(pred) getOrElse Empty
+  }
 
   def anyOf(preds: Seq[P]): P
   def simpleUnion(a: P, b: P): Option[P] = None
