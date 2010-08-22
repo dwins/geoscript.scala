@@ -117,15 +117,15 @@ case class Rule(
    * Is it possible that a feature could meet the constraints in this rule's
    * selectors?
    */
-  lazy val isSatisfiable =
-    !(selectors contains SelectorOps.Exclude)
+  lazy val isSatisfiable = !(selectors contains SelectorOps.Exclude)
 
   /**
    * Create an OGC filter corresponding to the Selectors on this rule which are
    * expressible as OGC filters. Other Selector types will be omitted.
    */
   def getFilter =
-    AndSelector(selectors filter { _.filterOpt.isDefined }).filterOpt.get
+    SelectorOps.trim(_.filterOpt.isDefined)(AndSelector(selectors))
+      .filterOpt.get
 
   /**
    * The properties to use in the "normal" context, outside of well-known-marks

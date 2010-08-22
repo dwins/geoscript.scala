@@ -4,6 +4,35 @@ trait Simplifier[P] {
   val Empty: P
   val Everything: P
 
+  /**
+   * Remove logical And's and Or's from a predicate tree, producing a Seq
+   * containing all the simple predicates in the tree.
+   */
+  def flatten(pred: P): Seq[P] =
+    pred match {
+      case And(ps) => ps map(flatten) flatten
+      case Or(ps) => ps map(flatten) flatten
+      case p => Seq(p)
+    }
+
+  /**
+   * Remove all predicates from a predicate tree that do not meet the
+   * provided criterion, preserving logical And's and Or's.
+   */
+  def trim(crit: P => Boolean)(pred: P): P = {
+    def traverse(pred: P): Option[P] =
+      pred match {
+        case And(children) =>
+          Some(And(Everything +: children.flatMap(traverse)))
+        case Or(children) =>
+          Some(Or(Empty +: children.flatMap(traverse)))
+        case pred if crit(pred) => Some(pred)
+        case _ => None
+      }
+
+    traverse(pred) getOrElse Empty
+  }
+
   def anyOf(preds: Seq[P]): P
   def simpleUnion(a: P, b: P): Option[P] = None
   def unionExtract(p: P): Option[Seq[P]]

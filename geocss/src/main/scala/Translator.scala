@@ -524,37 +524,34 @@ object Translator { //  extends CssOps with SelectorOps {
 
     val rules = stableSort(styleSheet, Specificity.order _).reverse
 
+    import SelectorOps._
+
     def extractTypeName(rule: Rule): Option[String] =
-      rule.selectors find {
-        _.isInstanceOf[TypenameSelector] 
-      } map { _.asInstanceOf[TypenameSelector].typename }
+      flatten(AndSelector(rule.selectors)).collect { 
+        case TypenameSelector(typename) => typename 
+      } headOption
 
     def extractScaleRange(rule: Rule): (Option[Double], Option[Double]) = {
-      val scales = rule.selectors flatMap {
-          case sel @ PseudoSelector("scale", _, _) => Some(sel)
-          case _ => None
+      val lowerBounds = 
+        flatten(AndSelector(rule.selectors)).collect { 
+          case PseudoSelector("scale", ">", d) => d.toDouble
         }
 
-      val lower = 
-        scales.filter(_.operator == ">") map { _.value.toDouble } match {
-          case Nil => None
-          case mins => Some(mins.reduceLeft(max))
+      val upperBounds = 
+        flatten(AndSelector(rule.selectors)).collect { 
+          case PseudoSelector("scale", "<", d) => d.toDouble
         }
 
-      val upper = 
-        scales.filter(_.operator == "<") map { _.value.toDouble } match {
-          case Nil => None
-          case maxes => Some(maxes.reduceLeft(min))
-        }
+      val bottom = for (b <- Some(lowerBounds) if b.nonEmpty) yield b.max
+      val top    = for (b <- Some(upperBounds) if b.nonEmpty) yield b.min
 
-      (lower, upper)
+      (bottom, top)
     }
 
     def isForTypename(typename: Option[String])(rule: Rule): Boolean =
-      rule.selectors.forall {
-        case TypenameSelector(existing) => typename == Some(existing)
-        case _ => true
-      }
+      typename map { t => 
+        simplify(allOf(TypenameSelector(t) +: rule.selectors)) != Empty
+      } getOrElse true
 
     def stripTypenames(rule: Rule): Rule =
       rule.copy(selectors = rule.selectors map {
