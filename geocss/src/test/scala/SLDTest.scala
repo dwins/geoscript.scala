@@ -275,4 +275,28 @@ class SLDTest extends Specification {
       map (_.text)
     ).distinct must haveSize(2)
   }
+
+  "Styling separate properties independently" in {
+    val roads = css2sld2dom("/roads.css")
+
+    roads \\ "FeatureTypeStyle" must haveSize(3)
+
+    roads \\ "Rule" must haveSize(9)
+    roads \\ "Rule" map (_ \ "Filter") must notBeEmpty.toIterable
+
+    for (roadType <- Seq("highway", "secondary", "local-roads")) {
+      def forType(ns: scala.xml.NodeSeq): Boolean =
+        ns \\ "Filter" \\ "Literal" forall(_.text == roadType)
+
+      (roads \\ "FeatureTypeStyle")
+        .filter(forType)
+        .aka("ftStyles with filters for: " + roadType)
+        .must(haveSize(1))
+
+      (roads \\ "Rule")
+        .filter(forType)
+        .aka("rules with filters for: " + roadType)
+        .must(haveSize(3))
+    }
+  }
 }
