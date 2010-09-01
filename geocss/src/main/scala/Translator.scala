@@ -570,7 +570,7 @@ object Translator { //  extends CssOps with SelectorOps {
           for ((z, syms) <- groupByZ(symbolize(rule))) yield
             (z, rule, syms)
 
-      for ((_, group) <- flattenByZ(zGroups)) {
+      for ((_, group) <- flattenByZ(zGroups.flatten)) {
         val fts = styles.createFeatureTypeStyle
         typename.foreach { t => fts.featureTypeNames.add(new NameImpl(t)) }
         for ((rule, syms) <- group if !syms.isEmpty) {
@@ -599,16 +599,11 @@ object Translator { //  extends CssOps with SelectorOps {
     return sld 
   }
 
-  private def flattenByZ[R, S](zGroups: Seq[Seq[(Double, R, Seq[S])]])
-  : Seq[(Double, Seq[(R, Seq[S])])] = {
-    def ordering(a: (Double, _, _), b: (Double, _, _)): Boolean = a._1 < b._1
-
-    def group(xs: Seq[(Double, R, Seq[S])]): Seq[(Double, Seq[(R, Seq[S])])] =
-      xs groupBy (_._1) map {
-        case (k, v) => (k, v map { case (_, a, b) => (a, b) } )
-      } toSeq
-
-    group(zGroups.flatten.sortWith(ordering))
+  private def flattenByZ[R, S](zGroups: Seq[(Double, R, Seq[S])])
+  : Seq[(Double, Seq[(R, Seq[S])])]
+  = {
+    val zFlattened = zGroups map { case (z, r, s) => (z, (r, s)) }
+    (zFlattened groupBy(_._1) mapValues(_ map (_._2)) toSeq).sortBy(_._1)
   }
 
 
