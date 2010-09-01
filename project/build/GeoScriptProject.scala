@@ -49,8 +49,8 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
   class GeoCSS(info: ProjectInfo) extends DefaultProject(info) {
     override def managedStyle = ManagedStyle.Maven
-    lazy val publishTo =
-      Resolver.file("maven-local", Path.userHome / ".m2" / "repository" asFile)
+    lazy val publishTo = "DAV" at "http://repo.opengeo.org/"
+    Credentials(Path.userHome / ".ivy2" / ".credentials", log)
 
     override def repositories = 
       super.repositories ++ GeoScriptProject.this.repositories
