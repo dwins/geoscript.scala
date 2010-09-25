@@ -12,9 +12,14 @@ class SelectorTest extends Specification {
   case class ContentMatcher(expected: Seq[Selector]) extends
   matcher.Matcher[Seq[Selector]] {
     def apply(actual: => Seq[Selector]) = {
-      val test = expected.length == actual.length && 
+      val test = 
+        expected.length == actual.length && 
         (expected.forall(e => actual.exists(a => equivalent(e, a))))
-      (test, "content matched", "content didn't match")
+      Triple(
+        test,
+        "content matched",
+        "%s has different content from %s".format(actual, expected)
+      )
     }
   }
   def haveContent(expected: Selector*) = ContentMatcher(expected)
