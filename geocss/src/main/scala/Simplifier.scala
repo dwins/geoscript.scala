@@ -259,6 +259,29 @@ trait Simplifier[P] {
       case pred => simpleSimplify(pred)
     }
 
+  def normalize(pred: P): P =
+    pred match {
+      case and @ And(children) =>
+        val combine: (P, P) => P = { (a, b) =>
+          val Or(andA) = a
+          val Or(andB) = b
+          anyOf(
+            for {
+              And(as) <- andA
+              And(bs) <- andB
+            } yield allOf(as ++ bs)
+          )
+        }
+
+        val empty = anyOf(Seq(allOf(Seq())))
+        (children map normalize foldLeft(empty))(combine)
+      case Or(children) =>
+        anyOf(
+          children map normalize flatMap { case Or(xs) => xs }
+        )
+      case pred => anyOf(Seq(allOf(Seq(pred))))
+    }
+
   private object And {
     def unapply(pred: P): Option[Seq[P]] = intersectionExtract(pred)
 

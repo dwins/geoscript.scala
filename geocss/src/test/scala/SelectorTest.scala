@@ -150,7 +150,6 @@ class SelectorTest extends Specification {
 //(natural='wetland' or natural is null) or (natural='wetland' or natural is null)
   }
 
-
   "contextual filters such as scales should also be simplifiable" in {
     val maxscale = PseudoSelector("scale", "<", "140000")
     val minscale = PseudoSelector("scale", ">", "5000")
@@ -161,5 +160,140 @@ class SelectorTest extends Specification {
     constrainOption(minscale, maxscale) must beNone
     simplify(selectors) must haveContent(selectors)
     intersection(minscale, SelectorOps.not(minscale)) must beSome(Empty)
+  }
+
+  "normalize selectors to a canonical form" in {
+    val comparison = ExpressionSelector("A < 1")
+    val comparison2 = ExpressionSelector("B > 2")
+
+    "simple selectors" >> {
+      normalize(AcceptSelector) must_==
+        OrSelector(Seq(AndSelector(Seq(AcceptSelector))))
+
+      normalize(Exclude) must_==
+        OrSelector(Seq(AndSelector(Seq(Exclude))))
+
+      normalize(comparison) must_==
+        OrSelector(Seq(AndSelector(Seq(comparison))))
+    }
+
+    "ANDed simple selectors" >> {
+      normalize(AndSelector(Seq(AcceptSelector))) must_==
+        OrSelector(Seq(AndSelector(Seq(AcceptSelector))))
+
+      normalize(AndSelector(Seq(Exclude))) must_==
+        OrSelector(Seq(AndSelector(Seq(Exclude))))
+
+      normalize(AndSelector(Seq(comparison))) must_==
+        OrSelector(Seq(AndSelector(Seq(comparison))))
+
+      normalize(AndSelector(Seq(comparison, comparison2))) must_==
+        OrSelector(Seq(AndSelector(Seq(comparison, comparison2))))
+    }
+
+    "ORed simple selectors" >> {
+      normalize(OrSelector(Seq(AcceptSelector))) must_==
+        OrSelector(Seq(AndSelector(Seq(AcceptSelector))))
+
+      normalize(OrSelector(Seq(Exclude))) must_==
+        OrSelector(Seq(AndSelector(Seq(Exclude))))
+
+      normalize(OrSelector(Seq(comparison))) must_==
+        OrSelector(Seq(AndSelector(Seq(comparison))))
+
+      normalize(OrSelector(Seq(comparison, comparison2))) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(comparison)),
+          AndSelector(Seq(comparison2))
+        ))
+    }
+
+    "ORed ANDs" >> {
+      normalize(
+        OrSelector(Seq(
+          AndSelector(Seq(
+            AcceptSelector,
+            AcceptSelector
+          ))
+        ))
+      ) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(
+            AcceptSelector,
+            AcceptSelector
+          ))
+        ))
+
+      normalize(
+        OrSelector(Seq(
+          AndSelector(Seq(
+            Exclude,
+            Exclude
+          ))
+        ))
+      ) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(
+            Exclude,
+            Exclude
+          ))
+        ))
+
+      normalize(
+        OrSelector(Seq(
+          AndSelector(Seq(
+            comparison,
+            comparison2
+          ))
+        ))
+      ) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(
+            comparison,
+            comparison2
+          ))
+        ))
+    }
+
+    "ANDed ORs" >> {
+      normalize(
+        AndSelector(Seq(
+          OrSelector(Seq(
+            AcceptSelector,
+            AcceptSelector
+          ))
+        ))
+      ) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(AcceptSelector)),
+          AndSelector(Seq(AcceptSelector))
+        ))
+
+      normalize(
+        AndSelector(Seq(
+          OrSelector(Seq(
+            Exclude,
+            Exclude
+          ))
+        ))
+      ) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(Exclude)),
+          AndSelector(Seq(Exclude))
+        ))
+
+      normalize(
+        AndSelector(Seq(
+          OrSelector(Seq(
+            comparison,
+            comparison2
+          ))
+        ))
+      ) must_==
+        OrSelector(Seq(
+          AndSelector(Seq(comparison)),
+          AndSelector(Seq(comparison2))
+        ))
+    }
   }
 }
