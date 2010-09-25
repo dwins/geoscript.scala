@@ -9,12 +9,27 @@ class SelectorTest extends Specification {
   
   def in(s: String) = getClass.getResourceAsStream(s)
 
-  case class ContentMatcher(expected: Seq[Selector]) extends
-  matcher.Matcher[Seq[Selector]] {
+  case class SelectorEquivalenceMatcher(expected: Selector)
+  extends matcher.Matcher[Selector]
+  {
+    def apply(actual: => Selector) =
+      (
+        equivalent(expected, actual),
+        "selectors were equivalent",
+        "%s was not equivalent to %s".format(actual, expected)
+      )
+  }
+
+  def beEquivalentTo(sel: Selector) = SelectorEquivalenceMatcher(sel)
+
+  case class ContentMatcher(expected: Seq[Selector])
+  extends matcher.Matcher[Seq[Selector]]
+  {
     def apply(actual: => Seq[Selector]) = {
-      val test = 
-        expected.length == actual.length && 
+      val test =
+        expected.length == actual.length &&
         (expected.forall(e => actual.exists(a => equivalent(e, a))))
+
       Triple(
         test,
         "content matched",
@@ -22,6 +37,7 @@ class SelectorTest extends Specification {
       )
     }
   }
+
   def haveContent(expected: Selector*) = ContentMatcher(expected)
   def haveContent(expected: Iterable[Selector]) = ContentMatcher(expected.toSeq)
 
