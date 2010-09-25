@@ -199,16 +199,26 @@ trait Simplifier[P] {
     (a == b) ||
     (isSubSet(a, b) && isSubSet(b, a))
 
-  def simplify(pred: P): P = 
+  def simplify(pred: P): P =
+    ((normalize _) andThen (reduce _) andThen (stripContainers _))(pred)
+
+  private def stripContainers(pred: P): P =
     pred match {
-      case Not(pred) => not(simplify(pred))
+      case Or(Seq(pred)) => stripContainers(pred)
+      case And(Seq(pred)) => stripContainers(pred)
+      case pred => pred
+    }
+
+  def reduce(pred: P): P =
+    pred match {
+      case Not(pred) => not(reduce(pred))
       case And(children) =>
-        val flattened = children map simplify flatMap {
+        val flattened = children map reduce flatMap {
           case And(nested) => nested
           case child => Some(child)
         }
 
-        def reduce(results: Seq[P], queue: Seq[P]): Seq[P] = {
+        def dedupe(results: Seq[P], queue: Seq[P]): Seq[P] = {
           if (queue.exists { p => results.exists(isDisjoint(p, _)) }) {
             Seq(Empty)
           } else if (queue.size <= 1) {
@@ -224,18 +234,18 @@ trait Simplifier[P] {
                 shelf += pred
               }
             }
-            reduce(results ++ Seq(equiv), shelf)
+            dedupe(results ++ Seq(equiv), shelf)
           }
         }
 
-        And(reduce(Seq(), flattened))
+        And(dedupe(Seq(), flattened))
       case Or(children) =>
-        val flattened = children map simplify flatMap {
+        val flattened = children map reduce flatMap {
           case Or(nested) => nested
           case child => Some(child)
         }
         
-        def reduce(results: Seq[P], queue: Seq[P]): Seq[P] = {
+        def dedupe(results: Seq[P], queue: Seq[P]): Seq[P] = {
           if (queue.exists { p => results.exists(areCovering(p, _)) }) {
             Seq(Everything)
           } else if (queue.size <= 1) {
@@ -251,11 +261,11 @@ trait Simplifier[P] {
                 shelf += pred
               }
             }
-            reduce(results ++ Seq(equiv), shelf)
+            dedupe(results ++ Seq(equiv), shelf)
           }
         }
 
-        Or(reduce(Seq(), flattened))
+        Or(dedupe(Seq(), flattened))
       case pred => simpleSimplify(pred)
     }
 
