@@ -140,13 +140,24 @@ class SelectorTest extends Specification {
     )
 
     simplify(
-      List(
+      AndSelector(Seq(
         ExpressionSelector("natural='wetland'"),
-        OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
-      )
-    ) must haveContent(
-      ExpressionSelector("natural='wetland'"), 
-      OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
+        OrSelector(List(
+          ExpressionSelector("waterway<>'riverbank'"),
+          ExpressionSelector("waterway is null")
+        ))
+      ))
+    ) must beEquivalentTo(
+      OrSelector(List(
+        AndSelector(List(
+          ExpressionSelector("natural='wetland'"),
+          ExpressionSelector("waterway<>'riverbank'")
+        )),
+        AndSelector(List(
+          ExpressionSelector("natural='wetland'"),
+          ExpressionSelector("waterway is null")
+        ))
+      ))
     )
 
     simplify(
@@ -155,7 +166,7 @@ class SelectorTest extends Specification {
         OrSelector(List(ExpressionSelector("natural<>'water'"), ExpressionSelector("natural is null")))
       )
     ) must haveContent(
-      ExpressionSelector("natural='wetland'") 
+      ExpressionSelector("natural='wetland'")
     )
 
     simplify(
