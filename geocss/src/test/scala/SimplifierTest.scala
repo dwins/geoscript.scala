@@ -342,11 +342,7 @@ class SimplifierTest extends Specification {
   }
 
   "unions of And'ed predicates" in {
-    union(And(Seq(P, Q)), R) must_== (
-      Some(And(Seq(Or(Seq(P, R)), Or(Seq(Q, R)))))
-    )
-    union(And(Seq(P, Q)), Q) must_== (Some(Q))
-    union(And(Seq(P, Q)), Not(Q)) must_== (Some(Or(Seq(P, Not(Q)))))
+    union(And(Seq(P, Q)), Q) must beSome(Q)
   }
 
   "simplification of And'ed predicates" in {

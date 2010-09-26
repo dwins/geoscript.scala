@@ -14,7 +14,7 @@ class SelectorTest extends Specification {
   {
     def apply(actual: => Selector) =
       (
-        equivalent(expected, actual),
+        homologous(expected, actual),
         "selectors were equivalent",
         "%s was not equivalent to %s".format(actual, expected)
       )
@@ -60,6 +60,7 @@ class SelectorTest extends Specification {
     val id  = IdSelector("states.9")
     val cql = ExpressionSelector("STATE_NAME LIKE '%ia'")
 
+    simplify(id :: Nil) must haveContent(id)
     simplify(any :: id :: Nil) must haveContent(id)
     simplify(any :: cql :: id :: Nil) must haveContent(cql, id)
     simplify(cql :: id :: Nil) must haveContent(cql, id)
@@ -170,16 +171,24 @@ class SelectorTest extends Specification {
     )
 
     simplify(
-      List(
+      AndSelector(List(
         ExpressionSelector("natural='wetland'"),
         OrSelector(List(ExpressionSelector("natural<>'water'"), ExpressionSelector("natural is null"))),
         OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
-      )
-    ) must haveContent(
-      ExpressionSelector("natural='wetland'"), 
-      OrSelector(List(ExpressionSelector("waterway<>'riverbank'"), ExpressionSelector("waterway is null")))
+      ))
+    ) must beEquivalentTo(
+      OrSelector(List(
+        AndSelector(List(
+          ExpressionSelector("natural='wetland'"),
+          ExpressionSelector("waterway<>'riverbank'")
+        )),
+        AndSelector(List(
+          ExpressionSelector("natural='wetland'"),
+          ExpressionSelector("waterway is null")
+        ))
+      ))
     )
-//(natural='wetland' or natural is null) or (natural='wetland' or natural is null)
+
   }
 
   "contextual filters such as scales should also be simplifiable" in {

@@ -149,6 +149,7 @@ trait Simplifier[P] {
       case (_, Empty) => Some(Empty)
       case (And(a), b) if a.exists(intersection(_, b).isDefined) =>
         Some(And(a map { p => intersection(p, b) getOrElse p }))
+      case (And(a), And(b)) => Some(And(a ++ b))
       case (And(a), b) => Some(And(a ++ Seq(b)))
       case (Or(a), b) if a.exists(intersection(_, b).isDefined) =>
         Some(Or(a map { p => intersection(p, b) getOrElse And(Seq(p, b)) }))
@@ -174,9 +175,10 @@ trait Simplifier[P] {
       case (Not(Everything), p) => Some(p)
       case (Or(a), b) if a.exists(union(_, b).isDefined) => 
         Some(Or(a map { p => union(p, b) getOrElse p }))
+      case (Or(a), Or(b)) => Some(Or(a ++ b))
       case (Or(a), b) => Some(Or(a ++ Seq(b)))
-      case (And(a), b) =>
-        Some(And(a map { p => union(p, b) getOrElse Or(Seq(p, b)) }))
+      case (And(a), b) if a.forall(union(_, b).isDefined) =>
+        Some(And(a map { p => union(p, b) get }))
       case _ => None
     }
   }
@@ -199,75 +201,87 @@ trait Simplifier[P] {
     (a == b) ||
     (isSubSet(a, b) && isSubSet(b, a))
 
+  def homologous(a: P, b: P): Boolean =
+    (a, b) match {
+      case (a, b) if a == b => true
+      case (Or(as),  Or(bs))  =>
+        as.length == bs.length &&
+        as.forall(a => bs.exists(homologous(_, a))) &&
+        bs.forall(b => as.exists(homologous(_, b)))
+      case (And(as), And(bs)) =>
+        as.length == bs.length &&
+        as.forall(a => bs.exists(homologous(_, a))) &&
+        bs.forall(b => as.exists(homologous(_, b)))
+      case _ => false
+    }
+
   def simplify(pred: P): P =
     ((normalize _) andThen (reduce _) andThen (stripContainers _))(pred)
 
   private def stripContainers(pred: P): P =
     pred match {
-      case Or(Seq(pred)) => stripContainers(pred)
-      case And(Seq(pred)) => stripContainers(pred)
+      case Or(ps) =>
+        (ps map stripContainers) match {
+          case Seq(p) => p
+          case ps     => anyOf(ps)
+        }
+      case And(ps) =>
+        (ps map stripContainers) match {
+          case Seq(p) => p
+          case ps     => allOf(ps)
+        }
       case pred => pred
     }
 
-  def reduce(pred: P): P =
-    pred match {
-      case Not(pred) => not(reduce(pred))
-      case And(children) =>
-        val flattened = children map reduce flatMap {
-          case And(nested) => nested
-          case child => Some(child)
+  def reduce(pred: P): P = {
+    def accum(a: P, bs: Seq[P])(op: (P, P) => Option[P]): (P, Seq[P]) = {
+      var res = a
+      val extras = collection.mutable.ListBuffer[P]()
+      for (b <- bs)
+        op(res, b) match {
+          case Some(x) => res = x
+          case None => extras += b
         }
-
-        def dedupe(results: Seq[P], queue: Seq[P]): Seq[P] = {
-          if (queue.exists { p => results.exists(isDisjoint(p, _)) }) {
-            Seq(Empty)
-          } else if (queue.size <= 1) {
-            results ++ queue
-          } else {
-            var equiv = queue.head
-            var shelf = new collection.mutable.ListBuffer[P]()
-            for (pred <- queue.drop(1)) {
-              val intersected = intersection(equiv, pred)
-              if (intersected isDefined) {
-                equiv = intersected.get
-              } else {
-                shelf += pred
-              }
-            }
-            dedupe(results ++ Seq(equiv), shelf)
-          }
-        }
-
-        And(dedupe(Seq(), flattened))
-      case Or(children) =>
-        val flattened = children map reduce flatMap {
-          case Or(nested) => nested
-          case child => Some(child)
-        }
-        
-        def dedupe(results: Seq[P], queue: Seq[P]): Seq[P] = {
-          if (queue.exists { p => results.exists(areCovering(p, _)) }) {
-            Seq(Everything)
-          } else if (queue.size <= 1) {
-            results ++ queue
-          } else {
-            var equiv = queue.head
-            var shelf = new collection.mutable.ListBuffer[P]()
-            for (pred <- queue.drop(1)) {
-              val unioned = union(equiv, pred)
-              if (unioned isDefined) {
-                equiv = unioned.get
-              } else {
-                shelf += pred
-              }
-            }
-            dedupe(results ++ Seq(equiv), shelf)
-          }
-        }
-
-        Or(dedupe(Seq(), flattened))
-      case pred => simpleSimplify(pred)
+      (res, extras.toSeq)
     }
+
+    def aggregateReduce(xs: Seq[P], reduction: (P, P) => Option[P]): Seq[P] = {
+      def iterate(xs: Seq[P]): Seq[P] = {
+        var todo = xs
+        var reduced = collection.mutable.ListBuffer[P]()
+        while (todo nonEmpty) {
+          val (simple, rest) = accum(todo.head, todo.tail)(reduction)
+          reduced += simple
+          todo = rest
+        }
+        reduced
+      }
+
+      val reductions = Stream.iterate(xs)(iterate)
+      val alternatives =
+        (reductions take 5) zip
+        (reductions sliding(2) map(x => x(0).length == x(1).length)).toSeq
+
+      ((alternatives find(_._2)) getOrElse (alternatives.last))._1
+    }
+
+    pred match {
+      case Not(pred) =>
+        not(pred)
+      case And(children) =>
+        aggregateReduce(children.map(reduce), intersection) match {
+          case Seq() => allOf(Seq(Empty))
+          case xs    => allOf(xs)
+        }
+      case Or(children) =>
+        aggregateReduce(children.map(reduce), union) match {
+          case Seq() => anyOf(Seq(Empty))
+          case xs    => anyOf(xs)
+        }
+      case pred =>
+        pred
+    }
+  }
 
   def normalize(pred: P): P =
     pred match {
