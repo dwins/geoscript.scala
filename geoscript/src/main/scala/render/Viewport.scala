@@ -42,7 +42,7 @@ package render {
       val context = new org.geotools.map.DefaultMapContext()
       for ((data, style) <- layers) {
         context.addLayer(
-          new org.geotools.map.DefaultMapLayer(data.source, style.unwrapped)
+          new org.geotools.map.FeatureLayer(data.source, style.unwrapped)
         )
       }
       renderer.setContext(context)
