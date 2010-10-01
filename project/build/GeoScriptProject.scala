@@ -2,7 +2,7 @@ import sbt._
 
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   // some common dependency configuration
-  val gtVersion = "2.6.4"
+  val gtVersion = "2.7-M2"
   override def repositories = super.repositories ++ Set(
     "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
     "OpenGeo" at "http://repo.opengeo.org/",
@@ -16,7 +16,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val examples = project("examples", "examples", library)
   lazy val geocss = project("geocss", "geocss", new GeoCSS(_))
   lazy val library = 
-    project("geoscript", "geoscript", new GeoScriptLibrary(_), geocss)
+    project("geoscript", "library", new GeoScriptLibrary(_), geocss)
 
   // delegate to examples for a couple of common tasks
   lazy val console = task {
@@ -29,9 +29,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
   // subproject definitions
   class GeoScriptLibrary(info: ProjectInfo) extends DefaultProject(info) {
-    override def repositories = 
-      super.repositories ++ GeoScriptProject.this.repositories 
-
     override def libraryDependencies = super.libraryDependencies ++ Set(
       "org.geotools" % "gt-main" % gtVersion,
       "org.geotools" % "gt-epsg-hsql" % gtVersion,
@@ -52,9 +49,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     override def managedStyle = ManagedStyle.Maven
     lazy val publishTo = "DAV" at "http://repo.opengeo.org/"
     Credentials(Path.userHome / ".ivy2" / ".credentials", log)
-
-    override def repositories = 
-      super.repositories ++ GeoScriptProject.this.repositories
 
     override def libraryDependencies = super.libraryDependencies ++ Set(
       "junit" % "junit" % "4.2" % "test",
