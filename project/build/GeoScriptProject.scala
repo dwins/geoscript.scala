@@ -6,7 +6,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   override def repositories = super.repositories ++ Set(
     "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
     "OpenGeo" at "http://repo.opengeo.org/",
-    "Specs" at "http://specs.googlecode.com/svn/maven2/",
     "Java.net" at "http://download.java.net/maven/2/",
     "Scala Tools Snapshots" at "http://scala-tools.org/repo-snapshots/"
   )
@@ -44,7 +43,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
       "org.scala-lang" % "scala-swing" % "2.8.0",
       "net.sf.json-lib" % "json-lib" % "2.3" classifier "jdk15",
       "javax.media" % "jai_core" % "1.1.3",
-      "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test"
+      "org.scala-tools.testing" %% "specs" % "1.6.5" % "test"
     )
   }
 
@@ -58,7 +57,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
     override def libraryDependencies = super.libraryDependencies ++ Set(
       "junit" % "junit" % "4.2" % "test",
-      "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test",
+      "org.scala-tools.testing" %% "specs" % "1.6.5" % "test",
       "org.geotools" % "gt-main" % gtVersion,
       "org.geotools" % "gt-cql" % gtVersion,
       "org.geotools" % "gt-epsg-hsql" % gtVersion,
