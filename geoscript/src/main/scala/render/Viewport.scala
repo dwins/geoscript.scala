@@ -27,7 +27,7 @@ package render {
       new Sink { val out = o } 
   }
 
-  case class Viewport(bounds: geometry.Box) {
+  case class Viewport(bounds: geometry.Bounds) {
     def draw(
       graphics: java.awt.Graphics2D,
       layers: Seq[(layer.Layer, style.Style)],
@@ -77,7 +77,7 @@ package render {
      * fits within the given size.
      */
     def frame(
-      envelope: geometry.Box,
+      envelope: geometry.Bounds,
       maximal: (Int, Int) = (500, 500)
     ): java.awt.Rectangle = {
       val aspect = envelope.height / envelope.width
@@ -94,20 +94,20 @@ package render {
      * area, expand the envelope so that it matches the aspect ratio of the
      * desired viewing window.  The center of the envelope is preserved.
      */
-    def pad(envelope: geometry.Box, window: (Int, Int) = (500, 500))
-    : geometry.Box = {
+    def pad(envelope: geometry.Bounds, window: (Int, Int) = (500, 500))
+    : geometry.Bounds = {
       val aspect = envelope.height / envelope.width
       val idealAspect = window._2 / window._1
       val padded = (
         if (aspect < idealAspect) {
           val height = envelope.height * (idealAspect/aspect)
-          geometry.Box(
+          geometry.Bounds(
             envelope.minX, envelope.centre.y - height/2,
             envelope.maxX, envelope.centre.y + height/2
           )
         } else {
           val width = envelope.width * (aspect/idealAspect)
-          geometry.Box(
+          geometry.Bounds(
             envelope.centre.x - width/2, envelope.minY,
             envelope.centre.x + width/2, envelope.maxY
           )

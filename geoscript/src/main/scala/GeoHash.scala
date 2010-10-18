@@ -52,7 +52,7 @@ object GeoHash {
    * Decode a geohash, producing a JTS Envelope encompassing the range of
    * possible values for the input point.
    */
-  def decodeBounds(hash: String): geometry.Box = {
+  def decodeBounds(hash: String): geometry.Bounds = {
     val bits = hash.flatMap {(x: Char) => 
       val bitString = characters.indexOf(x).toBinaryString
       ("00000".substring(0, 5 - bitString.length) + bitString).map('1' ==)
@@ -62,7 +62,7 @@ object GeoHash {
     val (minLon, maxLon) = range(lonBits, -180, 180)
     val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    geometry.Box(minLon, minLat, maxLon, maxLat)
+    geometry.Bounds(minLon, minLat, maxLon, maxLat)
   }
 
   /**

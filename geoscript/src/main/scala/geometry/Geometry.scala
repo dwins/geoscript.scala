@@ -246,7 +246,7 @@ trait Geometry {
    * A jts.Envelope that fully encloses this Geometry.
    * @todo This should use a type from the GeoScript geometry package instead
    */
-  def bounds: Box = Box(underlying.getEnvelopeInternal()) in projection
+  def bounds: Bounds = Bounds(underlying.getEnvelopeInternal()) in projection
 
   /**
    * A point that represents the "center of gravity" of this geometry's
