@@ -1,5 +1,7 @@
 package org.geoscript.geocss
 
+import CssOps.Specificity
+
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.input.{Reader, StreamReader}
 
@@ -127,11 +129,11 @@ object CssParser extends RegexParsers {
 
   private val typeNameSelector = identifier map TypenameSelector
 
-  private val basicSelector =
+  private val basicSelector: Parser[Selector] =
     (catchAllSelector | idSelector | typeNameSelector | pseudoSelector |
      expressionSelector)
 
-  private val pseudoElementSelector =
+  private val pseudoElementSelector: Parser[Context] =
     (parameterizedPseudoClass | pseudoClass)
 
   private val simpleSelector = (
@@ -144,10 +146,28 @@ object CssParser extends RegexParsers {
     ((ParsedComment?) ~ selector ~ propertyList) map {
       case comment ~ selector ~ props =>
         val desc = comment.getOrElse(Description.empty)
-        selector map { s =>
-          val sels =     for (Left(sel)  <- s.filter(_.isLeft))  yield sel
-          val contexts = for (Right(ctx) <- s.filter(_.isRight)) yield ctx
-          Rule(desc, sels ++ contexts, Seq(contexts.headOption -> props))
+
+        def spec(xs: List[Either[Selector, Context]]): Specificity =
+          xs map {
+            case Left(sel) => Specificity(sel)
+            case Right(pseudoSel) => Specificity(pseudoSel)
+          } reduceLeft { _ + _ }
+
+        for (s <- selector.groupBy(spec).values) yield {
+          def extractSelector(xs: List[Either[Selector, Context]]): Selector =
+            AndSelector(
+              xs map {
+                case Left(sel) => sel
+                case Right(pseudoSel) => pseudoSel
+              }
+            )
+
+          def extractContext(xs: List[Either[Selector, Context]]): Option[Context] =
+            xs collect { case Right(x) => x } headOption
+
+          val sels =     s map extractSelector
+          val contexts = s map extractContext
+          Rule(desc, List(OrSelector(sels)), contexts map (Pair(_, props)))
         }
     }
 
