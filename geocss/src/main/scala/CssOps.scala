@@ -247,11 +247,15 @@ object CssOps {
      * Find the Specificity for a single Selector
      */
     def apply(x: Selector): Specificity = x match {
-      case _: TypenameSelector => Specificity(0, 0, 1)
-      case _: PseudoSelector => Specificity(0, 1, 0)
-      case _: ParameterizedPseudoClass => Specificity(0, 0, 2)
-      case _: PseudoClass => Specificity(0, 0, 1)
-      case _: IdSelector => Specificity(1, 0, 0)
+      case (_: TypenameSelector) => Specificity(0, 0, 1)
+      case (_: PseudoSelector) => Specificity(0, 1, 0)
+      case (_: ParameterizedPseudoClass) => Specificity(0, 0, 2)
+      case (_: PseudoClass) => Specificity(0, 0, 1)
+      case (_: IdSelector) => Specificity(1, 0, 0)
+      case AndSelector(children) =>
+        (children.map(apply) :\ Specificity(0, 0, 0)) { _ + _ }
+      case OrSelector(children) =>
+        children.map(apply).max
       case expr: ExpressionSelector =>
         Specificity(0, countAttributes(expr.asFilter), 0)
       case _ => Specificity(0, 0, 0)
