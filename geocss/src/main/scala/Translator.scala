@@ -531,23 +531,6 @@ object Translator { //  extends CssOps with SelectorOps {
         case TypenameSelector(typename) => typename 
       } headOption
 
-    def extractScaleRange(rule: Rule): (Option[Double], Option[Double]) = {
-      val lowerBounds = 
-        flatten(AndSelector(rule.selectors)).collect { 
-          case PseudoSelector("scale", ">", d) => d.toDouble
-        }
-
-      val upperBounds = 
-        flatten(AndSelector(rule.selectors)).collect { 
-          case PseudoSelector("scale", "<", d) => d.toDouble
-        }
-
-      val bottom = for (b <- Some(lowerBounds) if b.nonEmpty) yield b.max
-      val top    = for (b <- Some(upperBounds) if b.nonEmpty) yield b.min
-
-      (bottom, top)
-    }
-
     def extractScaleRanges(rule: Rule): Seq[Pair[Option[Double], Option[Double]]] = {
       def findScales(s: Selector): Seq[Double] = 
         s match {
