@@ -2,11 +2,10 @@ import sbt._
 
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   // some common dependency configuration
-  val gtVersion = "2.6.4"
+  val gtVersion = "2.7-M2"
   override def repositories = super.repositories ++ Set(
     "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
     "OpenGeo" at "http://repo.opengeo.org/",
-    "Specs" at "http://specs.googlecode.com/svn/maven2/",
     "Java.net" at "http://download.java.net/maven/2/",
     "Scala Tools Snapshots" at "http://scala-tools.org/repo-snapshots/"
   )
@@ -16,7 +15,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   lazy val examples = project("examples", "examples", library)
   lazy val geocss = project("geocss", "geocss", new GeoCSS(_))
   lazy val library = 
-    project("geoscript", "geoscript", new GeoScriptLibrary(_), geocss)
+    project("geoscript", "library", new GeoScriptLibrary(_), geocss)
 
   // delegate to examples for a couple of common tasks
   lazy val console = task {
@@ -29,9 +28,6 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
   // subproject definitions
   class GeoScriptLibrary(info: ProjectInfo) extends DefaultProject(info) {
-    override def repositories = 
-      super.repositories ++ GeoScriptProject.this.repositories 
-
     override def libraryDependencies = super.libraryDependencies ++ Set(
       "org.geotools" % "gt-main" % gtVersion,
       "org.geotools" % "gt-epsg-hsql" % gtVersion,
@@ -44,7 +40,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
       "org.scala-lang" % "scala-swing" % "2.8.0",
       "net.sf.json-lib" % "json-lib" % "2.3" classifier "jdk15",
       "javax.media" % "jai_core" % "1.1.3",
-      "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test"
+      "org.scala-tools.testing" %% "specs" % "1.6.5" % "test"
     )
   }
 
@@ -53,12 +49,9 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
     lazy val publishTo = "DAV" at "http://repo.opengeo.org/"
     Credentials(Path.userHome / ".ivy2" / ".credentials", log)
 
-    override def repositories = 
-      super.repositories ++ GeoScriptProject.this.repositories
-
     override def libraryDependencies = super.libraryDependencies ++ Set(
       "junit" % "junit" % "4.2" % "test",
-      "org.scala-tools.testing" %% "specs" % "1.6.5-SNAPSHOT" % "test",
+      "org.scala-tools.testing" %% "specs" % "1.6.5" % "test",
       "org.geotools" % "gt-main" % gtVersion,
       "org.geotools" % "gt-cql" % gtVersion,
       "org.geotools" % "gt-epsg-hsql" % gtVersion,

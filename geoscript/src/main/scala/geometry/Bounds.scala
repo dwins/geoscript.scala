@@ -4,10 +4,10 @@ import org.geoscript.projection.Projection
 import com.vividsolutions.jts.{ geom => jts }
 import org.geotools.geometry.jts.ReferencedEnvelope
 
-object Box extends (jts.Envelope => Box) {
+object Bounds extends (jts.Envelope => Bounds) {
   import ModuleInternals.factory._
 
-  class Wrapper(envelope: jts.Envelope) extends Box {
+  class Wrapper(envelope: jts.Envelope) extends Bounds {
     def minX = envelope.getMinX()
     def maxX = envelope.getMaxX()
     def minY = envelope.getMinY()
@@ -57,10 +57,10 @@ object Box extends (jts.Envelope => Box) {
     override def in(dest: Projection) = transform(dest) 
   }
 
-  def apply(minx: Double, miny: Double, maxx: Double, maxy: Double): Box =
+  def apply(minx: Double, miny: Double, maxx: Double, maxy: Double): Bounds =
     new Wrapper(new jts.Envelope(minx, maxx, miny, maxy))
 
-  implicit def apply(env: jts.Envelope): Box = 
+  implicit def apply(env: jts.Envelope): Bounds = 
     env match {
       case projected: ReferencedEnvelope => 
         new Projected(projected, projected.getCoordinateReferenceSystem())
@@ -68,14 +68,14 @@ object Box extends (jts.Envelope => Box) {
         new Wrapper(env)
     }
 
-  implicit def unwrap(b: Box): ReferencedEnvelope =
+  implicit def unwrap(b: Bounds): ReferencedEnvelope =
     if (b.projection != null) 
       new ReferencedEnvelope(b.minX, b.maxX, b.minY, b.maxY, b.projection)
     else
       new ReferencedEnvelope(b.minX, b.maxX, b.minY, b.maxY, null)
 }
 
-trait Box extends Polygon {
+trait Bounds extends Polygon {
   def minX: Double
   def maxX: Double
   def minY: Double
@@ -83,12 +83,12 @@ trait Box extends Polygon {
   def height: Double
   def width: Double
 
-  def grid(granularity: Int = 4): Iterable[Box] =
+  def grid(granularity: Int = 4): Iterable[Bounds] =
     (for {
       x <- (0 to granularity).sliding(2)
       y <- (0 to granularity).sliding(2)
     } yield {
-      Box(
+      Bounds(
         minX + (x(0) * width / granularity),
         minY + (y(0) * height / granularity),
         minX + (x(1) * width / granularity),
@@ -96,8 +96,8 @@ trait Box extends Polygon {
       ) in projection
     }) toIterable
 
-  override def in(dest: Projection): Box
-  override def transform(dest: Projection): Box = null
-  override def toString = 
-    "Box((%f, %f), (%f, %f))".format(minX, minY, maxX, maxY)
+  override def in(dest: Projection): Bounds
+  override def transform(dest: Projection): Bounds = null
+  override def toString =
+    "Bounds((%f, %f), (%f, %f))".format(minX, minY, maxX, maxY)
 }

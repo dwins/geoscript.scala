@@ -48,25 +48,25 @@ trait Layer {
    * operations.
    */
   def features: FeatureCollection = {
-    new FeatureCollection(source, new gt.data.DefaultQuery()) 
+    new FeatureCollection(source, new gt.data.Query())
   }
   
   /** 
    * Get a filtered feature collection.
    */
   def filter(pred: Filter): FeatureCollection = {
-    new FeatureCollection(source, new gt.data.DefaultQuery(name, pred.underlying)) 
+    new FeatureCollection(source, new gt.data.Query(name, pred.underlying))
   }
 
   /**
    * Get the number of features currently in the layer.
    */
-  def count: Int = source.getCount(new gt.data.DefaultQuery())
+  def count: Int = source.getCount(new gt.data.Query())
 
   /**
    * Get the bounding box of this Layer, in the format:
    */
-  def bounds: Box = Box(source.getBounds()) in schema.geometry.projection
+  def bounds: Bounds = Bounds(source.getBounds()) in schema.geometry.projection
 
   /**
    * Add a single Feature to this data set.

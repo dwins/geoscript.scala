@@ -327,14 +327,14 @@ class FeatureCollection(
 ) extends Iterable[Feature] {
   override def iterator: Iterator[Feature] = {
     val collection = wrapped.getFeatures()
-    val raw = collection.iterator()
+    val raw = collection.features()
     val rawIter = new Iterator[Feature] {
       def hasNext = raw.hasNext
       def next = Feature(raw.next)
     }
 
     new ClosingIterator(rawIter) {
-      def close() { collection.close(raw) }
+      def close() { raw.close() }
     }
   }
 }

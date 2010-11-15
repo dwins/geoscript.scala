@@ -4,6 +4,7 @@ import java.io.{File, Serializable}
 import org.geoscript.feature._
 import org.geoscript.layer._
 import org.{geotools => gt}
+import scala.collection.JavaConversions._
 
 class Workspace(
   val underlying: gt.data.DataStore,
@@ -36,6 +37,17 @@ class Workspace(
    
   def create(schema: Schema): Layer = create(schema.name, schema.fields: _*)
   override def toString = "<Workspace: %s>".format(params)
+}
+
+object Workspace {
+  def apply(params: Pair[String, java.io.Serializable]*): Workspace = {
+    val jparams = new java.util.HashMap[String, java.io.Serializable]()
+    jparams.putAll(params.toMap[String, java.io.Serializable])
+    new Workspace(
+      org.geotools.data.DataStoreFinder.getDataStore(jparams),
+      jparams
+    )
+  }
 }
 
 object Memory {

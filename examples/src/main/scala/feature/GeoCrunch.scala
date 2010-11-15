@@ -46,12 +46,12 @@ trait GeoCrunch {
   ) (
     callback: F => Unit
   ) = {
-    val it = fc.iterator
+    val it = fc.features()
     try {
       while (it.hasNext) try {
           callback(it.next)
       }
-    } finally { fc.close(it) }
+    } finally { it.close() }
   }
 
   def promptOpenFile(ff: FileFilter*): java.io.File = {
