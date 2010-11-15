@@ -111,4 +111,11 @@ class Regressions extends Specification {
     mark.asInstanceOf[org.geotools.styling.Mark]
        .getWellKnownName.evaluate(null) must_== "hatch"
   }
+
+  "Conflicting scale limits should be placed in separate rules" in {
+    val stylesheet = CssParser.parse(in("/complex-scales.css")).get
+    val sld = Translator.css2sld(stylesheet)
+    sld.featureTypeStyles must haveSize(1)
+    sld.featureTypeStyles.get(0).rules must haveSize(2)
+  }
 }

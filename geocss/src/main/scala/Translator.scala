@@ -548,6 +548,20 @@ object Translator { //  extends CssOps with SelectorOps {
       (bottom, top)
     }
 
+    def extractScaleRanges(rule: Rule): Seq[Pair[Option[Double], Option[Double]]] = {
+      def findScales(s: Selector): Seq[Double] = 
+        s match {
+          case PseudoSelector("scale", _, d) => Seq(d.toDouble)
+          case AndSelector(children) => children flatMap findScales
+          case OrSelector(children) => children flatMap findScales
+          case _ => Nil
+        }
+
+      val scales = rule.selectors.flatMap(findScales).sorted.distinct
+      val limits = None +: scales.sorted.distinct.map(Some(_)) :+ None
+      limits zip limits.tail
+    }
+
     def isForTypename(typename: Option[String])(rule: Rule): Boolean =
       typename map { t => 
         simplify(allOf(TypenameSelector(t) +: rule.selectors)) != Empty
@@ -575,22 +589,36 @@ object Translator { //  extends CssOps with SelectorOps {
         typename.foreach { t => fts.featureTypeNames.add(new NameImpl(t)) }
         for ((rule, syms) <- group if !syms.isEmpty) {
           val sldRule = styles.createRule()
-          val (minscale, maxscale) = extractScaleRange(rule)
+          val ranges = extractScaleRanges(rule)
 
-          for (min <- minscale) 
-            sldRule.setMinScaleDenominator(min)
-          for (max <- maxscale) 
-            sldRule.setMaxScaleDenominator(max)
-          for (title <- rule.description.title)
-            sldRule.getDescription().setTitle(title)
-          for (abstrakt <- rule.description.abstrakt)
-            sldRule.getDescription().setAbstract(abstrakt)
+          for ((min, max) <- ranges) {
+            val minSelector = min.map(x => PseudoSelector("scale", ">", x.toString))
+            val maxSelector = max.map(x => PseudoSelector("scale", "<", x.toString))
+            val restricted = 
+              SelectorOps.simplify(
+                SelectorOps.allOf(rule.selectors ++ minSelector ++ maxSelector)
+              )
 
-          sldRule.setFilter(rule.getFilter)
-          for (sym <- syms) {
-            sldRule.symbolizers.add(sym)
+            if (restricted != Exclude) {
+              val sldRule = styles.createRule()
+
+              for (m <- min) sldRule.setMinScaleDenominator(m)
+              for (m <- max) sldRule.setMaxScaleDenominator(m)
+              for (title <- rule.description.title)
+                sldRule.getDescription().setTitle(title)
+              for (abstrakt <- rule.description.abstrakt)
+                sldRule.getDescription().setAbstract(abstrakt)
+
+              val filter =
+                SelectorOps.trim(_.filterOpt.isDefined)(restricted).filterOpt.get
+
+              sldRule.setFilter(filter)
+              for (sym <- syms)
+                sldRule.symbolizers.add(sym)
+
+              fts.rules.add(sldRule)
+            }
           }
-          fts.rules.add(sldRule)
         }
         sld.featureTypeStyles.add(fts)
       }
