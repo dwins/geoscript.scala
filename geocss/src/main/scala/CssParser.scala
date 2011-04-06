@@ -138,7 +138,7 @@ object CssParser extends RegexParsers {
 
   private val simpleSelector = (
     (basicSelector ^^ (Left(_))) | (pseudoElementSelector ^^ (Right(_)))
-  )*
+  )+
 
   private val selector = rep1sep(simpleSelector, ",")
 
