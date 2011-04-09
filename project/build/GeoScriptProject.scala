@@ -2,7 +2,7 @@ import sbt._
 
 class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
   // some common dependency configuration
-  val gtVersion = "2.7-M2"
+  val gtVersion = "2.7.0.1"
   override def repositories = super.repositories ++ Set(
     "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
     "OpenGeo" at "http://repo.opengeo.org/",
@@ -33,14 +33,13 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
       "org.geotools" % "gt-epsg-hsql" % gtVersion,
       "org.geotools" % "gt-shapefile" % gtVersion,
       "org.geotools" % "gt-jdbc" % gtVersion,
-      "org.geotools" % "gt-directory" % gtVersion,
       "org.geotools" % "gt-render" % gtVersion,
       "org.geotools.jdbc" % "gt-jdbc-postgis" % gtVersion,
       "org.geotools.jdbc" % "gt-jdbc-spatialite" % gtVersion,
       "org.scala-lang" % "scala-swing" % "2.8.0",
       "net.sf.json-lib" % "json-lib" % "2.3" classifier "jdk15",
       "javax.media" % "jai_core" % "1.1.3",
-      "org.scala-tools.testing" %% "specs" % "1.6.5" % "test"
+      "org.scala-tools.testing" %% "specs" % "1.6.7.2" % "test"
     )
   }
 
@@ -51,7 +50,7 @@ class GeoScriptProject(info: ProjectInfo) extends ParentProject(info) {
 
     override def libraryDependencies = super.libraryDependencies ++ Set(
       "junit" % "junit" % "4.2" % "test",
-      "org.scala-tools.testing" %% "specs" % "1.6.5" % "test",
+      "org.scala-tools.testing" %% "specs" % "1.6.7.2" % "test",
       "org.geotools" % "gt-main" % gtVersion,
       "org.geotools" % "gt-cql" % gtVersion,
       "org.geotools" % "gt-epsg-hsql" % gtVersion,

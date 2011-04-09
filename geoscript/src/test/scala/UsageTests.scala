@@ -14,7 +14,7 @@ class UsageTests extends Specification with GeoScript {
       var p2 = p in Projection("epsg:26912")
       var poly = p.buffer(100)
 
-      p2.x must beCloseTo(499999.0, 0.5)
+      p2.x must beCloseTo(499999.0, 1)
       p2.y must beCloseTo(5060716.0, 0.5)
       poly.area must beCloseTo(31214.45, 0.01)
     }

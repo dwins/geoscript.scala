@@ -94,14 +94,15 @@ object SpatiaLite {
 } 
 
 object Directory {
-  private val factory = new gt.data.directory.DirectoryDataStoreFactory
+  private val factory = new gt.data.shapefile.ShapefileDataStoreFactory
 
   def apply(path: String): Workspace = apply(new File(path))
 
   def apply(path: File): Workspace = {
     val params = new java.util.HashMap[String, java.io.Serializable]
     params.put("url", path.toURI.toURL)
-    new Workspace(factory.createDataStore(params), params) {
+    val store = factory.createDataStore(params: java.util.Map[_, _])
+    new Workspace(store, params) {
       override def toString = "<Directory: [%s]>".format(params.get("url"))
     }
   }
