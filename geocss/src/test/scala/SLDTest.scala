@@ -5,7 +5,7 @@ import org.specs._
 /**
  * Acceptance tests against the DOM of a generated SLD
  */
-class SLDTest extends Specification {
+class SLDTest extends Specification with util.DataTables {
   def css2sld2dom(filename: String) = {
     val stream = getClass.getResourceAsStream(filename)
     val styleSheet = CssParser.parse(stream).get
@@ -298,5 +298,19 @@ class SLDTest extends Specification {
         .aka("rules with filters for: " + roadType)
         .must(haveSize(3))
     }
+  }
+
+  "Everything should convert without throwing Exceptions" in {
+    val testData = Seq(
+      "/badstyle.css", "/camping.css", "/capitals.css", "/complex-scales.css",
+      "/comprehensive.css", "/default_point.css", "/exclusive.css", "/filters.css",
+      "/gt-opts.css", "/hospital.css", "/mark-overrides.css", "/marks.css",
+      "/minimal.css", "/motorvag.css", "/overrides.css", "/percentage.css",
+      "/planet_polygon.css", "/railroad.css", "/roads.css", "/scales.css",
+      "/stacked-symbolizers.css", "/states.css", "/test-basic.css", "/test.css",
+      "/typenames.css")
+
+    for (file <- testData)
+      { css2sld2dom(file) } must not(throwAn[Exception])
   }
 }

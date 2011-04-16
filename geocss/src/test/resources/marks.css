@@ -1,5 +1,5 @@
 [type='hospital'] {
-  mark: mark(circle), mark(cross);
+  mark: symbol(circle), symbol(cross);
   mark-size: 20px, 16px;
 }
 
