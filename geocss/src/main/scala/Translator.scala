@@ -13,6 +13,7 @@ import org.geotools.styling.{
   PolygonSymbolizer,
   Symbolizer,
   TextSymbolizer,
+  TextSymbolizer2,
   FeatureTypeStyle
 }
 
@@ -43,7 +44,9 @@ object Translator { //  extends CssOps with SelectorOps {
     "-gt-label-auto-wrap" -> "autoWrap",
     "-gt-label-force-ltr" -> "forceLeftToRight",
     "-gt-label-conflict-resolution" -> "conflictResolution",
-    "-gt-label-fit-goodness" -> "goodnessOfFit"
+    "-gt-label-fit-goodness" -> "goodnessOfFit",
+    "-gt-shield-resize" -> "graphic-resize",
+    "-gt-shield-margin" -> "graphic-margin"
   )
 
   private val defaultRGB = filters.literal(colors("grey"))
@@ -415,7 +418,9 @@ object Translator { //  extends CssOps with SelectorOps {
       }
 
     val textSyms: Seq[(Double, TextSymbolizer)] =
-      expand(properties, "label") map { props => 
+      (expand(properties, "label").toStream zip
+       (Stream.from(1) map { orderedMarkRules("shield", _) })
+      ).map { case (props, shieldProps) => 
         val fillParams = props.get("font-fill").map(fill)
         val fontFamily = props.get("font-family")
         val fontOpacity = props.get("font-opacity").map(scale)
@@ -472,6 +477,12 @@ object Translator { //  extends CssOps with SelectorOps {
           )
         } else null
 
+        val shield = 
+          if (props contains "shield")
+            buildGraphic("shield", props, shieldProps)
+          else
+            null
+
         val placement = offset match {
           case Some(Seq(d)) => styles.createLinePlacement(d)
           case Some(Seq(x, y)) =>
@@ -489,9 +500,15 @@ object Translator { //  extends CssOps with SelectorOps {
           halo,
           expression(props("label")),
           placement,
-          null  //the geometry, but only as a string. the setter accepts an expression
+          null  //the geometry, but only as a string. the setter accepts an expression so we use that instead
         )
         sym.setGeometry(geom)
+
+        // Looks like, depending on GeoTools configuration, this might not be
+        // the sort of Symbolizer which supports graphics. Let's at least not
+        // cast unless we need to.  
+        // TODO: see if there's a nicer way to deal with this that
+        if (shield != null) sym.asInstanceOf[TextSymbolizer2].setGraphic(shield)
 
         for (priority <- props.get("-gt-label-priority") map expression) {
           sym.setPriority(priority)
@@ -501,7 +518,10 @@ object Translator { //  extends CssOps with SelectorOps {
           (cssName, sldName) <- gtVendorOpts;
           value <- props.get(cssName)
         ) {
-          sym.getOptions().put(sldName, keyword(value))
+          sym.getOptions().put(
+            sldName,
+            value.collect({ case Literal(x) => x }).mkString(" ")
+          )
         }
 
         (zIndex, sym)
