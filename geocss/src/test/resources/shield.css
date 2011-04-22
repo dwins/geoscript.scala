@@ -1,0 +1,9 @@
+* {
+  label: [highway_name];
+  shield: symbol('square');
+}
+
+* :shield {
+  fill: green;
+  stroke: limegreen;
+}
