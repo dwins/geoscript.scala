@@ -276,6 +276,16 @@ class SLDTest extends Specification {
     ).distinct must haveSize(2)
   }
 
+  "Shield graphics" in {
+    val roads = css2sld2dom("/shield.css")
+    roads \\ "FeatureTypeStyle" must haveSize(1)
+    roads \\ "Rule" must haveSize(1)
+    val symbolizer = (roads \\ "Rule" \ "TextSymbolizer").head
+    symbolizer \\ "Graphic" must haveSize(1)
+    (symbolizer \\ "Fill" \ "CssParameter").text must_== "#008000"
+    (symbolizer \\ "Stroke" \ "CssParameter").text must_== "#32cd32"
+  }
+
   "Styling separate properties independently" in {
     val roads = css2sld2dom("/roads.css")
 
