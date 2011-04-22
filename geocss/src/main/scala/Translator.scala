@@ -44,7 +44,9 @@ object Translator { //  extends CssOps with SelectorOps {
     "-gt-label-auto-wrap" -> "autoWrap",
     "-gt-label-force-ltr" -> "forceLeftToRight",
     "-gt-label-conflict-resolution" -> "conflictResolution",
-    "-gt-label-fit-goodness" -> "goodnessOfFit"
+    "-gt-label-fit-goodness" -> "goodnessOfFit",
+    "-gt-shield-resize" -> "graphic-resize",
+    "-gt-shield-margin" -> "graphic-margin"
   )
 
   private val defaultRGB = filters.literal(colors("grey"))

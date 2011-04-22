@@ -1,6 +1,8 @@
 * {
   label: [highway_name];
   shield: symbol('square');
+  -gt-shield-resize: stretch;
+  -gt-shield-margin: 3;
 }
 
 * :shield {

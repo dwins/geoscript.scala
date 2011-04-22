@@ -284,6 +284,9 @@ class SLDTest extends Specification {
     symbolizer \\ "Graphic" must haveSize(1)
     (symbolizer \\ "Fill" \ "CssParameter").text must_== "#008000"
     (symbolizer \\ "Stroke" \ "CssParameter").text must_== "#32cd32"
+    val vendorOpts = (symbolizer \\ "VendorOption") map (_ \ "@name" text)
+    vendorOpts must contain("graphic-margin")
+    vendorOpts must contain("graphic-resize")
   }
 
   "Styling separate properties independently" in {
