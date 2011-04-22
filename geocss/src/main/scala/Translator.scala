@@ -518,7 +518,10 @@ object Translator { //  extends CssOps with SelectorOps {
           (cssName, sldName) <- gtVendorOpts;
           value <- props.get(cssName)
         ) {
-          sym.getOptions().put(sldName, keyword(value))
+          sym.getOptions().put(
+            sldName,
+            value.collect({ case Literal(x) => x }).mkString(" ")
+          )
         }
 
         (zIndex, sym)
