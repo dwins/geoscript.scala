@@ -23,7 +23,10 @@ import org.geotools.styling.{
  *
  * @author David Winslow <cdwinslow@gmail.com>
  */
-object Translator { //  extends CssOps with SelectorOps {
+class Translator(val baseURL: Option[java.net.URL]) {
+  def this() = this(None)
+  def this(url: String) = this(Some(new java.net.URL(url)))
+
   import SelectorOps.{ Exclude, negate, simplify }
   import CssOps.{ Color, Specificity, Symbol, URL, colors, expand }
   import FilterOps.{ filters }
@@ -51,14 +54,22 @@ object Translator { //  extends CssOps with SelectorOps {
 
   private val defaultRGB = filters.literal(colors("grey"))
 
+  def resolve(path: String): String =
+    new java.net.URL(baseURL.getOrElse(null), path).toString
+
 // externalGraphic, well-known graphic , color
   def fill(xs: Seq[Value]): (String, String, OGCExpression) = {
     (xs take 2) match {
-      case Seq(URL(url), Color(color)) => (url, null, filters.literal(color))
-      case Seq(URL(url)) => (url, null, defaultRGB)
-      case Seq(Symbol(sym)) => (null, sym, defaultRGB)
-      case Seq(Color(color))  => (null, null, filters.literal(color))
-      case _ => (null, null, defaultRGB)
+      case Seq(URL(url), Color(color)) =>
+        (resolve(url), null, filters.literal(color))
+      case Seq(URL(url)) =>
+        (resolve(url), null, defaultRGB)
+      case Seq(Symbol(sym)) =>
+        (null, sym, defaultRGB)
+      case Seq(Color(color))  =>
+        (null, null, filters.literal(color))
+      case _ =>
+        (null, null, defaultRGB)
     }
   }
 

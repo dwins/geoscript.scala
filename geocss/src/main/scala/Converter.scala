@@ -2,7 +2,6 @@ package org.geoscript.geocss
 
 import java.io.{ File, FileInputStream, FileOutputStream, OutputStream }
 import CssParser.{Success, NoSuccess}
-import Translator.css2sld
 
 object Converter {
   val tx = new org.geotools.styling.SLDTransformer
@@ -29,15 +28,17 @@ object Converter {
     new FileOutputStream(new File(f.getParentFile, rename))
   }
 
-  def writeSLD(style: Seq[Rule], out: OutputStream) {
-    tx.transform(css2sld(style), out)
+  def writeSLD(style: Seq[Rule], base: java.net.URL, out: OutputStream) {
+    val sld = new Translator(Option(base)).css2sld(style)
+    tx.transform(sld, out)
   }
 
-  def writeOLStyle(style: Seq[Rule], out: OutputStream) {
-    OpenLayersStyle.write(css2sld(style), out)
+  def writeOLStyle(style: Seq[Rule], base: java.net.URL, out: OutputStream) {
+    val sld = new Translator(Option(base)).css2sld(style)
+    OpenLayersStyle.write(sld, out)
   }
 
-  def writeRaw(style: Seq[Rule], out: OutputStream) {
+  def writeRaw(style: Seq[Rule], base: java.net.URL, out: OutputStream) {
     val writer = new java.io.PrintWriter(out)
     style.foreach(writer.println)
     writer.close()
@@ -46,7 +47,7 @@ object Converter {
   def main(args: Array[String]) = {
     val (options, filenames) = parse(args)
 
-    val write: (Seq[Rule], OutputStream) => Unit = 
+    val write: (Seq[Rule], java.net.URL, OutputStream) => Unit = 
       options.get("output") match {
         case Some("sld") => writeSLD
         case Some("ol-style") => writeOLStyle
@@ -63,11 +64,12 @@ object Converter {
 
     filenames.foreach { x =>
       val in = new File(x)
+      val url = in.toURI.toURL
       if (in exists) {
         val styleSheet = CssParser.parse(new FileInputStream(in))
         val out = target(in, suffix)
         styleSheet match {
-          case Success(style, _) => write(style, out)
+          case Success(style, _) => write(style, url, out)
           case ns: NoSuccess => { 
             println("In file: %s".format(in))
             println(ns)

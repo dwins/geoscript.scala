@@ -8,6 +8,7 @@ import org.specs._
  */
 class CssTest extends Specification with util.DataTables {
   import CssOps._
+  val Translator = new Translator
 
   "The test data should parse successfully" in {
     "resource path"      | "rule count" |> 

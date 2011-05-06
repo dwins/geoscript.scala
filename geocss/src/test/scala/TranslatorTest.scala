@@ -3,6 +3,7 @@ package org.geoscript.geocss
 import org.specs._
 
 class TranslatorTest extends Specification {
+  val Translator = new Translator
   import Translator.color
 
   def body(x: Translator.OGCExpression): String = {
@@ -20,4 +21,3 @@ class TranslatorTest extends Specification {
     body(color(Function("rgb", List("255", "170", "119") map Literal))) must_== ("#ffaa77")
   }
 }
-

@@ -1,6 +1,5 @@
 * {
-  mark: url(http://docs.geoserver.org/stable/en/user/_images/smileyface.png);
-  /* BUG: relative URLs cause an unhandled exception here */
+  mark: url(smileyface.png);
   mark-mime: "image/png";
   /* mark-size: 32px; */
 }

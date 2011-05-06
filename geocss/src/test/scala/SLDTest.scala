@@ -7,9 +7,10 @@ import org.specs._
  */
 class SLDTest extends Specification with util.DataTables {
   def css2sld2dom(filename: String) = {
+    val url = getClass.getResource(filename)
     val stream = getClass.getResourceAsStream(filename)
     val styleSheet = CssParser.parse(stream).get
-    val style = Translator.css2sld(styleSheet)
+    val style = new Translator(Some(url)).css2sld(styleSheet)
     val bos = new java.io.ByteArrayOutputStream
     val xform = new org.geotools.styling.SLDTransformer
     xform.setIndentation(2)

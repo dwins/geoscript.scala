@@ -10,6 +10,7 @@ import org.specs._
  * Tests for specific issues (mostly bugs that came up during testing)
  */
 class Regressions extends Specification {
+  val Translator = new Translator
   def in(s: String) = getClass.getResourceAsStream(s)
 
   "overlapping scales should produce a single featuretypestyle" in {

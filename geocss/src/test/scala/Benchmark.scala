@@ -5,6 +5,7 @@ import gt.Style
 import collection.JavaConversions._
 
 object Benchmark {
+  val Translator = new Translator()
   val template = """
 [%1$s < 10] {
   stroke: black;
