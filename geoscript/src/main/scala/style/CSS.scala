@@ -23,7 +23,8 @@ package style {
 
   object CSS {
     import geocss.CssParser.parse
-    import geocss.Translator.css2sld
+    val Translator = new geocss.Translator
+    import Translator.css2sld
 
     def load(url: String): Style = {
       val resolved = new java.net.URL(new java.io.File(".").toURI.toURL, url)
