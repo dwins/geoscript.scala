@@ -624,9 +624,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
                 sldRule.getDescription().setAbstract(abstrakt)
 
               val filter =
-                SelectorOps.trim(_.filterOpt.isDefined)(restricted).filterOpt.get
+                SelectorOps.trim(_.filterOpt.isDefined)(restricted).flatMap(_.filterOpt)
 
-              sldRule.setFilter(filter)
+              for (f <- filter)
+                sldRule.setFilter(f)
               for (sym <- syms)
                 sldRule.symbolizers.add(sym)
 

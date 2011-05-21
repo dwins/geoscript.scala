@@ -337,4 +337,8 @@ class SelectorTest extends Specification {
         ))
     }
   }
+
+  "pseudoclasses should not have equivalent filters" in {
+    PseudoClass("mark").filterOpt must beNone
+  }
 }

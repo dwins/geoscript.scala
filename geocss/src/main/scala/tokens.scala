@@ -125,7 +125,7 @@ case class Rule(
    */
   def getFilter =
     SelectorOps.trim(_.filterOpt.isDefined)(AndSelector(selectors))
-      .filterOpt.get
+      .flatMap(_.filterOpt).get
 
   /**
    * The properties to use in the "normal" context, outside of well-known-marks

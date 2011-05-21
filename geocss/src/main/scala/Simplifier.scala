@@ -18,8 +18,11 @@ trait Simplifier[P] {
   /**
    * Remove all predicates from a predicate tree that do not meet the
    * provided criterion, preserving logical And's and Or's.
+   *
+   * @returns None if the entire predicate tree fails the criterion, otherwise
+   * a Some with the filtered tree.
    */
-  def trim(crit: P => Boolean)(pred: P): P = {
+  def trim(crit: P => Boolean)(pred: P): Option[P] = {
     def traverse(pred: P): Option[P] =
       pred match {
         case And(children) =>
@@ -30,7 +33,7 @@ trait Simplifier[P] {
         case _ => None
       }
 
-    traverse(pred) getOrElse Empty
+    traverse(pred)
   }
 
   def anyOf(preds: Seq[P]): P
