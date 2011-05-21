@@ -230,51 +230,66 @@ class SLDTest extends Specification with util.DataTables {
   }
 
   "It should be possible to style well-known marks" in {
-    val defaultPoint = css2sld2dom("/default_point.css")
-    val simpleLine = css2sld2dom("/cookbook/line_simpleline.css")
-    val graphicPoint = css2sld2dom("/cookbook/point_pointasgraphic.css")
+    "default point style from geoserver" >> {
+      val defaultPoint = css2sld2dom("/default_point.css")
+      defaultPoint \\ "Rule" must haveSize(1)
+      defaultPoint \\ "PolygonSymbolizer" must haveSize(0)
+      defaultPoint \\ "Fill" \ "CssParameter" must haveSize(1)
+      defaultPoint \\ "Stroke" must haveSize(0)
+    }
+
+    "Graphic tag not generated when no symbol/image is use" >> {
+      val simpleLine = css2sld2dom("/cookbook/line_simpleline.css")
+      simpleLine \\ "Graphic" must haveSize(0)
+    }
+
+    "Size tag not generated when left unspecified" >> {
+      val graphicPoint = css2sld2dom("/cookbook/point_pointasgraphic.css")
+      graphicPoint \\ "Size" must haveSize(0)
+    }
+
+    "fill/stroke for marks should not generate line/polygon symbolizers in SLD" >> {
     val capitals = css2sld2dom("/capitals.css")
-    val camping = css2sld2dom("/camping.css")
-    val hospital = css2sld2dom("/hospital.css")
-    val overrides = css2sld2dom("/mark-overrides.css")
-    val rotatedSquare = css2sld2dom("/cookbook/point_rotatedsquare.css")
+      capitals \\ "LineSymbolizer" must haveSize(0)
+      capitals \\ "Stroke" \ "CssParameter" must haveSize(1)
+      capitals \\ "PolygonSymbolizer" must haveSize(0)
+      capitals \\ "Fill" \ "CssParameter" must haveSize(1)
+    }
 
-    defaultPoint \\ "Rule" must haveSize(1)
-    defaultPoint \\ "PolygonSymbolizer" must haveSize(0)
-    defaultPoint \\ "Fill" \ "CssParameter" must haveSize(1)
-    defaultPoint \\ "Stroke" must haveSize(0)
+    "marks and pattern fills should be themable independently" >> {
+      val camping = css2sld2dom("/camping.css")
+      camping \\ "PolygonSymbolizer" \\ "Mark" \ "Stroke" must haveSize(1)
+      camping \\ "PolygonSymbolizer" \\ "Mark" \ "Fill" must haveSize(0)
+      camping \\ "PointSymbolizer" \\ "Mark" \ "Fill" must haveSize(1)
+      camping \\ "PointSymbolizer" \\ "Mark" \ "Stroke" must haveSize(0)
+    }
 
-    simpleLine \\ "Graphic" must haveSize(0)
+    "multiple marks for a single feature should be themable independently" >> {
+      val hospital = css2sld2dom("/hospital.css")
+      hospital \\ "PolygonSymbolizer" must haveSize(0)
+      hospital \\ "PointSymbolizer" \\ "Mark" must haveSize(2)
+      hospital \\ "PointSymbolizer" \\ "Mark" \ "Fill" must haveSize(2)
+      hospital \\ "PointSymbolizer" \\ "Mark" \ "Fill" \ "CssParameter" must haveSize(2)
+    }
 
-    graphicPoint \\ "Size" must haveSize(0)
+    "cascading inheritance for mark style properties" >> {
+      val overrides = css2sld2dom("/mark-overrides.css")
+      overrides \\ "WellKnownName" must haveSize(2)
+      (overrides \\ "WellKnownName" map (_.text)).distinct must haveSize(2)
 
-    capitals \\ "LineSymbolizer" must haveSize(0)
-    capitals \\ "Stroke" \ "CssParameter" must haveSize(1)
-    capitals \\ "PolygonSymbolizer" must haveSize(0)
-    capitals \\ "Fill" \ "CssParameter" must haveSize(1)
-
-    camping \\ "PolygonSymbolizer" \\ "Mark" \ "Stroke" must haveSize(1)
-    camping \\ "PolygonSymbolizer" \\ "Mark" \ "Fill" must haveSize(0)
-    camping \\ "PointSymbolizer" \\ "Mark" \ "Fill" must haveSize(1)
-    camping \\ "PointSymbolizer" \\ "Mark" \ "Stroke" must haveSize(0)
-
-    hospital \\ "PolygonSymbolizer" must haveSize(0)
-    hospital \\ "PointSymbolizer" \\ "Mark" must haveSize(2)
-    hospital \\ "PointSymbolizer" \\ "Mark" \ "Fill" must haveSize(2)
-    hospital \\ "PointSymbolizer" \\ "Mark" \ "Fill" \ "CssParameter" must haveSize(2)
-
-    rotatedSquare \\ "Graphic" \ "Rotation" must haveSize(1)
-    (rotatedSquare \\ "Graphic" \ "Rotation").text.trim must_== ("45")
-
-    overrides \\ "WellKnownName" must haveSize(2)
-    (overrides \\ "WellKnownName" map (_.text)).distinct must haveSize(2)
-
-    val fills = overrides \\ "Mark" \ "Fill"
-    fills must haveSize(2)
-    (fills \ "CssParameter" 
-      filter (n => (n \ "@name" text) == "fill") 
-      map (_.text)
-    ).distinct must haveSize(2)
+      val fills = overrides \\ "Mark" \ "Fill"
+      fills must haveSize(2)
+      (fills \ "CssParameter" 
+        filter (n => (n \ "@name" text) == "fill") 
+        map (_.text)
+      ).distinct must haveSize(2)
+    }
+  
+    "rotation property is encoded" >> {
+      val rotatedSquare = css2sld2dom("/cookbook/point_rotatedsquare.css")
+      rotatedSquare \\ "Graphic" \ "Rotation" must haveSize(1)
+      (rotatedSquare \\ "Graphic" \ "Rotation").text.trim must_== ("45")
+    }
   }
 
   "Shield graphics" in {
