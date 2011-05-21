@@ -4,7 +4,7 @@ import java.io.InputStream;
 import org.geotools.styling.Style;
 
 public final class CSS2SLD {
-    protected static abstract class Converter {
+    static abstract class Converter {
         public abstract Style convert(InputStream input);
     }
 
