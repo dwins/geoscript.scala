@@ -233,6 +233,7 @@ class SLDTest extends Specification with util.DataTables {
     "default point style from geoserver" >> {
       val defaultPoint = css2sld2dom("/default_point.css")
       defaultPoint \\ "Rule" must haveSize(1)
+      defaultPoint \\ "Filter" must beEmpty
       defaultPoint \\ "PolygonSymbolizer" must haveSize(0)
       defaultPoint \\ "Fill" \ "CssParameter" must haveSize(1)
       defaultPoint \\ "Stroke" must haveSize(0)
