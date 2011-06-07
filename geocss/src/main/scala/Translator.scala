@@ -180,6 +180,12 @@ class Translator(val baseURL: Option[java.net.URL]) {
     case _ => null
   }
 
+  def concatenatedExpression(xs: Seq[Value]): OGCExpression =
+    xs map {
+      case Literal(body) => filters.literal(body)
+      case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
+    } reduceLeft { filters.function("strConcat", _, _) }
+
   def keyword(default: String, xs: Seq[Value]): String = xs.head match {
     case Literal(body) => body
     case _ => default
@@ -509,7 +515,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           styles.createFill(fillParams.map(_._3).getOrElse(null), null, fontOpacity.getOrElse(null), fontFill),
           font,
           halo,
-          expression(props("label")),
+          concatenatedExpression(props("label")),
           placement,
           null  //the geometry, but only as a string. the setter accepts an expression so we use that instead
         )

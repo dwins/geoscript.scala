@@ -330,6 +330,21 @@ class SLDTest extends Specification with util.DataTables {
     }
   }
 
+  "Labels with multiple expressions should be implicitly concatenated" in {
+    val labels = css2sld2dom("/complex-label.css")
+
+    object callStrConcat extends matcher.Matcher[scala.xml.Node] {
+      def apply(n: => scala.xml.Node) = 
+        Triple(
+          (n \ "@name" text) == "strConcat",
+          "node %s calls the strConcat function".format(n),
+          "node %s does not call the strConcat function".format(n)
+        )
+    }
+
+    labels \\ "Function" must (notBeEmpty and callStrConcat.toIterable)
+  }
+
   "Everything should convert without throwing Exceptions" in {
     val testData = Seq(
       "/badstyle.css", "/camping.css", "/capitals.css", "/complex-scales.css",
@@ -338,7 +353,7 @@ class SLDTest extends Specification with util.DataTables {
       "/minimal.css", "/motorvag.css", "/overrides.css", "/percentage.css",
       "/planet_polygon.css", "/railroad.css", "/roads.css", "/scales.css",
       "/stacked-symbolizers.css", "/states.css", "/test-basic.css", "/test.css",
-      "/typenames.css")
+      "/typenames.css", "/complex-label.css")
 
     for (file <- testData)
       { css2sld2dom(file) } must not(throwAn[Exception])
