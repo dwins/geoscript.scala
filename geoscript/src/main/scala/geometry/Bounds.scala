@@ -62,7 +62,9 @@ object Bounds extends (jts.Envelope => Bounds) {
 
   implicit def apply(env: jts.Envelope): Bounds = 
     env match {
-      case projected: ReferencedEnvelope => 
+      case projected: ReferencedEnvelope 
+      if projected.getCoordinateReferenceSystem != null
+      => 
         new Projected(projected, projected.getCoordinateReferenceSystem())
       case env => 
         new Wrapper(env)

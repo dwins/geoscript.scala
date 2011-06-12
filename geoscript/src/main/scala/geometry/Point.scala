@@ -43,7 +43,7 @@ object Point extends (jts.Point => Point) {
       }
 
     def in(dest: Projection): Point = 
-      new Projected(projection.to(dest)(underlying), dest)
+      new Projected((projection to dest)(underlying), dest)
   }
 
   /**

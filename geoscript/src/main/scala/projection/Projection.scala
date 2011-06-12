@@ -69,7 +69,7 @@ object Projection {
    *
    * @see http://en.wikipedia.org/wiki/Well-known_text
    */
-  def apply(s: String): Projection = {
+  def apply(s: String): Projection =
     new Projection(
       try {
         CRS.decode(s)
@@ -77,7 +77,6 @@ object Projection {
         case _ => CRS.parseWKT(s)
       }
     )
-  }
 
   /**
    * Create a Projection by wrapping a GeoTools CoordinateReferenceSystem
