@@ -18,7 +18,7 @@ public final class CSS2SLD {
         throw new Exception("You shouldn't be instantiating this class");
     }
 
-    public Style convert(InputStream input) {
+    public static Style convert(InputStream input) {
         return impl.convert(input);
     }
 }
