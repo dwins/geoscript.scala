@@ -345,6 +345,14 @@ trait Geometry {
   def union(that: Geometry): Geometry = 
     Geometry(underlying union that.underlying)
 
+  def mapVertices(op: Point => Point): Geometry = {
+    val geom = underlying.clone().asInstanceOf[jts.Geometry]
+    geom.apply( new jts.CoordinateFilter {
+      def filter(coord: jts.Coordinate) = op(Point(coord)).underlying
+    })
+    Geometry(geom)
+  }
+
   /**
    * Are the coordinates of this geometry in an acceptable order? (no
    * self-intersecting polygons, etc.)
