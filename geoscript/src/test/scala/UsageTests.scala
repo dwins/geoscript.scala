@@ -44,7 +44,10 @@ class UsageTests extends Specification with GeoScript {
   }  
 
   "Layers" should {
-    val statesPath = "src/test/resources/data/states.shp"
+    val statesUri = getClass().getResource("/data/states.shp").toURI
+    require(statesUri.getScheme == "file")
+    val statesPath = new java.io.File(statesUri).getAbsolutePath
+
     "be able to read shapefiles" in {
       val shp = layer.Shapefile(statesPath)
       shp.name must_== "states"
