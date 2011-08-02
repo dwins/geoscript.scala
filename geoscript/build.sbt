@@ -4,6 +4,8 @@ organization := "org.geoscript"
 
 version := "0.7.1"
 
+scalaVersion := "2.9.0-1"
+
 resolvers ++= Seq(
   "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
   "OpenGeo" at "http://repo.opengeo.org/"
@@ -20,7 +22,7 @@ libraryDependencies ++= {
     "org.geotools.jdbc" % "gt-jdbc-spatialite" % gtVersion,
     "net.sf.json-lib" % "json-lib" % "2.3" classifier "jdk15",
     "javax.media" % "jai_core" % "1.1.3",
-    "org.scala-tools.testing" %% "specs" % "1.6.7.2" % "test",
+    "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
     "xml-apis" % "xml-apis-xerces" % "2.7.1" from "http://repo.opengeo.org/xml-apis/xml-apis-xerces/2.7.1/xml-apis-xerces-2.7.1.jar"
   )
 }

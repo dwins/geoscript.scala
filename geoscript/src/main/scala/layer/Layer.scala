@@ -11,7 +11,6 @@ import org.geoscript.feature._
 import org.geoscript.filter._
 import org.geoscript.geometry._
 import org.geoscript.projection._
-import org.geoscript.util.ClosingIterator
 import org.geoscript.workspace.{Directory,Workspace}
 
 /**
