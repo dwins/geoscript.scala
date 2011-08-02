@@ -76,19 +76,25 @@ trait Layer {
    * Add multiple features to this data set.  This should be preferred over
    * repeated use of += when adding multiple features.
    */
-  def ++= (features: Iterable[Feature]) {
+  def ++= (features: Traversable[Feature]) {
     val tx = new gt.data.DefaultTransaction
     val writer = store.getFeatureWriterAppend(name, tx)
 
-    for (f <- features) {
-      val toBeWritten = writer.next()
-      f.writeTo(toBeWritten)
-      writer.write()
+    try {
+      for (f <- features) {
+        val toBeWritten = writer.next()
+        f.writeTo(toBeWritten)
+        writer.write()
+      }
+      tx.commit()
+    } catch {
+      case ex =>
+        tx.rollback()
+        throw ex
+    } finally {
+      writer.close()
+      tx.close()
     }
-
-    writer.close()
-    tx.commit()
-    tx.close()
   }
 
   def -= (feature: Feature) { this --= Seq(feature) }
