@@ -35,4 +35,7 @@ object Filter {
     for (f <- filters) { idList.add(f.underlying) }
     new Wrapper(factory.or(idList))
   }
+
+  implicit def wrap(f: ogc.Filter): Filter = new Wrapper(f)
+  implicit def unwrapped(f: Filter): ogc.Filter = f.underlying
 }

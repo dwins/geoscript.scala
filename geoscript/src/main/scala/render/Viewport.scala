@@ -42,11 +42,12 @@ package render {
       val context = new org.geotools.map.DefaultMapContext()
       for ((data, style) <- layers) {
         context.addLayer(
-          new org.geotools.map.FeatureLayer(data.source, style.unwrapped)
+          new org.geotools.map.FeatureLayer(data.source, style.underlying)
         )
       }
       renderer.setContext(context)
       renderer.paint(graphics, window, bounds)
+      context.dispose()
     }
 
     def render(layers: Seq[(layer.Layer, style.Style)]): RichImage = {

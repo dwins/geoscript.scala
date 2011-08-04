@@ -324,7 +324,7 @@ class FeatureCollection(
   wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature],
   query: gt.data.Query
 ) extends Traversable[Feature] {
-  override def foreach[A](op: Feature => A) {
+  override def foreach[U](op: Feature => U) {
     val iter = wrapped.getFeatures().features()
     try
       while (iter hasNext) op(Feature(iter.next))

@@ -5,11 +5,11 @@ import org.geotools.factory.CommonFactoryFinder.getStyleFactory
 
 package style {
   trait Style {
-    def unwrapped: gt.Style
+    def underlying: gt.Style
   }
 
   class WrappedSLD(raw: gt.Style) extends Style {
-    def unwrapped = raw
+    def underlying = raw
   }
 
   object SLD {
