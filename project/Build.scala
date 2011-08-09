@@ -14,7 +14,8 @@ object MyBuild extends Build {
       sphinxSource <<= baseDirectory.identity,
       sphinxBuild := "sphinx-build",
       sphinxOpts := Nil,
-      sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) map (runSphinx)
+      sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) map (runSphinx),
+      watchSources <<= (baseDirectory, target) map { (b, t) => (b ** "*") --- (t ** "*") get }
     )
   )
 
