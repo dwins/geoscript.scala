@@ -14,13 +14,12 @@ object MyBuild extends Build {
       sphinxSource <<= baseDirectory.identity,
       sphinxBuild := "sphinx-build",
       sphinxOpts := Nil,
-      // doc <<= sphinx.identity,
-      sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) (runSphinx)
+      sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) map (runSphinx)
     )
   )
 
   lazy val sphinx = 
-    SettingKey[java.io.File]("sphinx", "runs sphinx documentation generator")
+    TaskKey[java.io.File]("sphinx", "runs sphinx documentation generator")
   lazy val sphinxBuild = 
     SettingKey[String]("sphinx-build", "command to use when building sphinx")
   lazy val sphinxOpts =
