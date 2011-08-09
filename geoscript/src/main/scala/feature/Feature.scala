@@ -72,7 +72,7 @@ trait Schema {
  * A companion object for Schema that provides various ways of creating Schema
  * instances.
  */
-object Schema{
+object Schema {
   def apply(wrapped: SimpleFeatureType) = {
     new Schema {
       def name = wrapped.getTypeName()

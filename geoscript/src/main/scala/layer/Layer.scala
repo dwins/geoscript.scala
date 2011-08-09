@@ -99,7 +99,7 @@ trait Layer {
 
   def -= (feature: Feature) { this --= Seq(feature) }
 
-  def --= (features: Iterable[Feature]) {
+  def --= (features: Traversable[Feature]) {
     exclude(Filter.or(
       features.toSeq filter { null != } map { f =>  Filter.id(Seq(f.id)) }
     ))

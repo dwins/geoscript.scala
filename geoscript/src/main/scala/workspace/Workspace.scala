@@ -18,20 +18,19 @@ class Workspace(
     val store = underlying
   }
 
-  def create(name: String, fields: Field*): Layer = {
+  def create(name: String, fields: Field*): Layer = create(name, fields) 
+
+  def create(name: String, fields: Traversable[Field]): Layer = {
     val builder = new gt.feature.simple.SimpleFeatureTypeBuilder
     builder.setName(name)
-    for (field <- fields) {
-      field match {
-        case field: GeoField => 
-          builder.crs(field.projection.crs)
-          builder.add(field.name, field.gtBinding)
-        case field => 
-          builder.add(field.name, field.gtBinding)
-      }
+    fields foreach {
+      case field: GeoField =>
+        builder.crs(field.projection.crs)
+        builder.add(field.name, field.gtBinding)
+      case field =>
+        builder.add(field.name, field.gtBinding)
     }
-    val ftype = builder.buildFeatureType()
-    underlying.createSchema(ftype)
+    underlying.createSchema(builder.buildFeatureType())
     layer(name)
   }
    

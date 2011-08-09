@@ -38,10 +38,11 @@ private object ModuleInternals {
       case (x: Number, y: Number, z: Number) =>
         new jts.Coordinate(x.doubleValue(), y.doubleValue(), z.doubleValue())
       case (p: jts.Point) => p.getCoordinate()
+      case (p: Point) => p.underlying.getCoordinate()
       case (coord: jts.Coordinate) => coord
       case other => throw new RuntimeException(
         "Coordinates can only be coerced from numeric tuples or points; " + 
-        "found %s instead.".format(other)
+        "found %s [class %s] instead.".format(other, (other.asInstanceOf[AnyRef]).getClass)
       )
     }
   }
