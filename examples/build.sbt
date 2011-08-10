@@ -9,8 +9,5 @@ resolvers ++= Seq(
   "OpenGeo" at "http://repo.opengeo.org/"
 )
 
-libraryDependencies +=
-    "net.sf.json-lib" % "json-lib" % "2.3" classifier "jdk15"
-
 libraryDependencies <+= 
   (organization, version) apply { _ %% "geoscript" % _ }

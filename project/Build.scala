@@ -8,8 +8,10 @@ object MyBuild extends Build {
   lazy val library = Project("library", file("geoscript")) dependsOn(css)
   lazy val docs = Project(
     "docs", file("docs"),
-    settings = Defaults.defaultSettings ++ Seq(
-      docDirectory <<= target(_ / "doc"),
+    settings = Seq(
+      baseDirectory <<= thisProject(_.base),
+      target <<= baseDirectory / "target",
+      docDirectory <<= target / "doc",
       sphinxDir <<= docDirectory(_ / "sphinx"),
       sphinxSource <<= baseDirectory.identity,
       sphinxBuild := "sphinx-build",
