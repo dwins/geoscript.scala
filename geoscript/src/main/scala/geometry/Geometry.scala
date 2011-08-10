@@ -150,7 +150,7 @@ object Geometry {
   }
 
   def mkJSON(geom: Geometry, writer: java.io.Writer) {
-    val builder = new net.sf.json.util.JSONBuilder(writer)
+    val builder = new org.json.JSONWriter(writer)
     val obj = builder.`object`()
     obj
       .key("type")
