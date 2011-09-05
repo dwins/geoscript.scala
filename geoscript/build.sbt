@@ -23,7 +23,9 @@ libraryDependencies ++= {
     "org.json" % "json" % "20090211",
     "javax.media" % "jai_core" % "1.1.3",
     "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
-    "xml-apis" % "xml-apis-xerces" % "2.7.1" from "http://repo.opengeo.org/xml-apis/xml-apis-xerces/2.7.1/xml-apis-xerces-2.7.1.jar"
+    "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
+    "xml-apis" % "xml-apis-xerces" % "2.7.1" from "http://repo.opengeo.org/xml-apis/xml-apis-xerces/2.7.1/xml-apis-xerces-2.7.1.jar",
+    "com.lowagie" % "itext" % "2.1.5"
   )
 }
 
