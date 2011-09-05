@@ -2,7 +2,8 @@ import sbt._
 import Keys._
 
 object MyBuild extends Build {
-  lazy val root = Project("root", file(".")) aggregate(css, docs, library)
+  lazy val root =
+    Project("root", file(".")) aggregate(css, docs, examples, library)
   lazy val css = Project("css", file("geocss"))
   lazy val examples = Project("examples", file("examples")) dependsOn(library)
   lazy val library = Project("library", file("geoscript")) dependsOn(css)

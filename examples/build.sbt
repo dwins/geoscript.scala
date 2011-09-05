@@ -4,6 +4,8 @@ organization := "org.geoscript"
 
 version := "0.7.1"
 
+scalaVersion := "2.9.0-1"
+
 resolvers ++= Seq(
   "OSGeo" at "http://download.osgeo.org/webdav/geotools/",
   "OpenGeo" at "http://repo.opengeo.org/"
