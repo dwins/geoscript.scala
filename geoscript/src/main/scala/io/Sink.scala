@@ -28,6 +28,12 @@ object Sink {
       }
     }
 
+  def string: Sink[String] =
+    new Sink[String] { // TODO: Needs better text support
+      def apply(op: OutputStream => Unit) = 
+        buffer(op).view.map(_.toChar).mkString
+    }
+
   def buffer: Sink[Array[Byte]] =
     new Sink[Array[Byte]] {
       def apply(op: OutputStream => Unit) = {
