@@ -1,5 +1,7 @@
 package org.geoscript
 
+import io._
+
 import collection.JavaConversions._
 import com.vividsolutions.jts.{geom=>jts}
 import java.awt.{ Graphics2D, Rectangle, RenderingHints }
@@ -26,41 +28,6 @@ package render {
       graphics.dispose()
       image
     }
-  }
-
-  trait Streamable[T] { 
-    def apply(op: java.io.OutputStream => Unit): T
-  }
-
-  object Streamable {
-    implicit def stream(out: java.io.OutputStream): Streamable[Unit] =
-      new Streamable[Unit] { 
-        def apply(op: java.io.OutputStream => Unit) = op(out)
-      }
-
-    implicit def file(name: String): Streamable[java.io.File] =
-      file(new java.io.File(name))
-
-    implicit def file(file: java.io.File): Streamable[java.io.File] =
-      new Streamable[java.io.File] { 
-        def apply(op: java.io.OutputStream => Unit) = {
-          val output = new java.io.BufferedOutputStream(new java.io.FileOutputStream(file))
-          stream(output)(op)
-          output.close()
-
-          file
-        }
-      }
-
-    def buffer: Streamable[Array[Byte]] =
-      new Streamable[Array[Byte]] {
-        def apply(op: java.io.OutputStream => Unit) = {
-          val output = new java.io.ByteArrayOutputStream
-          stream(output)(op)
-          output.close()
-          output.toByteArray
-        }
-      }
   }
 
   trait Renderable extends ((Graphics2D, Rectangle) => Unit) {
@@ -153,7 +120,7 @@ package render {
 }
 
 package object render {
-  def PNG[T](sink: Streamable[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
+  def PNG[T](sink: Sink[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
     new Context[T] { 
       def apply(draw: (Graphics2D, Rectangle) => Unit): T = {
         import java.awt.image.BufferedImage
@@ -169,7 +136,7 @@ package object render {
       }
     }
 
-  def JPEG[T](sink: Streamable[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
+  def JPEG[T](sink: Sink[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
     new Context[T] { 
       def apply(draw: (Graphics2D, Rectangle) => Unit): T = {
         import java.awt.image.BufferedImage
@@ -185,7 +152,7 @@ package object render {
       }
     }
 
-  def GIF[T](sink: Streamable[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
+  def GIF[T](sink: Sink[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
     new Context[T] { 
       def apply(draw: (Graphics2D, Rectangle) => Unit): T = {
         import java.awt.image.BufferedImage
@@ -197,11 +164,11 @@ package object render {
         val graphics = image.createGraphics()
         draw(graphics, window)
         graphics.dispose()
-        sink { out => javax.imageio.ImageIO.write(image, "GIF", out) }
+        sink { javax.imageio.ImageIO.write(image, "GIF", _) }
       }
     }
 
-  def PDF[T](sink: Streamable[T],
+  def PDF[T](sink: Sink[T],
     pageDimensions: (Float, Float) = (8.5f * 72, 11f * 72),
     dpi: Float = 96f
   ): Context[T] =
@@ -209,7 +176,7 @@ package object render {
       import com.lowagie.{ text => itext } 
       def apply(draw: (Graphics2D, Rectangle) => Unit): T = {
         sink { output => 
-            val (width, height) = pageDimensions
+          val (width, height) = pageDimensions
           val document =
             new itext.Document(new itext.Rectangle(width + 72, height + 72))
           document setMargins(0,0,0,0) // margins in pt, divide by 72 for inches 
@@ -223,8 +190,6 @@ package object render {
 
           val paintArea = new java.awt.Rectangle(0, 0, width.toInt, height.toInt)
 
-          // graphic.clipRect(36, 36, width.toInt, height.toInt)
-          // graphic.translate(36, 36)
           draw(graphic, paintArea)
           graphic.dispose()
           content.addTemplate(template, 0, 0)
