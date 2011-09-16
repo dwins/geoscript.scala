@@ -64,11 +64,10 @@ import org.geotools.xml.{ Parser, Encoder }
 import org.geotools.gml2
 
 object GML extends Writer[Geometry] {
-  val configuration = new gml2.GMLConfiguration
-  val encoder = new Encoder(configuration)
-  val nsUri = configuration.getNamespaceURI
-
   def write[T](g: Geometry, sink: Sink[T]): T = {
+    val configuration = new gml2.GMLConfiguration
+    val encoder = new Encoder(configuration)
+    val nsUri = configuration.getNamespaceURI
     val qname = new javax.xml.namespace.QName(nsUri, g.getGeometryType)
     sink { encoder.encode(g.underlying, qname, _) }
   }

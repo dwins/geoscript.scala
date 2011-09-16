@@ -1,17 +1,26 @@
 package org.geoscript
 package viewer
 
-import geometry._, layer._, render._, style._
+import geometry._, layer._, math._, render._, style._
 
 import org.geotools.geometry.jts.LiteShape
-import math._
+import java.awt.{ Graphics2D, RenderingHints }
+import scala.collection.JavaConversions._
 
 private class MapWidget extends swing.Component {
-  var viewport: Viewport = Viewport(Bounds(-180, -90, 180, 90) in "EPSG:4326")
-  var layers: Seq[(Layer, Style)] = Nil
+  var viewport: Bounds =  Bounds(-180, -90, 180, 90) in "EPSG:4326"
+  var layers: Seq[SpatialRenderable] = Nil
 
-  override def paint(graphics: swing.Graphics2D) {
-    viewport.render(layers).on(Direct(graphics, bounds))
+  override def paint(graphics: swing.Graphics2D) = {
+    locally { import RenderingHints._
+      graphics.setRenderingHints(new RenderingHints(Map(
+        KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
+        KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON
+      )))
+    }
+    import org.geoscript.render.Viewport.pad
+    val displayBounds = pad(viewport, (bounds.width, bounds.height))
+    render(pad(viewport), layers) on Direct(graphics, bounds)
   }
 }
 
@@ -22,20 +31,22 @@ private class MapWidget extends swing.Component {
 object Viewer {
   private var window: Option[(swing.Window, MapWidget)] = None
 
-  def display(layers: Seq[(Layer, Style)]) {
+  def display(layers: Seq[SpatialRenderable]) {
     window match {
       case Some((frame, map)) =>
         map.layers = layers
         frame.repaint()
       case None =>
         swing.Swing.onEDT { 
-          val frame = new swing.Frame()
+          val frame = new swing.MainFrame()
           val mapViewer = new MapWidget()
           mapViewer.layers = layers
-          mapViewer.viewport = Viewport(layers.head._1.bounds) // TODO: Put a sweet fold here
-          frame.size = new swing.Dimension(500, 500)
+          layers.flatMap(_.definitionExtent).reduceOption(_ expand _).foreach {
+            mapViewer.viewport = _
+          }
           frame.visible = true
           frame.contents = mapViewer
+          frame.size = new swing.Dimension(500, 500)
           Viewer.synchronized {
             window = Some((frame, mapViewer))
           }

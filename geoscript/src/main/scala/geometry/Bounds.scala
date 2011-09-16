@@ -98,6 +98,19 @@ trait Bounds extends Polygon {
       ) in projection
     }) toIterable
 
+  def expand(that: Bounds): Bounds = {
+    import math.{ min, max }
+    val result = 
+      Bounds(
+        min(this.minX, that.minX), min(this.minY, that.minY),
+        max(this.maxX, that.maxX), max(this.maxY, that.maxY)
+      )
+    if (projection != null)
+      result in projection
+    else
+      result
+  }
+
   override def in(dest: Projection): Bounds
   override def transform(dest: Projection): Bounds = null
   override def toString =

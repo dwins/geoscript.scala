@@ -62,7 +62,10 @@ object Point extends (jts.Point => Point) {
       ModuleInternals.factory.createPoint(new jts.Coordinate(x, y))
     )
 
-  def apply(tuple: (Double, Double)): Point = apply(tuple._1, tuple._2)
+  implicit def fromPairOfCoordinates[N : Numeric](tuple: (N, N)): Point = {
+    val ops = implicitly[Numeric[N]]
+    apply(ops.toDouble(tuple._1), ops.toDouble(tuple._2))
+  }
 
   def apply(tuple: (Double, Double, Double)): Point = 
     apply(tuple._1, tuple._2, tuple._3)

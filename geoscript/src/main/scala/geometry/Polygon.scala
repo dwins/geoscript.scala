@@ -80,6 +80,9 @@ object Polygon extends (jts.Polygon => Polygon) {
         } toArray
       )  
     )
+
+  def apply[C <% Point](shell: Seq[C], holes: Seq[Seq[C]]): Polygon = 
+    apply(LineString(shell: _*), holes map (h => LineString(h: _*)))
 }
 
 /**

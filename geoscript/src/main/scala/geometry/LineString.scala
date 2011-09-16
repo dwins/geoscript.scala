@@ -57,15 +57,10 @@ object LineString {
       new Projected(projection.to(dest)(underlying), dest)
   }
 
-  def apply(coords: Iterable[Point]): LineString = 
-    new Wrapper(ModuleInternals.factory.createLineString(
-      (coords map (_.underlying.getCoordinate()) toSeq).toArray
-    ))
-
   /**
    * Create a LineString from JTS Coordinates.
    */
-  def apply(coords: Point*): LineString =
+  def apply[C <% Point](coords: C*): LineString =
     new Wrapper(ModuleInternals.factory.createLineString(
       (coords map (_.underlying.getCoordinate()) toSeq).toArray
     ))

@@ -5,14 +5,16 @@ import io._
 import collection.JavaConversions._
 import com.vividsolutions.jts.{geom=>jts}
 import java.awt.{ Graphics2D, Rectangle, RenderingHints }
+import geometry.Bounds
 
 package render {
   trait Context[T] {
     def apply(op: (Graphics2D, Rectangle) => Unit): T
   }
 
-  case class Direct(graphics: Graphics2D, bounds: Rectangle) extends Context[Unit] {
-    def apply(op: (Graphics2D, Rectangle) => Unit): Unit = op(graphics, bounds)
+  case class Direct(graphics: Graphics2D, window: Rectangle) extends Context[Unit] {
+    def apply(op: (Graphics2D, Rectangle) => Unit): Unit =
+      op(graphics, window)
   }
 
   case class Raster(area: Rectangle) extends Context[java.awt.image.BufferedImage] {
@@ -38,35 +40,57 @@ package render {
   object Renderable {
     def apply(op: (Graphics2D, Rectangle) => Unit) = 
       new Renderable {
-        def apply(g: Graphics2D, r: Rectangle) = op(g, r)
+        def apply(graphics: Graphics2D, window: Rectangle) =
+          op(graphics, window)
       }
+
+    def chain(renderables: Seq[Renderable]) = Renderable { (g, w) =>
+      renderables.foreach(_ apply (g, w))
+    }
   }
 
-  case class Viewport(bounds: geometry.Bounds) {
-    private def draw(
-      graphics: java.awt.Graphics2D,
-      layers: Seq[(layer.Layer, style.Style)],
-      window: java.awt.Rectangle
-    ) {
-      import RenderingHints._
-      val renderer = new org.geotools.renderer.lite.StreamingRenderer()
-      renderer.setJava2DHints(new RenderingHints(Map(
-        KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
-        KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON
-      )))
-      val context = new org.geotools.map.DefaultMapContext()
-      for ((data, style) <- layers) {
-        context.addLayer(
-          new org.geotools.map.FeatureLayer(data.source, style.underlying)
-        )
-      }
-      renderer.setContext(context)
-      renderer.paint(graphics, window, bounds)
-      context.dispose()
-    }
+  trait SpatialRenderable extends (Bounds => Renderable) {
+    def definitionExtent: Option[Bounds]
+  }
 
-    def render(layers: Seq[(layer.Layer, style.Style)]): Renderable =
-      Renderable { draw(_, layers, _) } 
+  object SpatialRenderable {
+    implicit def fromGeometry(g: geometry.Geometry) =
+      new SpatialRenderable {
+        def definitionExtent: Option[Bounds] = Some(g.bounds)
+        def apply(bounds: Bounds) =
+          Renderable { (graphics, window) =>
+            import geometry.Transform
+            val tx = Transform
+              .translate(-bounds.minX, -bounds.minY)
+              .scale(window.width / bounds.width.toDouble, window.height / bounds.height.toDouble)
+              .translate(0, -window.height)
+              .scale(1, -1)
+            graphics.draw(new org.geotools.geometry.jts.LiteShape(tx(g).underlying, null, false))
+          }
+      }
+
+    implicit def fromStyledLayer(t: (layer.Layer, style.Style)) =
+      new SpatialRenderable {
+        val (layer, style) = t
+        def definitionExtent: Option[Bounds] = Some(layer.bounds)
+        def apply(bounds: Bounds): Renderable = 
+          Renderable { (graphics, window) =>
+            val renderer = new org.geotools.renderer.lite.StreamingRenderer()
+            locally { import RenderingHints._
+              renderer.setJava2DHints(new RenderingHints(Map(
+                KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
+                KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON
+              )))
+            }
+            val context = new org.geotools.map.DefaultMapContext()
+            context.addLayer(
+              new org.geotools.map.FeatureLayer(layer.source, style.underlying)
+            )
+            renderer.setContext(context)
+            renderer.paint(graphics, window, bounds)
+            context.dispose()
+          }
+      }
   }
 
   object Viewport {
@@ -76,7 +100,7 @@ package render {
      * fits within the given size.
      */
     def frame(
-      envelope: geometry.Bounds,
+      envelope: Bounds,
       maximal: (Int, Int) = (500, 500)
     ): java.awt.Rectangle = {
       val aspect = envelope.height / envelope.width
@@ -93,22 +117,22 @@ package render {
      * area, expand the envelope so that it matches the aspect ratio of the
      * desired viewing window.  The center of the envelope is preserved.
      */
-    def pad(envelope: geometry.Bounds, window: (Int, Int) = (500, 500))
-    : geometry.Bounds = {
+    def pad(envelope: Bounds, window: (Int, Int) = (500, 500))
+    : Bounds = {
       val aspect = envelope.height / envelope.width
-      val idealAspect = window._2 / window._1
+      val idealAspect = window._2.toDouble / window._1
       val padded = (
         if (aspect < idealAspect) {
           val height = envelope.height * (idealAspect/aspect)
-          geometry.Bounds(
-            envelope.minX, envelope.centre.y - height/2,
-            envelope.maxX, envelope.centre.y + height/2
+          Bounds(
+            envelope.minX, envelope.centre.y - height/2d,
+            envelope.maxX, envelope.centre.y + height/2d
           )
         } else {
           val width = envelope.width * (aspect/idealAspect)
-          geometry.Bounds(
-            envelope.centre.x - width/2, envelope.minY,
-            envelope.centre.x + width/2, envelope.maxY
+          Bounds(
+            envelope.centre.x - width/2d, envelope.minY,
+            envelope.centre.x + width/2d, envelope.maxY
           )
         }
       )
@@ -197,4 +221,8 @@ package object render {
         }
       }
     }
+
+
+  def render(bounds: Bounds, layers: Seq[SpatialRenderable]): Renderable =
+    Renderable.chain(layers.map(_ apply bounds))
 }

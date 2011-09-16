@@ -28,6 +28,16 @@ object Source {
       }
     }
 
+  def string(data: String): Source =
+    new Source {
+      def apply[T](op: InputStream => T): T = {
+        val input = new java.io.StringBufferInputStream(data)
+        val res = stream(input)(op)
+        input.close()
+        res
+      }
+    }
+
   def buffer(data: Array[Byte]): Source =
     new Source {
       def apply[T](op: InputStream => T): T = {

@@ -136,16 +136,12 @@ case class CompositeStyle(styles: Seq[Style]) extends Style {
 }
 
 object Paint {
-  val NamedColors = Map(
-    "red"   -> "#FF0000",
-    "green" -> "#00FF00",
-    "blue"  -> "#0000FF"
-  )
+  import geocss.CssOps.colors
 
   implicit def stringToPaint(colorName: String): Paint =
-    if (NamedColors contains colorName)
-      Color(NamedColors(colorName))
-    else if (colorName matches ".*") // TODO: regex for hex color codes
+    if (colors contains colorName)
+      Color(colors(colorName))
+    else if (colorName matches "#[a-fA-F0-9]{6}") // TODO: regex for hex color codes
       Color(colorName)
     else
       Color("#000000")
