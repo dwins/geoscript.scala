@@ -83,6 +83,9 @@ object MultiLineString {
     new Wrapper(ModuleInternals.factory.createMultiLineString(
       lines map (_.underlying) toArray
     ))
+
+  def apply[C <% Point](lines: Seq[C]*): MultiLineString =
+    apply(lines map (x => LineString(x: _*)): _*)
 }
 
 /**

@@ -3,7 +3,6 @@ package org.geoscript.feature
 import com.vividsolutions.jts.{geom => jts}
 import org.geoscript.geometry._
 import org.geoscript.projection._
-import org.geoscript.util.ClosingIterator
 import org.{geotools => gt}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
@@ -73,7 +72,7 @@ trait Schema {
  * A companion object for Schema that provides various ways of creating Schema
  * instances.
  */
-object Schema{
+object Schema {
   def apply(wrapped: SimpleFeatureType) = {
     new Schema {
       def name = wrapped.getTypeName()
@@ -324,17 +323,12 @@ object Feature {
 class FeatureCollection(
   wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature],
   query: gt.data.Query
-) extends Iterable[Feature] {
-  override def iterator: Iterator[Feature] = {
-    val collection = wrapped.getFeatures()
-    val raw = collection.features()
-    val rawIter = new Iterator[Feature] {
-      def hasNext = raw.hasNext
-      def next = Feature(raw.next)
-    }
-
-    new ClosingIterator(rawIter) {
-      def close() { raw.close() }
-    }
+) extends Traversable[Feature] {
+  override def foreach[U](op: Feature => U) {
+    val iter = wrapped.getFeatures().features()
+    try
+      while (iter hasNext) op(Feature(iter.next))
+    finally
+      iter.close()
   }
 }

@@ -5,8 +5,7 @@ import feature._
 import layer._
 import projection._
 
-object Shp2Shp extends GeoScript {
-  def main(args: Array[String]) {
+object Shp2Shp extends App with GeoScript {
     val List(sourcefile, destname, proj) = args.toList take 3
     val source = Shapefile(sourcefile)
     val destSchema = Schema(destname,
@@ -19,5 +18,4 @@ object Shp2Shp extends GeoScript {
     dest ++= source.features map { f =>
       f.update(destSchema.geometry.name -> (f.geometry in proj))
     }
-  }
 }

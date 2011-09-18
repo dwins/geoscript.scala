@@ -38,10 +38,11 @@ private object ModuleInternals {
       case (x: Number, y: Number, z: Number) =>
         new jts.Coordinate(x.doubleValue(), y.doubleValue(), z.doubleValue())
       case (p: jts.Point) => p.getCoordinate()
+      case (p: Point) => p.underlying.getCoordinate()
       case (coord: jts.Coordinate) => coord
       case other => throw new RuntimeException(
         "Coordinates can only be coerced from numeric tuples or points; " + 
-        "found %s instead.".format(other)
+        "found %s [class %s] instead.".format(other, (other.asInstanceOf[AnyRef]).getClass)
       )
     }
   }
@@ -75,8 +76,6 @@ object EndCap {
  * objects, including translating from JTS Geometries to GeoScript Geometries.
  */
 object Geometry {
-  private val wktReader = new com.vividsolutions.jts.io.WKTReader()
-
   val typeMapping = List(
     classOf[Point] -> classOf[jts.Point],
     classOf[Polygon] -> classOf[jts.Polygon],
@@ -136,88 +135,6 @@ object Geometry {
    */
   def apply(geom: jts.Geometry, proj: Projection): Geometry =
     apply(geom) in proj
-
-  /**
-   * Create a GeoScript Geometry based on a string containing WKT text.
-   */
-  def fromWKT(wkt: String): Geometry = apply(wktReader.read(wkt))
-
-  def toJSON(geom: Geometry): String = {
-    val writer = new java.io.StringWriter
-    mkJSON(geom, writer)
-    writer.toString()
-  }
-
-  def mkJSON(geom: Geometry, writer: java.io.Writer) {
-    val builder = new net.sf.json.util.JSONBuilder(writer)
-    val obj = builder.`object`()
-    obj
-      .key("type")
-      .value(geom match {
-        case _: Point => "Point"
-        case _: MultiPoint => "MultiPoint"
-        case _: LineString => "LineString"
-        case _: MultiLineString => "MultiLineString"
-        case _: Polygon => "Polygon"
-        case _: MultiPolygon => "MultiPolygon"
-        case _: GeometryCollection => "GeometryCollection"
-      })
-
-    if (geom.projection != null) {
-      obj
-        .key("crs")
-        .value(geom.projection.toString())
-    }
-
-    def encodeCoordinates(geom: Geometry) {
-      geom match {
-        case p: Point => 
-          obj
-            .array()
-            .value(p.x)
-            .value(p.y)
-            .endArray()
-        case mp: MultiPoint =>
-          obj.array()
-          mp.members.foreach(encodeCoordinates)
-          obj.endArray()
-        case ls: LineString =>
-          obj.array()
-          ls.vertices.foreach(encodeCoordinates)
-          obj.endArray()
-        case mls: MultiLineString =>
-          obj.array()
-          mls.members.foreach(encodeCoordinates)
-          obj.endArray()
-        case p: Polygon =>
-          obj.array()
-          p.rings.foreach(encodeCoordinates)
-          obj.endArray()
-        case mp: MultiPolygon =>
-          obj.array()
-          mp.members.foreach(encodeCoordinates)
-          obj.endArray()
-      }
-    }
-
-    geom match {
-      case col: GeometryCollection => 
-        obj.key("geometries")
-        obj.array()
-        var first = true
-        for (g <- col.members) {
-          if (first) first = false
-          else       writer.write(",")
-          mkJSON(g, writer)
-        }
-        obj.endArray()
-      case geom => 
-        obj.key("coordinates")
-        encodeCoordinates(geom)
-    }
-
-    builder.endObject()
-  }
 }
 
 /**
@@ -344,6 +261,14 @@ trait Geometry {
    */
   def union(that: Geometry): Geometry = 
     Geometry(underlying union that.underlying)
+
+  def mapVertices(op: Point => Point): Geometry = {
+    val geom = underlying.clone().asInstanceOf[jts.Geometry]
+    geom.apply( new jts.CoordinateFilter {
+      def filter(coord: jts.Coordinate) = op(Point(coord)).underlying
+    })
+    Geometry(geom)
+  }
 
   /**
    * Are the coordinates of this geometry in an acceptable order? (no

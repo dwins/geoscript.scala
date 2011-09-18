@@ -1,9 +1,13 @@
 states {
   label: [STATE_ABBR];
+  label-anchor: 50% 50%;
+  label-offset: 0 0;
+  font-fill: black;
   geometry: [the_geom];
   stroke: black;
-  stroke-width: [PERSONS/1000000];
+  stroke-width: 3;
   fill-opacity: 0.7;
+  /* stroke-z-index: 10; */
 }
 
 /* the parser used to extract titles from the first comment in a run, but it
