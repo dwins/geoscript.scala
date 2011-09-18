@@ -9,6 +9,7 @@ class SLDTest extends Specification with util.DataTables {
   def css2sld2dom(filename: String) = {
     val url = getClass.getResource(filename)
     val stream = getClass.getResourceAsStream(filename)
+    require(stream != null, "Failed to load " + url)
     val styleSheet = CssParser.parse(stream).get
     val style = new Translator(Some(url)).css2sld(styleSheet)
     val bos = new java.io.ByteArrayOutputStream
