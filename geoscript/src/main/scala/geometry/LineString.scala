@@ -60,7 +60,7 @@ object LineString {
   /**
    * Create a LineString from JTS Coordinates.
    */
-  def apply[C <% Point](coords: C*): LineString =
+  def apply(coords: Point*): LineString =
     new Wrapper(ModuleInternals.factory.createLineString(
       (coords map (_.underlying.getCoordinate()) toSeq).toArray
     ))

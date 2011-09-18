@@ -69,9 +69,9 @@ object MultiPoint {
    * Create a MultiPoint from a list of input objects.  These objects can be
    * Points, JTS Points, JTS Coordinates, or tuples of numeric types.
    */
-  def apply(coords: Seq[Any]): MultiPoint =
+  def apply(coords: Point*): MultiPoint =
     new Wrapper(ModuleInternals.factory.createMultiPoint( 
-      (coords map ModuleInternals.coerceCoord).toArray
+      (coords map (_.underlying)).toArray
     )) 
 }
 
