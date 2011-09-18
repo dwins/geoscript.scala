@@ -144,17 +144,17 @@ package render {
 }
 
 package object render {
-  def PNG[T](sink: Sink[T], window: Rectangle = new Rectangle(0, 0, 500, 500)): Context[T] =
+  def PNG[T](sink: Sink[T], window: (Int, Int) = (500, 500)): Context[T] =
     new Context[T] { 
       def apply(draw: (Graphics2D, Rectangle) => Unit): T = {
         import java.awt.image.BufferedImage
+        val (width, height) = window
         val image = new BufferedImage(
-          window.width,
-          window.height,
+          width, height,
           BufferedImage.TYPE_INT_ARGB
         )
         val graphics = image.createGraphics()
-        draw(graphics, window)
+        draw(graphics, new Rectangle(0, 0, width, height))
         graphics.dispose()
         sink { out => javax.imageio.ImageIO.write(image, "PNG", out) }
       }
