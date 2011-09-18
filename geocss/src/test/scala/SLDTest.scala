@@ -29,7 +29,7 @@ class SLDTest extends Specification with util.DataTables {
     )
     val width =
       css.filter(_.attribute("name").get.text == ("stroke-width")).head
-    (width \\ "Div") must notBeEmpty
+    width.text.trim must_== "3" 
   }
 
   "The minimal properties required to activate each type of symbolizer" in {

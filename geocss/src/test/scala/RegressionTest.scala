@@ -81,9 +81,9 @@ class Regressions extends Specification {
     val styleSheet = CssParser.parse(in("/states.css")).get
     val rules = styleSheet 
 
-    val strokeWidth = rules(0).properties(3)
-    strokeWidth.name must_== ("stroke-width")
-    strokeWidth.values(0)(0) must_== (Expression("PERSONS/1000000"))
+    rules(0).properties must exist(_.name == "stroke-width")
+    val Some(strokeWidth) = rules(0).properties.find(_.name == "stroke-width")
+    strokeWidth.values(0)(0) must_== Literal("3")
   }
 
   "Hatched strokes should be passed through" in {
