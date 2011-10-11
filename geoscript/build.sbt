@@ -25,10 +25,14 @@ libraryDependencies ++= {
     "javax.media" % "jai_core" % "1.1.3",
     "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
     "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
-    "xml-apis" % "xml-apis-xerces" % "2.7.1" from "http://repo.opengeo.org/xml-apis/xml-apis-xerces/2.7.1/xml-apis-xerces-2.7.1.jar",
     "com.lowagie" % "itext" % "2.1.5"
   )
 }
+
+ivyXML :=
+  <dependencies>
+    <exclude org="xml-apis" name="xml-apis-xerces" rev="2.7.1"/>
+  </dependencies>
 
 libraryDependencies <+= scalaVersion { "org.scala-lang" % "scala-swing" % _ }
 
