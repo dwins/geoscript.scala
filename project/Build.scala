@@ -16,15 +16,12 @@ object GeoScript extends Build {
     Seq[Setting[_]](
       resolvers ++= Seq(
         "opengeo" at "http://repo.opengeo.org/",
-        "osgeo" at "http://download.osgeo.org/webdav/geotools/",
-        "Local Maven Repository" at ("file://"+Path.userHome.absolutePath+"/.m2/repository")
+        "osgeo" at "http://download.osgeo.org/webdav/geotools/"
       ),
       ivyXML <<= gtVersion ( v =>
         <dependencies>
-          <dependency org="org.geotools" name="gt-xml" rev={v}>
-            <exclude org="xml-apis" name="xml-apis-xerces"/>
-            <exclude org="xml-apis" name="xml-apis"/>
-          </dependency>
+          <exclude org="xml-apis" name="xml-apis-xerces"/>
+          <exclude org="xml-apis" name="xml-apis"/>
         </dependencies>
       )
     ) ++ meta ++ defaultSettings
