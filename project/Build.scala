@@ -1,12 +1,44 @@
-import sbt._
-import Keys._
+import sbt._, Keys._, Defaults.defaultSettings
 
-object MyBuild extends Build {
+object GeoScript extends Build {
+  lazy val gtVersion = 
+    SettingKey[String]("gt-version", "Version number for GeoTools modules")
+
+  val meta =
+    Seq[Setting[_]](
+      organization := "org.geoscript",
+      version := "0.7.1",
+      gtVersion := "8-SNAPSHOT",
+      scalaVersion := "2.9.0-1"
+    )
+
+  val common = 
+    Seq[Setting[_]](
+      resolvers ++= Seq(
+        "opengeo" at "http://repo.opengeo.org/",
+        "osgeo" at "http://download.osgeo.org/webdav/geotools/",
+        "Local Maven Repository" at ("file://"+Path.userHome.absolutePath+"/.m2/repository")
+      ),
+      ivyXML <<= gtVersion ( v =>
+        <dependencies>
+          <dependency org="org.geotools" name="gt-xml" rev={v}>
+            <exclude org="xml-apis" name="xml-apis-xerces"/>
+            <exclude org="xml-apis" name="xml-apis"/>
+          </dependency>
+        </dependencies>
+      )
+    ) ++ meta ++ defaultSettings
+
   lazy val root =
     Project("root", file(".")) aggregate(css, docs, examples, library)
-  lazy val css = Project("css", file("geocss"))
-  lazy val examples = Project("examples", file("examples")) dependsOn(library)
-  lazy val library = Project("library", file("geoscript")) dependsOn(css)
+  lazy val css = 
+    Project("css", file("geocss"), settings = common)
+  lazy val examples = 
+    Project("examples", file("examples"), settings = common) dependsOn(library)
+  lazy val library =
+    Project("library", file("geoscript"), settings = common) dependsOn(css, dummy)
+  lazy val dummy = 
+    Project("dummy", file("dummy"), settings = meta ++ defaultSettings)
   lazy val docs = Project(
     "docs", file("docs"),
     settings = Seq(
@@ -19,7 +51,7 @@ object MyBuild extends Build {
       sphinxOpts := Nil,
       sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) map (runSphinx),
       watchSources <<= (baseDirectory, target) map { (b, t) => (b ** "*") --- (t ** "*") get }
-    )
+    ) ++ meta
   )
 
   lazy val sphinx = 
