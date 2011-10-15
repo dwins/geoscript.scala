@@ -56,10 +56,10 @@ class SLDTest extends Specification with util.DataTables {
       "WellKnownName").head.text must_== "star"
 
     (minimal \\ "Rule" \ "TextSymbolizer") must haveSize(1)
-    (minimal \\ "Rule" \ "TextSymbolizer" \ "Label"
-      \ "Literal").head.text must_== ("Label")
-    (minimal \\ "Rule" \ "TextSymbolizer" \ "Halo" \ "Radius")
-      .head.text.trim must_== "2"
+    val textSym = (minimal \\ "Rule" \ "TextSymbolizer").head;
+    (textSym \ "Label") must haveSize(1)
+    (textSym \ "Label").text must_== ("Label")
+    (textSym \ "Halo" \ "Radius").head.text.trim.toDouble must_== 2d
   }
 
   "All properties that can be used outside of marks" in {
@@ -80,7 +80,7 @@ class SLDTest extends Specification with util.DataTables {
       .get.text must_== ("http://example.com/example.png")
     (polyGraphic \ "ExternalGraphic" \ "Format").text must_== ("image/png")
     (polyGraphic \ "Size").text.trim must_== ("32")
-    (polyGraphic \ "Rotation").text.trim must_== ("12")
+    (polyGraphic \ "Rotation").text.trim.toDouble must_== 12d
 
     val linesyms = (comprehensive \\ "Rule" \ "LineSymbolizer")
     linesyms must haveSize(1)
@@ -107,7 +107,7 @@ class SLDTest extends Specification with util.DataTables {
       .attribute("http://www.w3.org/1999/xlink", "href")
       .get.text must_== ("http://example.com/example.gif")
     (lineGraphic \ "ExternalGraphic" \ "Format").text.trim must_== ("image/gif")
-    (lineGraphic \ "Rotation").text.trim must_== ("12")
+    (lineGraphic \ "Rotation").text.trim.toDouble must_== 12d
 
     val pointsyms = comprehensive \\ "Rule" \ "PointSymbolizer"
     pointsyms must haveSize(1)
@@ -116,7 +116,7 @@ class SLDTest extends Specification with util.DataTables {
     (pointgraphic \ "Opacity")
       .text.trim.toDouble must be closeTo(0.7 +/- 0.0001)
     (pointgraphic \ "Size").text.trim must_== ("16")
-    (pointgraphic \ "Rotation").text.trim must_== ("12")
+    (pointgraphic \ "Rotation").text.trim.toDouble must_== 12d
 
     val textsyms = comprehensive \\ "Rule" \ "TextSymbolizer"
     textsyms.length must_== (1)
@@ -290,7 +290,7 @@ class SLDTest extends Specification with util.DataTables {
     "rotation property is encoded" >> {
       val rotatedSquare = css2sld2dom("/cookbook/point_rotatedsquare.css")
       rotatedSquare \\ "Graphic" \ "Rotation" must haveSize(1)
-      (rotatedSquare \\ "Graphic" \ "Rotation").text.trim must_== ("45")
+      (rotatedSquare \\ "Graphic" \ "Rotation").text.trim.toDouble must_== 45d
     }
   }
 
