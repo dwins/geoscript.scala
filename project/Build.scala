@@ -7,9 +7,9 @@ object GeoScript extends Build {
   val meta =
     Seq[Setting[_]](
       organization := "org.geoscript",
-      version := "0.7.1",
+      version := "0.7.3",
       gtVersion := "8-SNAPSHOT",
-      scalaVersion := "2.9.0-1"
+      scalaVersion := "2.9.1"
     )
 
   val common = 
