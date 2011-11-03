@@ -120,12 +120,28 @@ trait Field {
  * normal fields.
  */
 trait GeoField extends Field {
-  override def binding: Class[_ <: Geometry]
-  override def gtBinding: Class[_ <: jts.Geometry] = Geometry.jtsClass(binding)
+  override def binding: Class[_]
+  override def gtBinding: Class[_]
   /**
    * The Projection used for this field's geometry.
    */
   def projection: Projection
+
+  def copy(projection: Projection): GeoField = {
+    val n = name
+    val b = binding
+    val gb = gtBinding
+    val p = projection
+
+    new GeoField {
+      val name = n
+      override val binding = b
+      override val gtBinding = gb
+      val projection = p
+    }
+  }
+
+  override def toString = "%s: %s [%s]".format(name, binding.getSimpleName, projection)
 }
 
 /**
@@ -160,37 +176,18 @@ object Field {
     }
   }
 
-  /**
-   * Create a GeoField from a name and a Geometry type. Note that you need to
-   * pass in the geometry <em>class</em>, not a companion object.  For example: 
-   * <pre>
-   * val geoProp = Field("the_geom", classOf[Point], Projection("epsg:26912"))
-   * </pre>
-   */
-  def apply(n: String, b: Class[_ <: Geometry], p: Projection): GeoField = 
+  def apply[G : BoundGeometry](n: String, b: Class[G], p: Projection): GeoField =
     new GeoField {
       def name = n
-      def binding = b
+      def binding = implicitly[BoundGeometry[G]].binding
       def projection = p
     }
 
-  /**
-   * Create a Field from a name and a type.  Note that you need to pass in the
-   * class of the type.  For example: 
-   * <pre>
-   * val prop = Field("name", classOf[String])
-   * </pre>
-   */
-  def apply(n: String, b: Class[_]): Field = {
-    if (classOf[Geometry].isAssignableFrom(b)) {
-      apply(n, b.asInstanceOf[Class[_ <: Geometry]], null)
-    } else {
-      new Field {
-        def name = n
-        def binding = b
-      }
+  def apply[S : BoundScalar](n: String, b: Class[S]): Field =
+    new Field {
+      def name = n
+      def binding = implicitly[BoundScalar[S]].binding
     }
-  }
 }
 
 /**

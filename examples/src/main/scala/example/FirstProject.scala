@@ -1,18 +1,10 @@
 package org.geoscript.example
 
-import com.vividsolutions.jts.geom.Geometry
 import org.geoscript._
-import layer._
 
-object FirstProject extends GeoScript with feature.GeoCrunch {
-  def main(args: Array[String]) {
-    val file = promptShapeFile
-    val shp = Shapefile(file.toString)
+object FirstProject extends App {
+  val shp = layer.Shapefile(args(0))
+  val length = shp.features.map(_.geometry.length).sum
 
-    val length = shp.features.foldLeft(0d) {
-      (l, f) => l + f.geometry.length
-    }
-
-    println("Total Length %f".format(length));
-  }
+  println("Total Length %f".format(length));
 }

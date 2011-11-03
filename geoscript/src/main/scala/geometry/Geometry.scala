@@ -12,40 +12,6 @@ import org.geoscript.projection.Projection
  */
 private object ModuleInternals {
   val factory = new jts.GeometryFactory() 
-
-  /**
-   * Try really hard to make objects into JTS Coordinates.  This function
-   * accepts (so that it can be used to map mixed collections) so watch out for
-   * runtime errors.
-   * 
-   * Convertible types include: 
-   * <ul>
-   *   <li> (Number, Number) </li>
-   *   <li> (Number, Number, Number) </li>
-   *   <li> com.vividsolutions.jts.geometry.Point </li>
-   *   <li> com.vividsolutions.jts.geometry.Coordinate </li>
-   * </ul>
-   *
-   * @param input: Any An object that is hopefully kind of like a Coordinate
-   *     tuple.
-   * @return the equivalent JTS Coordinate
-   * @throws RuntimeException if the input is not convertible
-   */
-  def coerceCoord(input: Any) = {
-    input match {
-      case (x: Number, y: Number) => 
-        new jts.Coordinate(x.doubleValue(), y.doubleValue())
-      case (x: Number, y: Number, z: Number) =>
-        new jts.Coordinate(x.doubleValue(), y.doubleValue(), z.doubleValue())
-      case (p: jts.Point) => p.getCoordinate()
-      case (p: Point) => p.underlying.getCoordinate()
-      case (coord: jts.Coordinate) => coord
-      case other => throw new RuntimeException(
-        "Coordinates can only be coerced from numeric tuples or points; " + 
-        "found %s [class %s] instead.".format(other, (other.asInstanceOf[AnyRef]).getClass)
-      )
-    }
-  }
 }
 
 /**

@@ -88,7 +88,7 @@ class UsageTests extends Specification with GeoScript {
       mem.names must beEmpty
       var dummy = mem.create("dummy", 
         feature.Field("name", classOf[String]),
-        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry])
+        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], "EPSG:4326")
       )
       mem.names.length must_== 1
 

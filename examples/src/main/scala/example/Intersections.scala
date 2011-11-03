@@ -25,7 +25,11 @@ object Intersections extends GeoScript with feature.GeoCrunch {
   def rewrite(schema: feature.Schema, fieldName: String): feature.Schema = 
     feature.Schema(
       schema.name + "_intersections",
-      feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry]),
+      feature.Field(
+        "geom",
+        classOf[com.vividsolutions.jts.geom.Geometry],
+        schema.geometry.projection
+      ),
       feature.Field(fieldName + "Left", classOf[String]),
       feature.Field(fieldName + "Right", classOf[String])
     )
