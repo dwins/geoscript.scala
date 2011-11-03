@@ -1,6 +1,7 @@
 package org.geoscript.geocss
 
 import org.geotools.styling.Style
+import sys.error
 
 package compat {
   class Impl extends CSS2SLD.Converter {

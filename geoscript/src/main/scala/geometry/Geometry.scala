@@ -60,11 +60,12 @@ private object ModuleInternals {
  * @see org.geoscript.geometry.Geometry.buffer
  */
 object EndCap {
-  import com.vividsolutions.jts.operation.buffer.BufferOp._
+  // import com.vividsolutions.jts.operation.buffer.BufferOp._
+  import com.vividsolutions.jts.operation.buffer.BufferParameters._
 
   sealed abstract class Style { val intValue: Int }
   /** @see EndCap */
-  case object Butt extends Style { val intValue = CAP_BUTT }
+  case object Butt extends Style { val intValue = CAP_FLAT }
   /** @see EndCap */
   case object Round extends Style { val intValue = CAP_ROUND }
   /** @see EndCap */

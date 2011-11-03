@@ -82,13 +82,13 @@ package render {
                 KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON
               )))
             }
-            val context = new org.geotools.map.DefaultMapContext()
-            context.addLayer(
+            val content = new org.geotools.map.MapContent
+            content.layers.add(
               new org.geotools.map.FeatureLayer(layer.source, style.underlying)
             )
-            renderer.setContext(context)
+            renderer.setMapContent(content)
             renderer.paint(graphics, window, bounds)
-            context.dispose()
+            content.dispose()
           }
       }
   }
