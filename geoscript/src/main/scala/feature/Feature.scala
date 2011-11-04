@@ -154,11 +154,9 @@ object Field {
   def apply(wrapped: GeometryDescriptor): GeoField = 
     new GeoField {
       def name = wrapped.getLocalName
-      def binding =
-        Geometry.wrapperClass(
-          wrapped.getType.getBinding.asInstanceOf[Class[jts.Geometry]]
-        )
-
+      override def gtBinding = wrapped.getType.getBinding
+      def binding = 
+        Geometry.wrapperClass(gtBinding.asInstanceOf[Class[_ <: jts.Geometry]])
       def projection = Projection(wrapped.getCoordinateReferenceSystem())
     }
 
