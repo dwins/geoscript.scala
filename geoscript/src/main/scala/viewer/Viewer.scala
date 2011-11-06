@@ -8,7 +8,7 @@ import java.awt.{ Graphics2D, RenderingHints }
 import scala.collection.JavaConversions._
 
 private class MapWidget extends swing.Component {
-  var viewport: Bounds =  Bounds(-180, -90, 180, 90) in "EPSG:4326"
+  var viewport = Envelope(-180, -90, 180, 90)
   var layers: Seq[SpatialRenderable] = Nil
 
   override def paint(graphics: swing.Graphics2D) = {
@@ -41,7 +41,7 @@ object Viewer {
           val frame = new swing.MainFrame()
           val mapViewer = new MapWidget()
           mapViewer.layers = layers
-          layers.flatMap(_.definitionExtent).reduceOption(_ expand _).foreach {
+          layers.flatMap(_.definitionExtent).reduceOption(_ ** _).foreach {
             mapViewer.viewport = _
           }
           frame.visible = true

@@ -65,7 +65,7 @@ trait Layer {
   /**
    * Get the bounding box of this Layer, in the format:
    */
-  def bounds: Bounds = Bounds(source.getBounds()) in schema.geometry.projection
+  def envelope: Envelope = source.getBounds() // in schema.geometry.projection
 
   /**
    * Add a single Feature to this data set.

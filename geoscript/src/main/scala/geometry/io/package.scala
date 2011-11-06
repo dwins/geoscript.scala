@@ -69,6 +69,6 @@ object GML extends Writer[Geometry] {
     val encoder = new Encoder(configuration)
     val nsUri = configuration.getNamespaceURI
     val qname = new javax.xml.namespace.QName(nsUri, g.getGeometryType)
-    sink { encoder.encode(g.underlying, qname, _) }
+    sink { encoder.encode(g, qname, _) }
   }
 }

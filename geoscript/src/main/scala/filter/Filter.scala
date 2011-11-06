@@ -20,8 +20,10 @@ object Filter {
     def unapply(f: Filter): Boolean = f.underlying == ogc.Filter.INCLUDE
   }
 
-  def intersects(g: Geometry): Filter = {
-    new Wrapper(factory.intersects(null, factory.literal(g.underlying)))
+  def intersects(geometry: Geometry): Filter = {
+    new Wrapper(
+      factory.intersects(null, factory.literal(geometry))
+    )
   }
 
   def id(ids: Seq[String]): Filter = {

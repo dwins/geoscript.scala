@@ -5,9 +5,9 @@ import com.vividsolutions.jts.geom.util.AffineTransformation
 
 class Transform(tx: AffineTransformation) {
   def apply[G <: Geometry](g: G): G = {
-    val under = g.underlying.clone().asInstanceOf[com.vividsolutions.jts.geom.Geometry]
-    under.apply(tx)
-    Geometry(under).asInstanceOf[G]
+    val res = g.clone().asInstanceOf[G]
+    res.apply(tx)
+    res
   }
 
   def translate(dx: Double, dy: Double): Transform =
@@ -20,5 +20,4 @@ class Transform(tx: AffineTransformation) {
     new Transform(new AffineTransformation(tx).scale(sx, sy))
 }
 
-object Transform extends Transform(new AffineTransformation) {
-}
+object Transform extends Transform(new AffineTransformation)

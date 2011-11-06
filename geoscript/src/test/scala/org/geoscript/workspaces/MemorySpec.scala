@@ -17,7 +17,7 @@ class MemorySpec extends Specification {
         "the_geom" -> geometry.Point(0, 0),
         "name" -> "test"
       )
-      lyr.bounds must not(throwAn[Exception])
+      lyr.envelope must not(throwAn[Exception])
     }
   }
 }

@@ -9,7 +9,7 @@ object Render {
     val states = Shapefile("geoscript/src/test/resources/data/states.shp")
     val theme = CSS.fromFile("geocss/src/test/resources/states.css")
     val frame = (1024, 1024) 
-    val viewport = Viewport.pad(states.bounds, frame)
+    val viewport = Viewport.pad(states.envelope, frame)
     render(
       viewport,
       Seq(states -> theme)

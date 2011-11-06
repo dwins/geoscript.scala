@@ -49,7 +49,7 @@ trait Schema {
   def create(data: (String, AnyRef)*): Feature = {
     if (
       data.length != fields.length ||
-      data.exists { case (key, value) => !get(key).binding.isInstance(value) }
+      data.exists { case (key, value) => !get(key).gtBinding.isInstance(value) }
     ) {
       throw new RuntimeException(
         "Can't create feature; properties are: %s, but fields require %s.".format(
@@ -110,9 +110,8 @@ object Schema {
  */
 trait Field {
   def name: String
-  def binding: Class[_]
-  def gtBinding: Class[_] = binding
-  override def toString = "%s: %s".format(name, binding.getSimpleName)
+  def gtBinding: Class[_]
+  override def toString = "%s: %s".format(name, gtBinding.getSimpleName)
 }
 
 /**
@@ -120,7 +119,6 @@ trait Field {
  * normal fields.
  */
 trait GeoField extends Field {
-  override def binding: Class[_]
   override def gtBinding: Class[_]
   /**
    * The Projection used for this field's geometry.
@@ -129,19 +127,17 @@ trait GeoField extends Field {
 
   def copy(projection: Projection): GeoField = {
     val n = name
-    val b = binding
     val gb = gtBinding
     val p = projection
 
     new GeoField {
       val name = n
-      override val binding = b
       override val gtBinding = gb
       val projection = p
     }
   }
 
-  override def toString = "%s: %s [%s]".format(name, binding.getSimpleName, projection)
+  override def toString = "%s: %s [%s]".format(name, gtBinding.getSimpleName, projection)
 }
 
 /**
@@ -155,8 +151,6 @@ object Field {
     new GeoField {
       def name = wrapped.getLocalName
       override def gtBinding = wrapped.getType.getBinding
-      def binding = 
-        Geometry.wrapperClass(gtBinding.asInstanceOf[Class[_ <: jts.Geometry]])
       def projection = Projection(wrapped.getCoordinateReferenceSystem())
     }
 
@@ -169,7 +163,7 @@ object Field {
       case wrapped => 
         new Field {
           def name = wrapped.getLocalName
-          def binding = wrapped.getType.getBinding
+          def gtBinding = wrapped.getType.getBinding
         }
     }
   }
@@ -177,14 +171,14 @@ object Field {
   def apply[G : BoundGeometry](n: String, b: Class[G], p: Projection): GeoField =
     new GeoField {
       def name = n
-      def binding = implicitly[BoundGeometry[G]].binding
+      def gtBinding = implicitly[BoundGeometry[G]].binding
       def projection = p
     }
 
   def apply[S : BoundScalar](n: String, b: Class[S]): Field =
     new Field {
       def name = n
-      def binding = implicitly[BoundScalar[S]].binding
+      def gtBinding = implicitly[BoundScalar[S]].binding
     }
 }
 
@@ -229,14 +223,7 @@ trait Feature {
    * Write the values in this Feature to a particular OGC Feature object.
    */
   def writeTo(feature: org.opengis.feature.simple.SimpleFeature) {
-    for ((key, value) <- properties) {
-      value match {
-        case geom: Geometry => 
-          feature.setAttribute(key, geom.underlying)
-        case value =>
-          feature.setAttribute(key, value)
-      }
-    }
+    for ((k, v) <- properties) feature.setAttribute(k, v) 
   }
 
   override def toString: String = 
@@ -261,16 +248,10 @@ object Feature {
       def id: String = wrapped.getID
 
       def get[A](key: String): A = 
-        wrapped.getAttribute(key) match {
-          case geom: jts.Geometry => Geometry(geom).asInstanceOf[A]
-          case x => x.asInstanceOf[A]
-        }
+        wrapped.getAttribute(key).asInstanceOf[A]
 
       def geometry: Geometry = 
-        Geometry(
-          wrapped.getDefaultGeometry()
-            .asInstanceOf[com.vividsolutions.jts.geom.Geometry]
-        )
+        wrapped.getDefaultGeometry().asInstanceOf[Geometry]
 
       def properties: Map[String, Any] = {
         Map((0 until wrapped.getAttributeCount) map { i => 
@@ -294,11 +275,9 @@ object Feature {
       def id: String = null
 
       def geometry = 
-        Geometry(
-          props
-            .find(_._1.isInstanceOf[com.vividsolutions.jts.geom.Geometry])
-            .map(_._2).get.asInstanceOf[com.vividsolutions.jts.geom.Geometry]
-        )
+        props.collectFirst({ 
+          case (name, geom: Geometry) => geom
+        }).get
 
       def get[A](key: String): A = 
         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get

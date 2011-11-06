@@ -5,7 +5,7 @@ import io._
 import collection.JavaConversions._
 import com.vividsolutions.jts.{geom=>jts}
 import java.awt.{ Graphics2D, Rectangle, RenderingHints }
-import geometry.Bounds
+import geometry.Envelope
 
 package render {
   trait Context[T] {
@@ -49,15 +49,15 @@ package render {
     }
   }
 
-  trait SpatialRenderable extends (Bounds => Renderable) {
-    def definitionExtent: Option[Bounds]
+  trait SpatialRenderable extends (Envelope => Renderable) {
+    def definitionExtent: Option[Envelope]
   }
 
   object SpatialRenderable {
     implicit def fromGeometry(g: geometry.Geometry) =
       new SpatialRenderable {
-        def definitionExtent: Option[Bounds] = Some(g.bounds)
-        def apply(bounds: Bounds) =
+        def definitionExtent: Option[Envelope] = Some(g.envelope)
+        def apply(bounds: Envelope) =
           Renderable { (graphics, window) =>
             import geometry.Transform
             val tx = Transform
@@ -65,15 +65,15 @@ package render {
               .scale(window.width / bounds.width.toDouble, window.height / bounds.height.toDouble)
               .translate(0, -window.height)
               .scale(1, -1)
-            graphics.draw(new org.geotools.geometry.jts.LiteShape(tx(g).underlying, null, false))
+            graphics.draw(new org.geotools.geometry.jts.LiteShape(tx(g), null, false))
           }
       }
 
     implicit def fromStyledLayer(t: (layer.Layer, style.Style)) =
       new SpatialRenderable {
         val (layer, style) = t
-        def definitionExtent: Option[Bounds] = Some(layer.bounds)
-        def apply(bounds: Bounds): Renderable = 
+        def definitionExtent: Option[Envelope] = Some(layer.envelope)
+        def apply(bounds: Envelope): Renderable = 
           Renderable { (graphics, window) =>
             val renderer = new org.geotools.renderer.lite.StreamingRenderer()
             locally { import RenderingHints._
@@ -100,7 +100,7 @@ package render {
      * fits within the given size.
      */
     def frame(
-      envelope: Bounds,
+      envelope: Envelope,
       maximal: (Int, Int) = (500, 500)
     ): java.awt.Rectangle = {
       val aspect = envelope.height / envelope.width
@@ -117,28 +117,23 @@ package render {
      * area, expand the envelope so that it matches the aspect ratio of the
      * desired viewing window.  The center of the envelope is preserved.
      */
-    def pad(envelope: Bounds, window: (Int, Int) = (500, 500))
-    : Bounds = {
+    def pad(envelope: Envelope, window: (Int, Int) = (500, 500))
+    : Envelope = {
       val aspect = envelope.height / envelope.width
       val idealAspect = window._2.toDouble / window._1
-      val padded = (
-        if (aspect < idealAspect) {
-          val height = envelope.height * (idealAspect/aspect)
-          Bounds(
-            envelope.minX, envelope.centre.y - height/2d,
-            envelope.maxX, envelope.centre.y + height/2d
-          )
-        } else {
-          val width = envelope.width * (aspect/idealAspect)
-          Bounds(
-            envelope.centre.x - width/2d, envelope.minY,
-            envelope.centre.x + width/2d, envelope.maxY
-          )
-        }
-      )
-      if (envelope.projection != null)
-        padded in envelope.projection
-      else padded
+      if (aspect < idealAspect) {
+        val height = envelope.height * (idealAspect/aspect)
+        Envelope(
+          envelope.minX, envelope.centre.y - height/2d,
+          envelope.maxX, envelope.centre.y + height/2d
+        )
+      } else {
+        val width = envelope.width * (aspect/idealAspect)
+        Envelope(
+          envelope.centre.x - width/2d, envelope.minY,
+          envelope.centre.x + width/2d, envelope.maxY
+        )
+      }
     }
   }
 }
@@ -223,6 +218,6 @@ package object render {
     }
 
 
-  def render(bounds: Bounds, layers: Seq[SpatialRenderable]): Renderable =
+  def render(bounds: Envelope, layers: Seq[SpatialRenderable]): Renderable =
     Renderable.chain(layers.map(_ apply bounds))
 }

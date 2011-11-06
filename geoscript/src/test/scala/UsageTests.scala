@@ -1,17 +1,15 @@
 package org.geoscript
 
-import org.opengis.feature.simple.SimpleFeature
-
 import org.specs._
 
 import geometry._
 import projection._
 
-class UsageTests extends Specification with GeoScript {
+class UsageTests extends Specification {
   "geometries" should { 
     "work like on the geoscript homepage" in { 
-      var p = Point(-111, 45.7) in Projection("epsg:4326")
-      var p2 = p in Projection("epsg:26912")
+      var p = Point(-111, 45.7) // in Projection("epsg:4326")
+      var p2 = p // in Projection("epsg:26912")
       var poly = p.buffer(100)
 
       p2.x must beCloseTo(499999.0, 1)
@@ -49,10 +47,10 @@ class UsageTests extends Specification with GeoScript {
       shp.name must_== "states"
       shp.count must_== 49
 
-      shp.bounds.getMinX must beCloseTo (-124.731422, 1d)
-      shp.bounds.getMinY must beCloseTo (24.955967, 1d)
-      shp.bounds.getMaxX must beCloseTo (-66.969849, 1d)
-      shp.bounds.getMaxY must beCloseTo (49.371735, 1d)
+      shp.envelope.getMinX must beCloseTo (-124.731422, 1d)
+      shp.envelope.getMinY must beCloseTo (24.955967, 1d)
+      shp.envelope.getMaxX must beCloseTo (-66.969849, 1d)
+      shp.envelope.getMaxY must beCloseTo (49.371735, 1d)
       // proj must_== "EPSG:4326"
     }
 
@@ -66,9 +64,7 @@ class UsageTests extends Specification with GeoScript {
       shp.schema.name must_== "states"
       val field = shp.schema.get("STATE_NAME")
       field.name must_== "STATE_NAME"
-      // the type of field.binding is hard to spell,
-      // just compare toString's for now
-      field.binding.getName must_== classOf[java.lang.String].getName
+      (field.gtBinding: AnyRef) must_== classOf[java.lang.String]
     }
 
     "provide access to the containing workspace" in {

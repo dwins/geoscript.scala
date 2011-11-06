@@ -1,4 +1,5 @@
-package org.geoscript.geometry
+package org.geoscript
+package geometry
 
 import org.geoscript.io.{ Sink, Source }
 import org.specs._

@@ -17,7 +17,7 @@ object GeoHash {
    * characters to avoid generating infinitely strings for point data.
    */
   def geohash(geom: geometry.Geometry): String = {
-    val bbox = geom.bounds
+    val bbox = geom.envelope
     val blHash = geohashForever(bbox.minY, bbox.minX)
     val urHash = geohashForever(bbox.maxY, bbox.maxX)
 
@@ -52,7 +52,7 @@ object GeoHash {
    * Decode a geohash, producing a JTS Envelope encompassing the range of
    * possible values for the input point.
    */
-  def decodeBounds(hash: String): geometry.Bounds = {
+  def decodeBounds(hash: String): geometry.Envelope = {
     val bits = hash.flatMap {(x: Char) => 
       val bitString = characters.indexOf(x).toBinaryString
       ("00000".substring(0, 5 - bitString.length) + bitString).map('1' ==)
@@ -62,7 +62,7 @@ object GeoHash {
     val (minLon, maxLon) = range(lonBits, -180, 180)
     val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    geometry.Bounds(minLon, minLat, maxLon, maxLat)
+    geometry.Envelope(minLon, minLat, maxLon, maxLat)
   }
 
   /**

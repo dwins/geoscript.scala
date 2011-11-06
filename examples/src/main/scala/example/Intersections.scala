@@ -2,7 +2,7 @@ package org.geoscript.example
 
 import org.geoscript._
 
-object Intersections extends GeoScript with feature.GeoCrunch {
+object Intersections {
   def process(src: layer.Layer, dest: layer.Layer, joinField: String) {
     println("Processing %s".format(src.schema.name))
 
@@ -40,7 +40,7 @@ object Intersections extends GeoScript with feature.GeoCrunch {
     } else {
       val src = layer.Shapefile(args(0))
       val joinField = 
-        src.schema.fields.find { _.binding == classOf[String] } match {
+        src.schema.fields.find { _.gtBinding == classOf[String] } match {
           case Some(f) => f.name
           case None => "id"
         }
