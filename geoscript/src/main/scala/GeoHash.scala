@@ -62,7 +62,7 @@ object GeoHash {
     val (minLon, maxLon) = range(lonBits, -180, 180)
     val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    geometry.Envelope(minLon, minLat, maxLon, maxLat)
+    geometry.Envelope(minLon, maxLon, minLat, maxLat)
   }
 
   /**

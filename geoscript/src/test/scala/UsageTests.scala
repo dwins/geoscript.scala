@@ -8,8 +8,8 @@ import projection._
 class UsageTests extends Specification {
   "geometries" should { 
     "work like on the geoscript homepage" in { 
-      var p = Point(-111, 45.7) // in Projection("epsg:4326")
-      var p2 = p // in Projection("epsg:26912")
+      var p = Point(-111, 45.7)
+      var p2 = (Projection("epsg:4326") to Projection("epsg:26912"))(p)
       var poly = p.buffer(100)
 
       p2.x must beCloseTo(499999.0, 1)
