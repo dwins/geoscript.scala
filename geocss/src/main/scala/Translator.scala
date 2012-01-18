@@ -77,7 +77,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     prefix: String,
     props: Map[String, Seq[Value]],
     markProps: Seq[Property]
-  ): gt.Graphic = {
+  ): Option[gt.Graphic] = {
     def p(name: String) = 
       props.get(prefix + "-" + name) orElse
       markProps.find(_.name == name).flatMap(_.values.headOption)
@@ -97,18 +97,17 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     val externalGraphic = buildExternalGraphic(url, mimetype)
 
-    if (mark != null || externalGraphic != null) {
-      styles.createGraphic(
+    if (mark != null || externalGraphic != null)
+      Some(styles.createGraphic(
         externalGraphic,
         mark,
         null,
         opacity,
         size getOrElse null,
         rotation getOrElse null
-      )
-    } else { 
-      null
-    }
+      ))
+    else
+      None
   }
 
   def buildMark(
@@ -368,8 +367,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
         val graphic = buildGraphic("stroke", props, markProps)
 
-        val graphicStroke = if (strokeRepeat == "repeat") graphic else null
-        val graphicFill = if (strokeRepeat == "stipple") graphic else null
+        val graphicStroke = 
+          for (g <- graphic if strokeRepeat == "repeat") yield g
+        val graphicFill =
+          for (g <- graphic if strokeRepeat == "stipple") yield g 
 
         val sym = 
           styles.createLineSymbolizer(
@@ -381,8 +382,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
               linecap,
               dashArray,
               dashOffset,
-              graphicFill,
-              graphicStroke
+              graphicFill getOrElse(null),
+              graphicStroke getOrElse(null)
             ),
             null
           )
@@ -408,10 +409,15 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val graphic = buildGraphic("fill", props, markProps) 
 
         val sym = styles.createPolygonSymbolizer(
+          null,
+          styles.createFill(
+            fillParams._3,
             null,
-            styles.createFill(fillParams._3, null, opacity, graphic),
-            null
-          )
+            opacity,
+            graphic getOrElse(null)
+          ),
+          null
+        )
         sym.setGeometry(geom)
         (zIndex, sym)
       }
@@ -419,7 +425,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val pointSyms: Seq[(Double, PointSymbolizer)] = 
       (expand(properties, "mark").toStream zip
        (Stream.from(1) map { orderedMarkRules("mark", _) })
-      ).map { case (props, markProps) => 
+      ).flatMap { case (props, markProps) => 
         val geom = (props.get("mark-geometry") orElse props.get("geometry"))
           .map(expression).getOrElse(null)
         val zIndex: Double = 
@@ -429,9 +435,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
         val graphic = buildGraphic("mark", props, markProps)
 
-        val sym = styles.createPointSymbolizer(graphic, null)
-        sym.setGeometry(geom)
-        (zIndex, sym)
+        for (g <- graphic) yield {
+          val sym = styles.createPointSymbolizer(g, null)
+          sym.setGeometry(geom)
+          (zIndex, sym)
+        }
       }
 
     val textSyms: Seq[(Double, TextSymbolizer)] =
@@ -498,7 +506,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           if (props contains "shield")
             buildGraphic("shield", props, shieldProps)
           else
-            null
+            None
 
         val placement = offset match {
           case Some(Seq(d)) => styles.createLinePlacement(d)
@@ -525,7 +533,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         // the sort of Symbolizer which supports graphics. Let's at least not
         // cast unless we need to.  
         // TODO: see if there's a nicer way to deal with this that
-        if (shield != null) sym.asInstanceOf[TextSymbolizer2].setGraphic(shield)
+        shield.foreach { sym.asInstanceOf[TextSymbolizer2].setGraphic(_) }
 
         for (priority <- props.get("-gt-label-priority") map expression) {
           sym.setPriority(priority)

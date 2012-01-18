@@ -331,6 +331,12 @@ class SLDTest extends Specification with util.DataTables {
     }
   }
 
+  "Properties with unknown function names should be silently ignored" in {
+    val dom = css2sld2dom("/unknown-function.css")
+    dom \\ "PointSymbolizer" must haveSize(0)
+
+  }
+
   "Labels with multiple expressions should be implicitly concatenated" in {
     val labels = css2sld2dom("/complex-label.css")
 
