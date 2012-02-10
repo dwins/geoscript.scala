@@ -8,4 +8,4 @@ libraryDependencies <++= gtVersion { v =>
 }
 
 libraryDependencies +=
-  "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test"
+  "org.specs2" %% "specs2" % "1.7.1" % "test"
