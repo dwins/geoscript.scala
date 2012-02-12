@@ -5,80 +5,161 @@ import org.geotools.filter.text.ecql.ECQL
 
 import org.specs2._
 
-class FilterTest extends Specification { def is = pending
-//  import FilterOps._
-//
-//  def in(s: String) = getClass.getResourceAsStream(s)
-//
-//  case class beEquivalentTo(a: Filter) extends matcher.Matcher[Filter] {
-//    def apply(v: => Filter) = {
-//      val prefix = a.toString + " and " + v.toString
-//      (equivalent(a, v), prefix + " were equivalent", prefix + " were not equivalent")
-//    }
-//  }
-//
-//  "basic filter equivalence tests should work" in {
-//    import ECQL.{ toFilter => f }
-//    f("EXCLUDE") must beEquivalentTo(f("EXCLUDE"))
-//    f("INCLUDE") must beEquivalentTo(f("INCLUDE"))
-//    f("A < 1") must beEquivalentTo(f("A < 1"))
-//    f("A <> 1") must beEquivalentTo(f("A <> 1"))
-//    f("A IS NULL") must beEquivalentTo(f("A IS NULL"))
-//    f("A <= 1 OR B >= 2") must beEquivalentTo(f("A <= 1 OR B >= 2"))
-//    f("A <= 1 AND B >= 2") must beEquivalentTo(f("A <= 1 AND B >= 2"))
-//
-//    f("A < 1") must not(beEquivalentTo(f("A > 1")))
-//    f("A < 1") must not(beEquivalentTo(f("A = 1")))
-//    f("A = 1") must not(beEquivalentTo(f("A > 1")))
-//  }
-//
-//  "filter negation should be aware of binary operations" in { 
-//    import ECQL.{ toFilter => f }
-//    negate(f("A < 1")) must beEquivalentTo(f("A >= 1 OR A IS NULL"))
-//    negate(f("A > 1")) must beEquivalentTo(f("A <= 1 OR A IS NULL"))
-//    negate(f("A <= 1")) must beEquivalentTo(f("A > 1 OR A IS NULL"))
-//    negate(f("A >= 1")) must beEquivalentTo(f("A < 1 OR A IS NULL"))
-//    // TODO: negate(f("A > 1 AND B < 2")) must beEquivalentTo(f("A <= 1 OR A IS NULL OR B >= 2 OR B IS NULL"))
-//    // TODO: figure out and implement a canonical form for nested logical filters
-//    // negate(f("A > 1 OR B < 2")) must beEquivalentTo(f("(A <= 1 OR A IS NULL) AND (B >= 2 OR B IS NULL)"))
-//    // TODO: simplify(negate(f("A < 1 AND A <> 2"))) must beEquivalentTo(f("A IS NULL OR A >= 1"))
-//    // TODO: simplify(negate(negate(f("A < 1 AND A <> 2")))) must beEquivalentTo(f("A < 1"))
-//  }
-//
-//  "negated binary operators are complicated" in {
-//    import ECQL.{ toFilter => f }
-//    intersection(negate(f("A < 1")), negate(f("A > 0"))) must beSome[Filter].which {
-//      _ must beEquivalentTo(f("A IS NULL"))
-//    }
-//
-//    simplify(allOf(Seq("A < 2", "A >= 2 OR A <= 4", "A > 4") map { s => negate(f(s)) } )) must
-//      beEquivalentTo(f("A IS NULL"))
-//  }
-//
-//  "subset tests should be aware of binary operations" in {
-//    import ECQL.{ toFilter => f }
-//    isSubSet(f("INCLUDE"), f("A = 2")) must beTrue
-//    isSubSet(f("A >= 1"), f("A = 2")) must beTrue
-//    isSubSet(f("A = 1"), f("A > 1")) must beFalse
-//    isSubSet(f("A > 1"), f("A = 1")) must beFalse
-//    isSubSet(f("A < 1"), f("A < 1")) must beTrue
-//    isSubSet(f("A < 1"), f("A < 2")) must beFalse
-//    isSubSet(f("A < 2"), f("A < 1")) must beTrue
-//    isSubSet(f("A < 1"), f("A < 1 OR B > 2")) must beFalse
-//    isSubSet(f("A < 1"), f("A < 0 OR B > 2")) must beFalse
-//    isSubSet(f("A IS NOT NULL"), f("A < 1")) must beTrue
-//    isSubSet(f("A <> 2"), f("A < 2")) must beTrue
-//    isSubSet(f("A <> 2"), f("A < 1")) must beTrue
-//    isSubSet(f("A < 1"), f("A < 1 AND A <> 2")) must beTrue
-//    isSubSet(f("A < 1"), f("A < 1 AND A > 0")) must beTrue
-//    isSubSet(f("A < 1"), f("A < 1 AND A > 0")) must beTrue
-//    isSubSet(f("A < 1 AND A > 0"), f("A < 1")) must beFalse
-//    isSubSet(f("A <> 1"), f("A < 1")) must beTrue
-//    isSubSet(f("A <> 1 OR A IS NULL"), f("A IS NULL")) must beTrue
-//    isSubSet(f("A = 1 OR A = 2"), f("A = 1 OR A = 2")) must beTrue
-//    isSubSet(f("A <> 1 OR A IS NULL"), f("A < 1 OR A IS NULL")) must beTrue
-//  }
-//
+class FilterTest extends Specification {
+  import FilterOps._
+  import ECQL.{ toFilter => f }
+
+  // case class beEquivalentTo(a: Filter) extends matcher.Matcher[Filter] {
+  //   def apply(v: => Filter) = {
+  //     val prefix = a.toString + " and " + v.toString
+  //     (equivalent(a, v), prefix + " were equivalent", prefix + " were not equivalent")
+  //   }
+  // }
+
+  def beEquivalentTo(a: Filter): matcher.Matcher[Filter] =
+    new matcher.Matcher[Filter] {
+      override def apply[F <: Filter](exp: matcher.Expectable[F])
+      : matcher.MatchResult[F] =
+        result(
+          equivalent(a, exp.value),
+          "%s equivalent to %s" format(exp.description, a),
+          "%s was not equivalent to %s" format(exp.description, a),
+          exp
+        )
+    }
+
+  def is =
+    "basic filter equivalence tests should work" ^
+      equivalenceTests ^ end ^
+    "filter negation should be aware of binary operations" ^
+      negationTests ^ end ^
+    "negated binary operators are complicated" ^
+      binaryOperatorSimplificationTests ^ end ^
+    "subset tests should be aware of binary operations" ^ 
+      subsetTests ^ end
+
+  val equivalenceTests =
+    "exclude === exclude" ! {
+      f("EXCLUDE") must beEquivalentTo(f("EXCLUDE")) 
+    } ^
+    "include === include" ! {
+      f("INCLUDE") must beEquivalentTo(f("INCLUDE"))
+    } ^
+    "A < 1 === A < 1" ! {
+      f("A < 1") must beEquivalentTo(f("A < 1"))
+    } ^
+    "A <> 1 === A <> 1" ! {
+      f("A <> 1") must beEquivalentTo(f("A <> 1"))
+    } ^
+    "A IS NULL === A IS NULL" ! {
+      f("A IS NULL") must beEquivalentTo(f("A IS NULL"))
+    } ^
+    "A <= 1 OR B >= 1 === A <= 1 OR B >= 2" ! {
+      f("A <= 1 OR B >= 2") must beEquivalentTo(f("A <= 1 OR B >= 2"))
+    } ^
+    "A <= 1 AND B >= 2 === A <= 1 AND B >= 2" ! {
+      f("A <= 1 AND B >= 2") must beEquivalentTo(f("A <= 1 AND B >= 2"))
+    } ^
+    "A < 1 !=== A > 1" !  {
+      f("A < 1") must not(beEquivalentTo(f("A > 1")))
+    } ^
+    "A < 1 !=== A = 1" ! {
+      f("A < 1") must not(beEquivalentTo(f("A = 1")))
+    } ^
+    "A = 1 !=== A > 1" ! {
+      f("A = 1") must not(beEquivalentTo(f("A > 1")))
+    }
+
+  val negationTests = 
+    "NOT (A < 1) === (A >= 1 OR A IS NULL)" ! {
+      negate(f("A < 1")) must beEquivalentTo(f("A >= 1 OR A IS NULL"))
+    } ^
+    "NOT (A > 1) === (A <= 1 OR A IS NULL)" ! {
+      negate(f("A > 1")) must beEquivalentTo(f("A <= 1 OR A IS NULL"))
+    } ^
+    "NOT (A <= 1) === (A > 1 OR A IS NULL)" ! {
+      negate(f("A <= 1")) must beEquivalentTo(f("A > 1 OR A IS NULL"))
+    } ^
+    "NOT (A >= 1) === (A < 1 OR A IS NULL)" ! {
+      negate(f("A >= 1")) must beEquivalentTo(f("A < 1 OR A IS NULL"))
+    } ^ {
+      pending // ("Need to canonicalize filters before the equality check here works")
+      // TODO: negate(f("A > 1 AND B < 2")) must beEquivalentTo(f("A <= 1 OR A IS NULL OR B >= 2 OR B IS NULL"))
+      // TODO: figure out and implement a canonical form for nested logical filters
+      // negate(f("A > 1 OR B < 2")) must beEquivalentTo(f("(A <= 1 OR A IS NULL) AND (B >= 2 OR B IS NULL)"))
+      // TODO: simplify(negate(f("A < 1 AND A <> 2"))) must beEquivalentTo(f("A IS NULL OR A >= 1"))
+      // TODO: simplify(negate(negate(f("A < 1 AND A <> 2")))) must beEquivalentTo(f("A < 1"))
+    }
+
+
+  val binaryOperatorSimplificationTests = 
+    "NOT(A < 1) AND (A > 0) === A IS NULL" ! {
+      intersection(negate(f("A < 1")), negate(f("A > 0"))) must beSome.which {
+        _ must beEquivalentTo(f("A IS NULL"))
+      }
+    } ^ 
+    "NOT(A < 2) AND NOT (A >= 2 OR A <= 4) AND NOT(A > 4) === A IS NULL" ! {
+      simplify(allOf(Seq("A < 2", "A >= 2 OR A <= 4", "A > 4") map { s => negate(f(s)) } )) must
+        beEquivalentTo(f("A IS NULL"))
+    }
+   
+  val subsetTests = 
+    "Anything is a subset of INCLUDE" ! {
+      isSubSet(f("INCLUDE"), f("A = 2")) must beTrue
+    } ^
+    "A = 2 is a subset of A >= 1" ! {
+      isSubSet(f("A >= 1"), f("A = 2")) must beTrue
+    } ^ 
+    "A > 1 is not a subset of A = 1" ! {
+      isSubSet(f("A = 1"), f("A > 1")) must beFalse
+    } ^ 
+    "A = 1 is not a subset of A > 1" ! {
+      isSubSet(f("A > 1"), f("A = 1")) must beFalse
+    } ^ 
+    "A < 1 is a subset of A < 1" ! {
+      isSubSet(f("A < 1"), f("A < 1")) must beTrue
+    } ^
+    "A < 2 is not a subset of A < 1" ! {
+      isSubSet(f("A < 1"), f("A < 2")) must beFalse 
+    } ^ 
+    "A < 1 is a subset of A < 2" ! {
+      isSubSet(f("A < 2"), f("A < 1")) must beTrue
+    } ^ 
+    "A < 1 OR B > 2 is not a subset of A < 1" ! {
+      isSubSet(f("A < 1"), f("A < 1 OR B > 2")) must beFalse
+    } ^ 
+    "A < 0 OR B > 2 is not a subset of A < 1" ! {
+      isSubSet(f("A < 1"), f("A < 0 OR B > 2")) must beFalse
+    } ^ 
+    "A < 1 is a subset of A IS NOT NULL" ! {
+      isSubSet(f("A IS NOT NULL"), f("A < 1")) must beTrue
+    } ^ 
+    "A < 2 is a subset of A <> 2" ! {
+      isSubSet(f("A <> 2"), f("A < 2")) must beTrue } ^ 
+    "A < 1 is a subset of A <> 2" ! {
+      isSubSet(f("A <> 2"), f("A < 1")) must beTrue } ^ 
+    "A < 1 and A <> 2 is a subset of A < 1" ! {
+      isSubSet(f("A < 1"), f("A < 1 AND A <> 2")) must beTrue
+    } ^ 
+    "A < 1 AND A > 0 is a subset of A < 1" ! {
+      isSubSet(f("A < 1"), f("A < 1 AND A > 0")) must beTrue
+    } ^ 
+    "A < 1 is not a subset of A < 1 and A > 0" ! {
+      isSubSet(f("A < 1 AND A > 0"), f("A < 1")) must beFalse
+    } ^ 
+    "A < 1 is a subset of A <> 1" ! {
+      isSubSet(f("A <> 1"), f("A < 1")) must beTrue
+    } ^
+    "A IS NULL is a subset of A <> 1 OR A IS NULL" ! {
+      isSubSet(f("A <> 1 OR A IS NULL"), f("A IS NULL")) must beTrue
+    } ^ 
+    "A = 1 OR A = 2 is a subset of A = 1 OR A = 2" ! {
+      isSubSet(f("A = 1 OR A = 2"), f("A = 1 OR A = 2")) must beTrue
+    } ^ 
+    "A < 1 OR A IS NULL is a subset of A <> 1 OR A is NULL" ! {
+      isSubSet(f("A <> 1 OR A IS NULL"), f("A < 1 OR A IS NULL")) must beTrue
+    }
+  
 //  "redundant binary operations should be detected" in {
 //    import ECQL.{ toFilter => f }
 //
