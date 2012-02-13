@@ -6,62 +6,76 @@ import org.specs2._
 /**
  * Tests for specific low-level productions in the CSS grammar
  */
-class GrammarTest extends Specification { def is = pending
-//   "parsing property names" in {
-//     def parse(s: String) = 
-//       CssParser.parseAll(CssParser.propname, new CharSequenceReader(s))
-// 
-//     parse("123").successful must beFalse
-//     parse("-123").successful must beFalse
-//     parse("abc").successful must beTrue
-//     parse("abc-123").successful must beTrue
-//     parse("-gt-magic").successful must beTrue
-//   }
-// 
-//   "parsing numbers" in {
-//     def parse(s: String) = 
-//       CssParser.parseAll(CssParser.number, new CharSequenceReader(s))
-// 
-//     parse("123").successful must beTrue
-//     parse("1.23").successful must beTrue
-//     parse(".123").successful must beTrue
-//     parse("123.").successful must beTrue
-//     parse("-123").successful must beTrue
-//     parse("-.123").successful must beTrue
-//     parse(".-123").successful must beFalse
-//     parse("1.2.3").successful must beFalse
-//     parse("1..23").successful must beFalse
-//     parse("1-23").successful must beFalse
-//     parse("one dash twenty-three").successful must beFalse
-//   }
-// 
-//   "parsing percentages" in {
-//     def parse(s: String) = 
-//       CssParser.parseAll(CssParser.percentage, new CharSequenceReader(s))
-// 
-//     parse("12%").successful must beTrue
-//     parse("1.2%").successful must beTrue
-//     parse("-12%").successful must beTrue
-//     parse("-.12%").successful must beTrue
-//     parse(".-12%").successful must beFalse
-//     parse("12").successful must beFalse
-//     parse("%").successful must beFalse
-//   }
-// 
-//   "parsing urls" in {
-//     def parse(s: String) = 
-//       CssParser.parseAll(CssParser.url, new CharSequenceReader(s))
-// 
-//     parse("url(http://example.com/foo.png)").successful must beTrue
-//   }
-// 
-//   "parsing CSS functions" in {
-//     def parse(s: String) =
-//       CssParser.parseAll(CssParser.function, new CharSequenceReader(s))
-//     parse("foo()").successful must beTrue
-//     parse("url('http://example.com/icon.png')").successful must beTrue
-//     parse("foo(\"http://example.com/icon.png\")").successful must beTrue
-//     parse("rgb(50, 150, 250)").successful must beTrue
-//     parse("rgb(50,150,250)").successful must beTrue
-//   }
+class GrammarTest extends Specification 
+with matcher.ParserMatchers
+with matcher.DataTables
+{
+  val parsers = CssParser
+  def is = 
+    "parsing property names" ^ 
+      {
+        category(
+          "Known bad",
+          List("123", "-123"),
+          CssParser.propname must failOn(_: String)
+        )
+      } ^ {
+        category(
+          "Known good",
+          List("abc", "abc-123", "-gt-magic"),
+          CssParser.propname must succeedOn(_: String)
+        )
+      } ^ end ^
+    "parsing numbers" ^
+      {
+        category(
+          "Known good",
+          List("123", "1.23", ".123", "123.", "-123", "-.123"),
+          CssParser.number must succeedOn(_: String)
+        )
+      } ^ {
+        category(
+          "Known bad", 
+          List(".-123", "1.2.3", "1..23", "1-23", "one, dash, twenty-three"),
+          CssParser.number must failOn(_: String)
+        )
+     } ^ end ^
+   "parsing percentages" ^ 
+     category(
+       "Known good",
+       List("12%", "1.2%", "-12%", "-.12%"),
+       CssParser.percentage must succeedOn(_: String)
+     ) ^
+     category(
+       "Known bad",
+       List(".-12%", "12", "%"),
+       CssParser.percentage must failOn(_: String)
+     ) ^ end ^
+   "parsing urls" ^ 
+     category(
+       "Known good",
+       List("url(http://example.com/foo.png)"),
+       CssParser.url must succeedOn(_: String)
+     ) ^ end ^
+   "parsing CSS functions" ^
+     category(
+       "Known good",
+       List(
+         "foo()",
+         "url('http://example.com/icon.png')",
+         """foo("http://example.com/icon.png")""",
+         "rgb(50, 150, 250)",
+         "rgb(50,150,250)"
+       ),
+       CssParser.function must succeedOn(_: String)
+     )
+
+  def category[A, B](
+    name: String,
+    examples: Seq[A],
+    test: A => matcher.MatchResult[B]
+  ) =
+    examples.foldLeft(name: specification.Fragments) {
+      (fragments, v) => fragments ^ v.toString ! test(v)
+    } ^ bt
 }
