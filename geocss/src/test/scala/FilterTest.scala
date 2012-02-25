@@ -9,30 +9,6 @@ class FilterTest extends Specification with matcher.DataTables {
   import FilterOps._
   import ECQL.{ toFilter => f }
 
-  def beEquivalentTo(a: Filter): matcher.Matcher[Filter] =
-    new matcher.Matcher[Filter] {
-      override def apply[F <: Filter](exp: matcher.Expectable[F])
-      : matcher.MatchResult[F] =
-        result(
-          equivalent(a, exp.value),
-          "%s equivalent to %s" format(exp.description, a),
-          "%s was not equivalent to %s" format(exp.description, a),
-          exp
-        )
-    }
-
-  def haveAsSubset(a: Filter): matcher.Matcher[Filter] =
-    new matcher.Matcher[Filter] {
-      override def apply[F <: Filter](exp: matcher.Expectable[F])
-      : matcher.MatchResult[F] =
-        result(
-          isSubSet(exp.value, a),
-          "%s has subset %s" format(exp.description, a),
-          "%s is not superset of %s" format(exp.description, a),
-          exp
-        )
-    }
-
   def is =
     "basic filter equivalence tests should work" ^
       equivalenceTests ^ end ^
@@ -370,4 +346,29 @@ class FilterTest extends Specification with matcher.DataTables {
         (input, expected) => simplify(f(input)) must beEquivalentTo(f(expected))
       }
     }
+
+  def beEquivalentTo(a: Filter): matcher.Matcher[Filter] =
+    new matcher.Matcher[Filter] {
+      override def apply[F <: Filter](exp: matcher.Expectable[F])
+      : matcher.MatchResult[F] =
+        result(
+          equivalent(a, exp.value),
+          "%s equivalent to %s" format(exp.description, a),
+          "%s was not equivalent to %s" format(exp.description, a),
+          exp
+        )
+    }
+
+  def haveAsSubset(a: Filter): matcher.Matcher[Filter] =
+    new matcher.Matcher[Filter] {
+      override def apply[F <: Filter](exp: matcher.Expectable[F])
+      : matcher.MatchResult[F] =
+        result(
+          isSubSet(exp.value, a),
+          "%s has subset %s" format(exp.description, a),
+          "%s is not superset of %s" format(exp.description, a),
+          exp
+        )
+    }
+
 }
