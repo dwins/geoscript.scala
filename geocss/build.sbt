@@ -7,5 +7,8 @@ libraryDependencies <++= gtVersion { v =>
   )
 }
 
-libraryDependencies +=
-  "org.specs2" %% "specs2" % "1.7.1" % "test"
+libraryDependencies ++= Seq(
+  "org.specs2" %% "specs2" % "1.7.1" % "test",
+  "dwins" %% "filter-logic" % "0.2",
+  "dwins" %% "logic" % "0.1"
+)
