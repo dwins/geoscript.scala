@@ -109,7 +109,7 @@ case class Rule(
   def merge(that: Rule): Rule =
     Rule(
       this.description merge that.description,
-      SelectorOps.simplify(this.selectors ++ that.selectors),
+      this.selectors ++ that.selectors,
       this.contexts ++ that.contexts
     )
 
@@ -117,15 +117,13 @@ case class Rule(
    * Is it possible that a feature could meet the constraints in this rule's
    * selectors?
    */
-  lazy val isSatisfiable = !(selectors contains SelectorOps.Exclude)
+  lazy val isSatisfiable = !(selectors contains Exclude)
 
   /**
    * Create an OGC filter corresponding to the Selectors on this rule which are
    * expressible as OGC filters. Other Selector types will be omitted.
    */
-  def getFilter =
-    SelectorOps.trim(_.filterOpt.isDefined)(AndSelector(selectors))
-      .flatMap(_.filterOpt).get
+  def getFilter = realize(AndSelector(selectors))
 
   /**
    * The properties to use in the "normal" context, outside of well-known-marks
@@ -138,7 +136,7 @@ case class Rule(
    * A selector which matches the complement of features accepted by this one.
    */
   def negatedSelector =
-    OrSelector(selectors map SelectorOps.not)
+    OrSelector(selectors map (NotSelector(_)))
 
   /**
    * Retrieve the properties to be applied in a particular context.  Contexts
@@ -228,6 +226,11 @@ case class IdSelector(id: String) extends DataSelector {
 case object AcceptSelector extends DataSelector {
   override def asFilter = org.opengis.filter.Filter.INCLUDE
   override def toString = "*"
+}
+
+case object Exclude extends DataSelector {
+  override def asFilter = org.opengis.filter.Filter.EXCLUDE
+  override def toString = "[!!]"
 }
 
 /**

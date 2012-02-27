@@ -12,3 +12,12 @@ libraryDependencies ++= Seq(
   "dwins" %% "filter-logic" % "0.2",
   "dwins" %% "logic" % "0.1"
 )
+
+initialCommands += """
+import org.geoscript.geocss._
+import collection.JavaConversions._
+val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
+def in(path: String) = new java.io.FileReader(new java.io.File(path))
+def load(path: String) = CssParser.parseAll(CssParser.styleSheet, in(path)).get
+val tx = new Translator()
+"""

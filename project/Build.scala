@@ -15,6 +15,7 @@ object GeoScript extends Build {
 
   val common = 
     Seq[Setting[_]](
+      fork := true,
       resolvers ++= Seq(
         "opengeo" at "http://repo.opengeo.org/",
         "osgeo" at "http://download.osgeo.org/webdav/geotools/"

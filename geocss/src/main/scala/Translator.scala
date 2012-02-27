@@ -17,6 +17,8 @@ import org.geotools.styling.{
   FeatureTypeStyle
 }
 
+import org.opengis.{ filter => ogc }
+
 /**
  * The Translator object houses some facilities for converting token lists to
  * GeoTools Style objects.  The css2sld method does the actual conversion.
@@ -27,7 +29,6 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def this() = this(None)
   def this(url: String) = this(Some(new java.net.URL(url)))
 
-  import SelectorOps.{ Exclude, negate, simplify }
   import CssOps.{ Color, Specificity, Symbol, URL, colors, expand }
   import FilterOps.{ filters }
   val styles = org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
@@ -577,22 +578,22 @@ class Translator(val baseURL: Option[java.net.URL]) {
       } headOption
 
     def extractScaleRanges(rule: Rule): Seq[Pair[Option[Double], Option[Double]]] = {
-      def findScales(s: Selector): Seq[Double] = 
-        s match {
-          case PseudoSelector("scale", _, d) => Seq(d.toDouble)
-          case AndSelector(children) => children flatMap findScales
-          case OrSelector(children) => children flatMap findScales
-          case _ => Nil
-        }
-
-      val scales = rule.selectors.flatMap(findScales).sorted.distinct
-      val limits = None +: scales.sorted.distinct.map(Some(_)) :+ None
+      val scales = 
+        flatten(AndSelector(rule.selectors))
+          .collect { 
+            case PseudoSelector("scale", _, d) => d.toDouble
+            case NotSelector(PseudoSelector("scale", _, d)) => d.toDouble
+          }
+          .sorted
+          .distinct
+      
+      val limits = None +: (scales map (Some(_))) :+ None
       limits zip limits.tail
     }
 
     def isForTypename(typename: Option[String])(rule: Rule): Boolean =
       typename map { t => 
-        simplify(allOf(TypenameSelector(t) +: rule.selectors)) != Empty
+        simplify(allOf(TypenameSelector(t) +: rule.selectors)) != Exclude
       } getOrElse true
 
     def stripTypenames(rule: Rule): Rule =
@@ -619,13 +620,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
           val sldRule = styles.createRule()
           val ranges = extractScaleRanges(rule)
 
-          for ((min, max) <- ranges) {
+          for (range @ (min, max) <- ranges) {
             val minSelector = min.map(x => PseudoSelector("scale", ">", x.toString))
             val maxSelector = max.map(x => PseudoSelector("scale", "<", x.toString))
             val restricted = 
-              SelectorOps.simplify(
-                SelectorOps.allOf(rule.selectors ++ minSelector ++ maxSelector)
-              )
+              simplify(allOf(rule.selectors ++ minSelector ++ maxSelector))
 
             if (restricted != Exclude) {
               val sldRule = styles.createRule()
@@ -637,8 +636,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
               for (abstrakt <- rule.description.abstrakt)
                 sldRule.getDescription().setAbstract(abstrakt)
 
-              val filter =
-                SelectorOps.trim(_.filterOpt.isDefined)(restricted).flatMap(_.filterOpt)
+              val filter = realize(restricted)
 
               for (f <- filter)
                 sldRule.setFilter(f)
@@ -676,6 +674,49 @@ class Translator(val baseURL: Option[java.net.URL]) {
     grouped ++ Seq((0d, labels map (_._2)))
   }
 
+  def simplifyList(sels: Seq[Selector]): Seq[Selector] = {
+    val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
+    kb.reduce(consolidate(AndSelector(sels))) match {
+      case AndSelector(sels) => sels
+      case sel               => Seq(sel)
+    }
+  }
+
+  def consolidate(s: Selector): Selector = {
+    def f(s: Selector): Seq[Selector] =
+      s match {
+        case AndSelector(children) => 
+          val children0 = children flatMap f
+          Seq(
+            children0 match {
+              case Seq() => AcceptSelector
+              case Seq(s) => s
+              case children0 => AndSelector(children0)
+            }
+          )
+        case OrSelector(children) =>
+          val children0 = children flatMap f
+          Seq(
+            children0 match {
+              case Seq() => Exclude
+              case Seq(s) => s
+              case children0 => OrSelector(children0)
+            }
+          )
+        case NotSelector(NotSelector(child)) => Seq(consolidate(child))
+        case NotSelector(child) => Seq(NotSelector(consolidate(child)))
+        case p => Seq(p)
+      }
+
+    f(s).head
+  }
+
+  def simplifySelector(r: Rule): Rule =
+    r.copy(selectors = simplifyList(r.selectors))
+
+  def merge(a: Rule, b: Rule): Rule =
+    simplifySelector(a merge b)
+
   /**
    * Given a list, generate all possible groupings of the contents of that list
    * into two sublists.  The sublists preserve the ordering of the original
@@ -693,7 +734,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
          for {
            combo <- combinations(xs)(prune)
-           next <- Seq(x merge combo, combo merge negated) if prune(next)
+           next <- Seq(merge(x, combo), merge(combo, negated)) if prune(next)
          } yield next
      }
 
