@@ -24,7 +24,7 @@ object SelectorsAreSentential extends Sentential[Selector] {
       case (DataFilter(ogc.Filter.INCLUDE), _) => false
       case (Exclude, _) => false
       case (DataFilter(ogc.Filter.EXCLUDE), _) => false
-      case (NotSelector(p), q) => !(allows(q, p))
+      case (NotSelector(p), q) => negate(q).exists(!implies(_, p))
       case (PseudoSelector("scale", ">", a), PseudoSelector("scale", ">", b)) => 
         b.toDouble <= a.toDouble
       case (PseudoSelector("scale", "<", a), PseudoSelector("scale", "<", b)) => 

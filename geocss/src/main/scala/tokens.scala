@@ -117,7 +117,10 @@ case class Rule(
    * Is it possible that a feature could meet the constraints in this rule's
    * selectors?
    */
-  lazy val isSatisfiable = !(selectors contains Exclude)
+  lazy val isSatisfiable = {
+    implicit val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
+    !(simplify(AndSelector(selectors)) == Exclude)
+  }
 
   /**
    * Create an OGC filter corresponding to the Selectors on this rule which are
