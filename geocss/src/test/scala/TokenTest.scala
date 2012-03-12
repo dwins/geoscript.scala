@@ -29,10 +29,10 @@ class TokenTest extends Specification with matcher.DataTables {
              yield and(f, g))
        } ^ end ^
     "'Not' selectors produce negated Filters" ! {
-      "selector"                               | "filter"      |
-      NotSelector(AcceptSelector)              ! Some(EXCLUDE) |
-      NotSelector(NotSelector(AcceptSelector)) ! Some(INCLUDE) |
-      AcceptSelector                           ! Some(INCLUDE) |> {
+      "selector"                       | "filter"      |
+      NotSelector(Accept)              ! Some(EXCLUDE) |
+      NotSelector(NotSelector(Accept)) ! Some(INCLUDE) |
+      Accept                           ! Some(INCLUDE) |> {
         (sel, filt) => sel.filterOpt must_== filt
       }
     } ^ end ^

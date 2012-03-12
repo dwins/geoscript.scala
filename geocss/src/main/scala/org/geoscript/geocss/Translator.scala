@@ -598,7 +598,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     def stripTypenames(rule: Rule): Rule =
       rule.copy(selectors = rule.selectors map {
-        case TypenameSelector(_) => AcceptSelector
+        case TypenameSelector(_) => Accept
         case selector => selector
       })
 
@@ -696,7 +696,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           val children0 = children flatMap f
           Seq(
             children0 match {
-              case Seq() => AcceptSelector
+              case Seq() => Accept
               case Seq(s) => s
               case children0 => AndSelector(children0)
             }

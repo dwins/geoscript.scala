@@ -110,7 +110,7 @@ class CssTest extends Specification {
         ) 
       } ^ end
 
-  val any = AcceptSelector
+  val any = Accept
   val id = Id("states.9")
   val cql = ExpressionSelector("STATE_NAME LIKE '%ia'")
 

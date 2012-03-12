@@ -69,7 +69,7 @@ case class Id(id: String) extends DataSelector {
  * A Selector that never rejects anything, corresponding to the '*' syntax in
  * CSS.
  */
-case object AcceptSelector extends DataSelector {
+case object Accept extends DataSelector {
   override def asFilter = org.opengis.filter.Filter.INCLUDE
   override def toString = "*"
 }

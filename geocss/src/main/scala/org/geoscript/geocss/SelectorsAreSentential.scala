@@ -7,7 +7,7 @@ import org.opengis.{ filter => ogc }
 
 object SelectorsAreSentential extends Sentential[Selector] {
   val False = Exclude
-  val True = AcceptSelector
+  val True = Accept
 
   private object DataFilter {
     def unapply(s: Selector): Option[ogc.Filter] = s.filterOpt
@@ -18,9 +18,9 @@ object SelectorsAreSentential extends Sentential[Selector] {
   def implies(p: Selector, q: Selector): Boolean = {
     val res = 
     (p, q) match {
-      case (AcceptSelector, AcceptSelector) => true
+      case (Accept, Accept) => true
       case (DataFilter(ogc.Filter.INCLUDE), DataFilter(ogc.Filter.INCLUDE)) => true
-      case (AcceptSelector, _) => false
+      case (Accept, _) => false
       case (DataFilter(ogc.Filter.INCLUDE), _) => false
       case (Exclude, _) => false
       case (DataFilter(ogc.Filter.EXCLUDE), _) => false
@@ -47,9 +47,9 @@ object SelectorsAreSentential extends Sentential[Selector] {
   def allows(p: Selector, q: Selector): Boolean = {
     val res =
     (p, q) match {
-      case (AcceptSelector, AcceptSelector) => true
+      case (Accept, Accept) => true
       case (DataFilter(ogc.Filter.INCLUDE), DataFilter(ogc.Filter.INCLUDE)) => true
-      case (AcceptSelector, _) => true
+      case (Accept, _) => true
       case (DataFilter(ogc.Filter.INCLUDE), _) => true
       case (Exclude, _) => false
       case (DataFilter(ogc.Filter.EXCLUDE), _) => false
