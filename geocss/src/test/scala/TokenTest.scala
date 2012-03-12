@@ -37,14 +37,14 @@ class TokenTest extends Specification with matcher.DataTables {
       }
     } ^ end ^
     "Spot checks on miscellaneous filter combos" ! {
-      "selector"                    | "criterion"                           |
-      expr1                         ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
-      Not(expr1)                    ! beAnInstanceOf[ogc.Not]                   |
-      OrSelector(List(expr1))       ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
-      And(List(expr1))      ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
-      Not(And(List(expr1))) ! beAnInstanceOf[ogc.Not] |
-      OrSelector(List(And(List(expr1)))) ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
-      OrSelector(List(And(List(Not(expr1))))) ! beAnInstanceOf[ogc.Not] |>
+      "selector"                      | "criterion"                           |
+      expr1                           ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      Not(expr1)                      ! beAnInstanceOf[ogc.Not]                   |
+      Or(List(expr1))                 ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      And(List(expr1))                ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      Not(And(List(expr1)))           ! beAnInstanceOf[ogc.Not] |
+      Or(List(And(List(expr1))))      ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      Or(List(And(List(Not(expr1))))) ! beAnInstanceOf[ogc.Not] |>
       { (sel, pass) => sel.filterOpt must beSome.which(_ must pass) }
     }
 }

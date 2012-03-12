@@ -167,7 +167,7 @@ object CssParser extends RegexParsers {
 
           val sels =     s map extractSelector
           val contexts = s map extractContext
-          Rule(desc, List(OrSelector(sels)), contexts map (Pair(_, props)))
+          Rule(desc, List(Or(sels)), contexts map (Pair(_, props)))
         }
     }
 

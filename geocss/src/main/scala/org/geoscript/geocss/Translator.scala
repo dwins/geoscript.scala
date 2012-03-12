@@ -701,13 +701,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
               case children0 => And(children0)
             }
           )
-        case OrSelector(children) =>
+        case Or(children) =>
           val children0 = children flatMap f
           Seq(
             children0 match {
               case Seq() => Exclude
               case Seq(s) => s
-              case children0 => OrSelector(children0)
+              case children0 => Or(children0)
             }
           )
         case Not(Not(child)) => Seq(consolidate(child))

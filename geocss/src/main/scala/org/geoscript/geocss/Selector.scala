@@ -180,7 +180,7 @@ case class And(children: Seq[Selector]) extends Selector {
 /**
  * An aggregate selector which accepts features accepted by any of its members.
  */
-case class OrSelector(children: Seq[Selector]) extends Selector {
+case class Or(children: Seq[Selector]) extends Selector {
   override def filterOpt =
     if (children.forall(_.filterOpt.isDefined)) {
       val operands = children map { _.filterOpt.get }

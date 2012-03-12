@@ -91,26 +91,26 @@ object SelectorsAreSentential extends Sentential[Selector] {
 
   def isLiteral(p: Selector) = 
     p match {
-      case (_: And| _: OrSelector) => false
+      case (_: And| _: Or) => false
       case _ => true
     }
 
   def or(p: Selector, q: Selector) = {
     def child(s: Selector) = s match {
-      case OrSelector(children) => children
+      case Or(children) => children
       case s => List(s)
     }
 
-    OrSelector(child(p) ++ child(q))
+    Or(child(p) ++ child(q))
   }
 
   def extractOr(p: Selector): Option[(Selector, Selector)] =
     Option(p) collect {
-      case OrSelector(ps) => ps match {
+      case Or(ps) => ps match {
         case Seq() => (False, False)
         case Seq(q) => (q, False)
         case Seq(p, q) => (p, q)
-        case Seq(h, t @ _*) => (h, OrSelector(t))
+        case Seq(h, t @ _*) => (h, Or(t))
       }
     }
 

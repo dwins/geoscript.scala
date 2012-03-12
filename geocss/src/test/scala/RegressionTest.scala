@@ -3,7 +3,8 @@ package org.geoscript.geocss
 import collection.JavaConversions._
 
 import org.geotools.{ styling => gt }
-import org.opengis.filter.{ Filter, PropertyIsEqualTo, Or }
+import org.opengis.{ filter => ogc }
+import org.opengis.filter.{ Filter, PropertyIsEqualTo }
 import org.opengis.filter.expression.PropertyName
 
 import org.specs2._

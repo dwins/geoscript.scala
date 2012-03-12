@@ -8,7 +8,7 @@ package object geocss {
   def flatten(sel: Selector): Seq[Selector] =
     sel match {
       case And(children) => (children flatMap flatten)
-      case OrSelector(children) => (children flatMap flatten)
+      case Or(children) => (children flatMap flatten)
       case sel => Seq(sel)
     }
 
@@ -29,7 +29,7 @@ package object geocss {
           case Seq(f) => Some(f)
           case fs  => Some(filter.FilterOps.allOf(fs))
         }
-      case OrSelector(xs) =>
+      case Or(xs) =>
         (xs flatMap realize) match {
           case Nil => None
           case Seq(f) => Some(f)
