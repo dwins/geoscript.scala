@@ -10,6 +10,7 @@ libraryDependencies <++= gtVersion { v =>
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "1.7.1" % "test",
   "dwins" %% "filter-logic" % "0.2",
+  "dwins" %% "graph" % "0.1",
   "dwins" %% "logic" % "0.1"
 )
 

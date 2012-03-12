@@ -676,9 +676,16 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
   def simplifyList(sels: Seq[Selector]): Seq[Selector] = {
     val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
-    kb.reduce(consolidate(AndSelector(sels))) match {
-      case AndSelector(sels) => sels
-      case sel               => Seq(sel)
+    if (sels.isEmpty) Seq()
+    else {
+      val reduced = 
+        sels.map(consolidate).reduce {
+          (a,b) => kb.reduce(AndSelector(Seq(a, b)))
+        }
+      reduced match {
+        case AndSelector(sels) => sels
+        case sel               => Seq(sel)
+      }
     }
   }
 
@@ -714,30 +721,42 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def simplifySelector(r: Rule): Rule =
     r.copy(selectors = simplifyList(r.selectors))
 
-  def merge(a: Rule, b: Rule): Rule =
-    simplifySelector(a merge b)
+  def merge(a: Rule, b: Rule): Rule = (a merge b)
 
-  /**
-   * Given a list, generate all possible groupings of the contents of that list
-   * into two sublists.  The sublists preserve the ordering of the original
-   * list.
-   *
-   * This implementation is specialized for dealing with rules.  In particular,
-   * it prunes the search space when unsatisfiable rule combinations are
-   * discovered.
-   */
-   def combinations(xs: Seq[Rule])(prune: Rule => Boolean): Seq[Rule] =
-     xs match {
-       case Seq() => Seq(EmptyRule)
-       case Seq(x, xs @ _*) =>
-         val negated = EmptyRule.copy(selectors = Seq(x.negatedSelector))
+  def constrain(a: Rule, b: Seq[Selector]): Rule =
+    a.copy(selectors = (a.selectors ++ b))
 
-         for {
-           combo <- combinations(xs)(prune)
-           next <- Seq(merge(x, combo), merge(combo, negated)) if prune(next)
-         } yield next
-     }
+  def cascading2exclusive(xs: Seq[Rule]): Seq[Rule] = {
+    import dwins.logic._, dwins.graph._
+    implicit val ss = SelectorsAreSentential
 
-  def cascading2exclusive(xs: Seq[Rule]): Seq[Rule] =
-    combinations(xs)(_.isSatisfiable)
+    val kb = Knowledge.Oblivion[Selector]
+    val mutuallyExclusive = (a: Rule, b: Rule) =>
+      kb.reduce(AndSelector(a.selectors ++ b.selectors)) == Exclude
+     
+    val cliques = maximalCliques(xs.toSet, mutuallyExclusive)
+    val combinations = enumerateCombinations(cliques)
+
+    val ExclusiveRule = EmptyRule.copy(selectors = Seq(Exclude))
+
+    val negate = (x: Rule) =>
+      x.copy(selectors = Seq(NotSelector(AndSelector(x.selectors))))
+    val include = (xs: Traversable[Rule]) =>
+      if (xs isEmpty) ExclusiveRule else (xs reduceLeft merge)
+    val exclude = (xs: Seq[Rule]) =>
+      xs.map { r => NotSelector(AndSelector(r.selectors)) }
+
+    val rulesets = 
+      for {
+        combo <- combinations
+        remainder = xs filterNot(combo contains)
+        included = include(combo)
+        excluded = exclude(remainder)
+        constrained = constrain(included, excluded)
+        ruleset = simplifySelector(constrained)
+        if ruleset.isSatisfiable
+      } yield ruleset
+
+    rulesets.toSeq
+  }
 }
