@@ -127,7 +127,7 @@ object CssParser extends RegexParsers {
 
   private val catchAllSelector = ("*": Parser[String]) map {_ => Accept}
 
-  private val typeNameSelector = identifier map TypenameSelector
+  private val typeNameSelector = identifier map Typename
 
   private val basicSelector: Parser[Selector] =
     (catchAllSelector | idSelector | typeNameSelector | pseudoSelector |

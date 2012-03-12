@@ -247,7 +247,7 @@ object CssOps {
      * Find the Specificity for a single Selector
      */
     def apply(x: Selector): Specificity = x match {
-      case (_: TypenameSelector) => Specificity(0, 0, 1)
+      case (_: Typename) => Specificity(0, 0, 1)
       case (_: PseudoSelector) => Specificity(0, 1, 0)
       case (_: ParameterizedPseudoClass) => Specificity(0, 0, 2)
       case (_: PseudoClass) => Specificity(0, 0, 1)

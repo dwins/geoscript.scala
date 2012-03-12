@@ -574,7 +574,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     def extractTypeName(rule: Rule): Option[String] =
       flatten(AndSelector(rule.selectors)).collect { 
-        case TypenameSelector(typename) => typename 
+        case Typename(typename) => typename 
       } headOption
 
     def extractScaleRanges(rule: Rule): Seq[Pair[Option[Double], Option[Double]]] = {
@@ -593,12 +593,12 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     def isForTypename(typename: Option[String])(rule: Rule): Boolean =
       typename map { t => 
-        simplify(allOf(TypenameSelector(t) +: rule.selectors)) != Exclude
+        simplify(allOf(Typename(t) +: rule.selectors)) != Exclude
       } getOrElse true
 
     def stripTypenames(rule: Rule): Rule =
       rule.copy(selectors = rule.selectors map {
-        case TypenameSelector(_) => Accept
+        case Typename(_) => Accept
         case selector => selector
       })
 

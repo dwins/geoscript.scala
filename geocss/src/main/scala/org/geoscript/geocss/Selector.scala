@@ -82,7 +82,7 @@ case object Exclude extends DataSelector {
 /**
  * A Selector which constrains based on typename.
  */
-case class TypenameSelector(typename: String) extends MetaSelector {
+case class Typename(typename: String) extends MetaSelector {
   override def toString = typename
 }
 
