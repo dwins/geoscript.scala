@@ -123,7 +123,7 @@ object CssParser extends RegexParsers {
 
   private val propertyList = "{" ~> rep1sep(property, ";") <~ (";"?) ~ "}"
 
-  private val idSelector = ("#" ~> fid) map IdSelector
+  private val idSelector = ("#" ~> fid) map Id
 
   private val catchAllSelector = ("*": Parser[String]) map {_ => AcceptSelector}
 

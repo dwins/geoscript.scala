@@ -50,7 +50,7 @@ trait Context extends MetaSelector
  * A Selector which only accepts the feature with a specific FID.  This
  * corresponds to the #id123 syntax in CSS, for example.
  */
-case class IdSelector(id: String) extends DataSelector {
+case class Id(id: String) extends DataSelector {
   /**
    * The (singleton) set of OGC Identifier objects for this selector.
    */

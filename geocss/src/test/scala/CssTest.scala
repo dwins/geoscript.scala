@@ -111,7 +111,7 @@ class CssTest extends Specification {
       } ^ end
 
   val any = AcceptSelector
-  val id = IdSelector("states.9")
+  val id = Id("states.9")
   val cql = ExpressionSelector("STATE_NAME LIKE '%ia'")
 
   val propLists = List(
