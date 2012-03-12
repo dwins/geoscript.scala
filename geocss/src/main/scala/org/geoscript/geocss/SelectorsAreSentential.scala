@@ -24,7 +24,7 @@ object SelectorsAreSentential extends Sentential[Selector] {
       case (DataFilter(ogc.Filter.INCLUDE), _) => false
       case (Exclude, _) => false
       case (DataFilter(ogc.Filter.EXCLUDE), _) => false
-      case (NotSelector(p), q) => negate(q).exists(!implies(_, p))
+      case (Not(p), q) => negate(q).exists(!implies(_, p))
       case (PseudoSelector("scale", ">", a), PseudoSelector("scale", ">", b)) => 
         b.toDouble <= a.toDouble
       case (PseudoSelector("scale", "<", a), PseudoSelector("scale", "<", b)) => 
@@ -56,7 +56,7 @@ object SelectorsAreSentential extends Sentential[Selector] {
       case (_, Exclude) => false
       case (_, DataFilter(ogc.Filter.EXCLUDE)) => false
       //case (NotSelector(p), NotSelector(q)) => allows(p, q)
-      case (NotSelector(p), q) => !implies(q, p)
+      case (Not(p), q) => !implies(q, p)
       case (PseudoSelector("scale", ">", a), PseudoSelector("scale", "<", b)) => 
         b.toDouble > a.toDouble
       case (PseudoSelector("scale", "<", a), PseudoSelector("scale", ">", b)) => 
@@ -77,7 +77,7 @@ object SelectorsAreSentential extends Sentential[Selector] {
   }
 
   private def negate(p: Selector): Option[Selector] =
-    Some(p) collect { case NotSelector(sel) => sel }
+    Some(p) collect { case Not(sel) => sel }
 
   def disprovenBy(givens: Set[Selector], s: Selector): Boolean = {
     negate(s)
@@ -133,8 +133,8 @@ object SelectorsAreSentential extends Sentential[Selector] {
       }
     }
 
-  def not(p: Selector) = NotSelector(p)
+  def not(p: Selector) = Not(p)
 
   def extractNot(p: Selector): Option[Selector] =
-    Option(p) collect { case NotSelector(p) => p }
+    Option(p) collect { case Not(p) => p }
 }

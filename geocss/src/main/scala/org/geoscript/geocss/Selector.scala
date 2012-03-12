@@ -138,10 +138,10 @@ extends DataSelector {
  * A selector which wraps another and reverses its decisions (it accepts only
  * features that would not be accepted by the wrapped selector).
  */
-case class NotSelector(selector: Selector) extends Selector {
+case class Not(selector: Selector) extends Selector {
   override def filterOpt =
     selector match {
-      case NotSelector(sel) => sel.filterOpt
+      case Not(sel) => sel.filterOpt
       case sel => 
         selector.filterOpt map {
           case org.opengis.filter.Filter.EXCLUDE =>

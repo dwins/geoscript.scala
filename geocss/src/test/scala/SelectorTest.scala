@@ -11,7 +11,7 @@ class SelectorTest extends Specification with matcher.DataTables {
 
   def scale_<(s: String): Selector = PseudoSelector("scale", "<", s)
   def scale_>(s: String): Selector = PseudoSelector("scale", ">", s)
-  def not(s: Selector): Selector = NotSelector(s)
+  def not(s: Selector): Selector = Not(s)
   def cql(s: String): Selector = ExpressionSelector(s)
 
   def is = 

@@ -35,7 +35,7 @@ package object geocss {
           case Seq(f) => Some(f)
           case fs  => Some(filter.FilterOps.anyOf(fs))
         }
-      case NotSelector(x) =>
+      case Not(x) =>
         for (f <- realize(x)) yield filter.FilterOps.negate(f)
       case (f: DataSelector) => f.filterOpt
       case _ => None

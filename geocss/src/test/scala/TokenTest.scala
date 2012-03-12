@@ -2,7 +2,7 @@ package org.geoscript.geocss
 
 import org.specs2._
 import org.opengis.filter.Filter.{ INCLUDE, EXCLUDE }
-import org.opengis.filter.{ Not, PropertyIsGreaterThan }
+import org.opengis.{ filter => ogc }
 
 /**
  * Tests for token methods
@@ -29,22 +29,22 @@ class TokenTest extends Specification with matcher.DataTables {
              yield and(f, g))
        } ^ end ^
     "'Not' selectors produce negated Filters" ! {
-      "selector"                       | "filter"      |
-      NotSelector(Accept)              ! Some(EXCLUDE) |
-      NotSelector(NotSelector(Accept)) ! Some(INCLUDE) |
-      Accept                           ! Some(INCLUDE) |> {
+      "selector"       | "filter"      |
+      Not(Accept)      ! Some(EXCLUDE) |
+      Not(Not(Accept)) ! Some(INCLUDE) |
+      Accept           ! Some(INCLUDE) |> {
         (sel, filt) => sel.filterOpt must_== filt
       }
     } ^ end ^
     "Spot checks on miscellaneous filter combos" ! {
       "selector"                    | "criterion"                           |
-      expr1                         ! beAnInstanceOf[PropertyIsGreaterThan] |
-      NotSelector(expr1)            ! beAnInstanceOf[Not]                   |
-      OrSelector(List(expr1))       ! beAnInstanceOf[PropertyIsGreaterThan] |
-      AndSelector(List(expr1))      ! beAnInstanceOf[PropertyIsGreaterThan] |
-      NotSelector(AndSelector(List(expr1))) ! beAnInstanceOf[Not] |
-      OrSelector(List(AndSelector(List(expr1)))) ! beAnInstanceOf[PropertyIsGreaterThan] |
-      OrSelector(List(AndSelector(List(NotSelector(expr1))))) ! beAnInstanceOf[Not] |>
+      expr1                         ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      Not(expr1)                    ! beAnInstanceOf[ogc.Not]                   |
+      OrSelector(List(expr1))       ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      AndSelector(List(expr1))      ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      Not(AndSelector(List(expr1))) ! beAnInstanceOf[ogc.Not] |
+      OrSelector(List(AndSelector(List(expr1)))) ! beAnInstanceOf[ogc.PropertyIsGreaterThan] |
+      OrSelector(List(AndSelector(List(Not(expr1))))) ! beAnInstanceOf[ogc.Not] |>
       { (sel, pass) => sel.filterOpt must beSome.which(_ must pass) }
     }
 }

@@ -582,7 +582,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         flatten(AndSelector(rule.selectors))
           .collect { 
             case PseudoSelector("scale", _, d) => d.toDouble
-            case NotSelector(PseudoSelector("scale", _, d)) => d.toDouble
+            case Not(PseudoSelector("scale", _, d)) => d.toDouble
           }
           .sorted
           .distinct
@@ -710,8 +710,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
               case children0 => OrSelector(children0)
             }
           )
-        case NotSelector(NotSelector(child)) => Seq(consolidate(child))
-        case NotSelector(child) => Seq(NotSelector(consolidate(child)))
+        case Not(Not(child)) => Seq(consolidate(child))
+        case Not(child) => Seq(Not(consolidate(child)))
         case p => Seq(p)
       }
 
@@ -740,11 +740,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val ExclusiveRule = EmptyRule.copy(selectors = Seq(Exclude))
 
     val negate = (x: Rule) =>
-      x.copy(selectors = Seq(NotSelector(AndSelector(x.selectors))))
+      x.copy(selectors = Seq(Not(AndSelector(x.selectors))))
     val include = (xs: Traversable[Rule]) =>
       if (xs isEmpty) ExclusiveRule else (xs reduceLeft merge)
     val exclude = (xs: Seq[Rule]) =>
-      xs.map { r => NotSelector(AndSelector(r.selectors)) }
+      xs.map { r => Not(AndSelector(r.selectors)) }
 
     val rulesets = 
       for {

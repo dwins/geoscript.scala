@@ -51,7 +51,7 @@ case class Rule(
    * A selector which matches the complement of features accepted by this one.
    */
   def negatedSelector =
-    OrSelector(selectors map (NotSelector(_)))
+    OrSelector(selectors map (Not(_)))
 
   /**
    * Retrieve the properties to be applied in a particular context.  Contexts

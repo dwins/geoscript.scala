@@ -6,11 +6,12 @@ import collection.JavaConversions._
 import org.opengis.filter.{
   BinaryComparisonOperator,
   BinaryLogicOperator,
-  Not,
   PropertyIsBetween,
   PropertyIsLike,
   PropertyIsNull
 }
+
+import org.opengis.{ filter => ogc }
 
 import org.opengis.filter.expression.{
   BinaryExpression,
@@ -212,7 +213,7 @@ object CssOps {
           extract(b.getExpression1) ++ extract(b.getExpression2)
         case b: BinaryLogicOperator =>
           b.getChildren().flatMap(extract)
-        case not: Not =>
+        case not: ogc.Not =>
           extract(not.getFilter)
         case b: PropertyIsBetween =>
           extract(b.getExpression) ++
