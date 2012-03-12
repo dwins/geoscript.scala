@@ -1,174 +1,17 @@
 package org.geoscript.geocss
 
-import filter.FilterOps.filters
-
 import collection.JavaConversions._
 
-import java.util.Arrays
+import filter.FilterOps.filters
+
 import org.opengis.filter.Filter
-
-/**
- * A Description contains the metadata for a Rule, if such metadata is present.
- */
-case class Description(
-  /** A string to contribute to the Rule's title in legends */
-  title: Option[String],
-  /** A short description of the Rule's intent */
-  abstrakt: Option[String]
-) {
-  /** 
-   * Combine this rule with another by concatenating their titles and
-   * abstracts
-   */
-  def merge(that: Description) = {
-    def compose(a: Option[String], b: Option[String]) = 
-      (a, b) match {
-        case (Some(a), Some(b)) => Some(a + " with " + b)
-        case (Some(a), None   ) => Some(a)
-        case (None,    Some(b)) => Some(b)
-        case (None,    None   ) => None
-      }
-
-    Description(
-      compose(this.title, that.title),
-      compose(this.abstrakt, that.abstrakt)
-    )
-  }
-}
-
-object Description {
-  val empty = Description(None, None)
-
-  private def extract(comment: String, keyword: String): Option[String] = {
-    val pattern = ("""\s*@""" + keyword + """:?\s*""").r
-
-    comment.lines.map(_.replaceFirst("""\s*\*""", "")).find {
-      line => pattern.findPrefixOf(line) != None
-    } map { pattern.replaceFirstIn(_, "") }
-  }
-
-  def apply(comment: String): Description = {
-    val title = extract(comment, "title")
-    val abst  = extract(comment, "abstract")
-    val res = Description(title, abst)
-    res
-  }
-}
-
-/**
- * A marker trait for values that can be taken by a styling property.
- */
-trait Value
-
-/**
- * A Literal is a value that exhibits no dynamic behavior
- */
-case class Literal(body: String) extends Value
-
-/**
- * A Function is a built-in function of CSS such as URL or RGB which denotes a
- * special interpretation of a value.
- */
-case class Function(name: String, parameters: Seq[Value]) extends Value
-
-/**
- * An Expression is a CQL query embedded in a CSS styling property.
- */
-case class Expression(body: String) extends Value
-
-/**
- * A styling property
- */
-case class Property(name: String, values: Seq[Seq[Value]]) {
-  override def toString = {
-    "%s: %s".format(
-      name,
-      values.map(_.mkString("[", ",", "]")).mkString(",")
-    )
-  }
-}
-
-/**
- * A Rule is the basic unit of a CSS style.  Rules identify a subset of all
- * possible features and a set of styling properties to apply to those
- * features.
- */
-case class Rule(
-  /** Metadata for this rule, to use in legends, etc. */
-  description: Description,
-  /** Selectors expressing the set of features to which this rule applies */
-  selectors: Seq[Selector],
-  /** A List of property lists to apply in different rendering contexts */
-  contexts: Seq[Pair[Option[Context], Seq[Property]]]
-) {
-  /**
-   * Combine this rule with another rule, producing a single rule with all
-   * properties of both.  This method is not commutative; properties from this
-   * rule will take precedence over properties from the operand.
-   */
-  def merge(that: Rule): Rule =
-    Rule(
-      this.description merge that.description,
-      this.selectors ++ that.selectors,
-      this.contexts ++ that.contexts
-    )
-
-  /**
-   * Is it possible that a feature could meet the constraints in this rule's
-   * selectors?
-   */
-  lazy val isSatisfiable = {
-    implicit val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
-    !(simplify(AndSelector(selectors)) == Exclude)
-  }
-
-  /**
-   * Create an OGC filter corresponding to the Selectors on this rule which are
-   * expressible as OGC filters. Other Selector types will be omitted.
-   */
-  def getFilter = realize(AndSelector(selectors))
-
-  /**
-   * The properties to use in the "normal" context, outside of well-known-marks
-   * etc.
-   */
-  def properties =
-    contexts.filter(_._1 == None) flatMap (_._2)
-
-  /**
-   * A selector which matches the complement of features accepted by this one.
-   */
-  def negatedSelector =
-    OrSelector(selectors map (NotSelector(_)))
-
-  /**
-   * Retrieve the properties to be applied in a particular context.  Contexts
-   * consist of a well-known-mark type (fill/stroke/mark) and an ordering
-   * index.
-   */
-  def context(symbol: String, order: Int): Seq[Property] = {
-    val keys = Seq(
-      ParameterizedPseudoClass("nth-" + symbol, order.toString),
-      ParameterizedPseudoClass("nth-" + "symbol", order.toString),
-      PseudoClass(symbol),
-      PseudoClass("symbol")
-    ) map (Some(_))
-
-    contexts.filter { keys contains _._1 } flatMap (_._2)
-  }
-}
-
-/**
- * The Rule with no description, no constraints on features, and no properties.
- */
-object EmptyRule extends Rule(Description.empty, Seq.empty, Seq.empty)
 
 /**
  * A Selector expresses some subset of all possible features.  It restricts the
  * conditions under which a Rule will be applied to a feature, including but
  * not limited to requirements regarding the feature's attributes.
  */
-abstract class Selector {
+sealed abstract class Selector {
   /**
    * An Option containing the OGC Filter equivalent to this Selector, if it
    * exists.
