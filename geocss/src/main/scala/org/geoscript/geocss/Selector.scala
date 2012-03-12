@@ -157,7 +157,7 @@ case class Not(selector: Selector) extends Selector {
 /**
  * An aggregate selector which accepts features accepted by all of its members.
  */
-case class AndSelector(children: Seq[Selector]) extends Selector {
+case class And(children: Seq[Selector]) extends Selector {
   override def filterOpt =
     if (children.forall(_.filterOpt.isDefined)) {
       val operands = children map { _.filterOpt.get }

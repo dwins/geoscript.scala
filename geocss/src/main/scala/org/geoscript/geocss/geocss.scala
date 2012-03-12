@@ -7,7 +7,7 @@ package object geocss {
   // complex) selector.
   def flatten(sel: Selector): Seq[Selector] =
     sel match {
-      case AndSelector(children) => (children flatMap flatten)
+      case And(children) => (children flatMap flatten)
       case OrSelector(children) => (children flatMap flatten)
       case sel => Seq(sel)
     }
@@ -23,7 +23,7 @@ package object geocss {
   // that can be expressed in OGC filters.
   def realize(sel: Selector): Option[ogc.Filter] =
     sel match {
-      case AndSelector(xs) =>
+      case And(xs) =>
         (xs flatMap realize) match {
           case Nil => None
           case Seq(f) => Some(f)
@@ -43,5 +43,5 @@ package object geocss {
 
   // make a composite filter that matches features matched by all of the
   // given filters (logical AND)
-  def allOf(sels: Seq[Selector]): Selector = AndSelector(sels)
+  def allOf(sels: Seq[Selector]): Selector = And(sels)
 }

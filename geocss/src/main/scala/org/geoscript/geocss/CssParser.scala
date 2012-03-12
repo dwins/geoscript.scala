@@ -155,7 +155,7 @@ object CssParser extends RegexParsers {
 
         for (s <- selector.groupBy(spec).values) yield {
           def extractSelector(xs: List[Either[Selector, Context]]): Selector =
-            AndSelector(
+            And(
               xs map {
                 case Left(sel) => sel
                 case Right(pseudoSel) => pseudoSel

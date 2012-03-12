@@ -573,13 +573,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
     import SelectorOps._
 
     def extractTypeName(rule: Rule): Option[String] =
-      flatten(AndSelector(rule.selectors)).collect { 
+      flatten(And(rule.selectors)).collect { 
         case Typename(typename) => typename 
       } headOption
 
     def extractScaleRanges(rule: Rule): Seq[Pair[Option[Double], Option[Double]]] = {
       val scales = 
-        flatten(AndSelector(rule.selectors))
+        flatten(And(rule.selectors))
           .collect { 
             case PseudoSelector("scale", _, d) => d.toDouble
             case Not(PseudoSelector("scale", _, d)) => d.toDouble
@@ -680,10 +680,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
     else {
       val reduced = 
         sels.map(consolidate).reduce {
-          (a,b) => kb.reduce(AndSelector(Seq(a, b)))
+          (a,b) => kb.reduce(And(Seq(a, b)))
         }
       reduced match {
-        case AndSelector(sels) => sels
+        case And(sels) => sels
         case sel               => Seq(sel)
       }
     }
@@ -692,13 +692,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def consolidate(s: Selector): Selector = {
     def f(s: Selector): Seq[Selector] =
       s match {
-        case AndSelector(children) => 
+        case And(children) => 
           val children0 = children flatMap f
           Seq(
             children0 match {
               case Seq() => Accept
               case Seq(s) => s
-              case children0 => AndSelector(children0)
+              case children0 => And(children0)
             }
           )
         case OrSelector(children) =>
@@ -732,7 +732,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     val kb = Knowledge.Oblivion[Selector]
     val mutuallyExclusive = (a: Rule, b: Rule) =>
-      kb.reduce(AndSelector(a.selectors ++ b.selectors)) == Exclude
+      kb.reduce(And(a.selectors ++ b.selectors)) == Exclude
      
     val cliques = maximalCliques(xs.toSet, mutuallyExclusive)
     val combinations = enumerateCombinations(cliques)
@@ -740,11 +740,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val ExclusiveRule = EmptyRule.copy(selectors = Seq(Exclude))
 
     val negate = (x: Rule) =>
-      x.copy(selectors = Seq(Not(AndSelector(x.selectors))))
+      x.copy(selectors = Seq(Not(And(x.selectors))))
     val include = (xs: Traversable[Rule]) =>
       if (xs isEmpty) ExclusiveRule else (xs reduceLeft merge)
     val exclude = (xs: Seq[Rule]) =>
-      xs.map { r => Not(AndSelector(r.selectors)) }
+      xs.map { r => Not(And(r.selectors)) }
 
     val rulesets = 
       for {

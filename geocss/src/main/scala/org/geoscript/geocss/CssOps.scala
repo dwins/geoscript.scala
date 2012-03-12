@@ -253,7 +253,7 @@ object CssOps {
       case (_: ParameterizedPseudoClass) => Specificity(0, 0, 2)
       case (_: PseudoClass) => Specificity(0, 0, 1)
       case (_: Id) => Specificity(1, 0, 0)
-      case AndSelector(children) =>
+      case And(children) =>
         (children.map(apply) :\ Specificity(0, 0, 0)) { _ + _ }
       case OrSelector(children) =>
         children.map(apply).max

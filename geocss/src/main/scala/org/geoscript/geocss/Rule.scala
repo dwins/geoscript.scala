@@ -31,14 +31,14 @@ case class Rule(
    */
   lazy val isSatisfiable = {
     implicit val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
-    !(simplify(AndSelector(selectors)) == Exclude)
+    !(simplify(And(selectors)) == Exclude)
   }
 
   /**
    * Create an OGC filter corresponding to the Selectors on this rule which are
    * expressible as OGC filters. Other Selector types will be omitted.
    */
-  def getFilter = realize(AndSelector(selectors))
+  def getFilter = realize(And(selectors))
 
   /**
    * The properties to use in the "normal" context, outside of well-known-marks
