@@ -96,7 +96,7 @@ class Regressions extends Specification {
       val firstSymbolizer = (_: gt.Rule).symbolizers.head
       val symbolizerForTheOrFilter = 
         allRules andThen (
-          _.find(_.getFilter.isInstanceOf[Or])
+          _.find(_.getFilter.isInstanceOf[ogc.Or])
            .map(firstSymbolizer)
            .get
         )
@@ -107,7 +107,7 @@ class Regressions extends Specification {
         (haveSize[Seq[gt.FeatureTypeStyle]](1) ^^ featureTypeStyles) and
         (haveSize[Seq[gt.Rule]](2) ^^ allRules) and
         (beAnInstanceOf[PropertyIsEqualTo].atLeastOnce ^^ allFilters) and
-        (beAnInstanceOf[Or].atLeastOnce ^^ allFilters) and
+        (beAnInstanceOf[ogc.Or].atLeastOnce ^^ allFilters) and
         (beAnInstanceOf[gt.LineSymbolizer] ^^ symbolizerForTheOrFilter) and
         (haveGraphicStroke("hatch") ^^ lineSymbolizerForTheOrFilter)
       )
