@@ -10,7 +10,7 @@ object GeoScript extends Build {
       version := "0.7.4",
       gtVersion := "8.0-M4",
       scalaVersion := "2.9.1", 
-      scalacOptions += "-deprecation"
+      scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked")
     )
 
   val common = 
