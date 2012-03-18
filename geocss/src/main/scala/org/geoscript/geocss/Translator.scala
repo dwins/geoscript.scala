@@ -727,7 +727,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     a.copy(selectors = (a.selectors ++ b))
 
   def cascading2exclusive(xs: Seq[Rule]): Seq[Rule] = {
-    import dwins.logic._, dwins.graph._
+    import dwins.logic._, org.geoscript.support.graph._
     implicit val ss = SelectorsAreSentential
 
     val kb = Knowledge.Oblivion[Selector]

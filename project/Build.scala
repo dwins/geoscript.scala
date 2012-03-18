@@ -31,11 +31,13 @@ object GeoScript extends Build {
   lazy val root =
     Project("root", file(".")) aggregate(css, docs, examples, library)
   lazy val css = 
-    Project("css", file("geocss"), settings = common)
+    Project("css", file("geocss"), settings = common) dependsOn(support)
   lazy val examples = 
     Project("examples", file("examples"), settings = common) dependsOn(library)
   lazy val library =
     Project("library", file("geoscript"), settings = common) dependsOn(css, dummy)
+  lazy val support =
+    Project("support", file("support"), settings = common)
   lazy val dummy = 
     Project("dummy", file("dummy"), settings = meta ++ defaultSettings)
   lazy val docs = Project(
