@@ -1,5 +1,6 @@
 package org.geoscript
 
+import support.logic.Knowledge
 import org.opengis.{ filter => ogc }
 
 package object geocss {
@@ -15,8 +16,7 @@ package object geocss {
   // should produce an equivalent selector to the input with possibly fewer
   // total terms
   def simplify(sel: Selector): Selector = {
-    val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
-    kb.reduce(sel)
+    Knowledge.Oblivion[Selector].reduce(sel)
   }
 
   // should produce an OGC filter expressing the constraints in a selector

@@ -1,13 +1,11 @@
 package org.geoscript.geocss
 
-import SelectorOps._
 import org.geotools.filter.text.ecql.ECQL
 
 import org.specs2._, org.specs2.matcher._
 
 class SelectorTest extends Specification with matcher.DataTables {
-  import SelectorsAreSentential.{ disprovenBy, provenBy }
-  val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
+  import Selector.SelectorsAreSentential.{ disprovenBy, provenBy }
 
   def scale_<(s: String): Selector = PseudoSelector("scale", "<", s)
   def scale_>(s: String): Selector = PseudoSelector("scale", ">", s)

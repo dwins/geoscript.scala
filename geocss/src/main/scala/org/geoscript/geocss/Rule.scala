@@ -30,7 +30,6 @@ case class Rule(
    * selectors?
    */
   lazy val isSatisfiable = {
-    implicit val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
     !(simplify(And(selectors)) == Exclude)
   }
 

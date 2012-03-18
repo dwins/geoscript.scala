@@ -7,11 +7,8 @@ libraryDependencies <++= gtVersion { v =>
   )
 }
 
-libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2" % "1.7.1" % "test",
-  "dwins" %% "filter-logic" % "0.3",
-  "dwins" %% "logic" % "0.2"
-)
+libraryDependencies +=
+  "org.specs2" %% "specs2" % "1.7.1" % "test"
 
 initialCommands += """
 import org.geoscript.geocss._

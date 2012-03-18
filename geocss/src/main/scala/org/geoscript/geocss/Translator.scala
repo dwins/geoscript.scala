@@ -4,6 +4,7 @@ import math._
 import util.Sorting.stableSort
 
 import org.geoscript.geocss.filter.FilterOps
+import org.geoscript.support.logic.Knowledge
 
 import org.geotools.feature.NameImpl
 import org.geotools.{styling => gt}
@@ -675,7 +676,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
   }
 
   def simplifyList(sels: Seq[Selector]): Seq[Selector] = {
-    val kb = dwins.logic.Knowledge.Oblivion(SelectorsAreSentential)
+    val kb = Knowledge.Oblivion[Selector]
     if (sels.isEmpty) Seq()
     else {
       val reduced = 
@@ -727,8 +728,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     a.copy(selectors = (a.selectors ++ b))
 
   def cascading2exclusive(xs: Seq[Rule]): Seq[Rule] = {
-    import dwins.logic._, org.geoscript.support.graph._
-    implicit val ss = SelectorsAreSentential
+    import org.geoscript.support.graph._
 
     val kb = Knowledge.Oblivion[Selector]
     val mutuallyExclusive = (a: Rule, b: Rule) =>
