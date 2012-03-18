@@ -4,8 +4,6 @@ import collection.JavaConversions._
 
 import org.geotools.{ styling => gt }
 import org.opengis.{ filter => ogc }
-import org.opengis.filter.{ Filter, PropertyIsEqualTo }
-import org.opengis.filter.expression.PropertyName
 
 import org.specs2._
 /**
@@ -39,7 +37,7 @@ class Regressions extends Specification {
       sld must (
         haveFeatureTypeStyleCount(1) and
         haveRuleCount(2) and
-        not(haveRuleWithFilter(Filter.INCLUDE))
+        not(haveRuleWithFilter(ogc.Filter.INCLUDE))
       )
     } ^
     "Ratios should be expressible as decimals or percentages" ! {
@@ -78,7 +76,7 @@ class Regressions extends Specification {
 
       style must(
         not(beNull[Any]) and
-        beAnInstanceOf[PropertyName]
+        beAnInstanceOf[ogc.expression.PropertyName]
       ).forall ^^ symbolizerGeometries
     } ^
     "The parser should distinguish expressions from literals" ! {
@@ -106,7 +104,7 @@ class Regressions extends Specification {
       style must (
         (haveSize[Seq[gt.FeatureTypeStyle]](1) ^^ featureTypeStyles) and
         (haveSize[Seq[gt.Rule]](2) ^^ allRules) and
-        (beAnInstanceOf[PropertyIsEqualTo].atLeastOnce ^^ allFilters) and
+        (beAnInstanceOf[ogc.PropertyIsEqualTo].atLeastOnce ^^ allFilters) and
         (beAnInstanceOf[ogc.Or].atLeastOnce ^^ allFilters) and
         (beAnInstanceOf[gt.LineSymbolizer] ^^ symbolizerForTheOrFilter) and
         (haveGraphicStroke("hatch") ^^ lineSymbolizerForTheOrFilter)
@@ -136,7 +134,7 @@ class Regressions extends Specification {
       (_: gt.Style).featureTypeStyles.flatMap(_.rules)
     )
 
-  def haveRuleWithFilter(f: Filter): matcher.Matcher[gt.Style] =
+  def haveRuleWithFilter(f: ogc.Filter): matcher.Matcher[gt.Style] =
     new matcher.Matcher[gt.Style] {
       override def apply[S <: gt.Style](exp: matcher.Expectable[S])
       : matcher.MatchResult[S] = {
