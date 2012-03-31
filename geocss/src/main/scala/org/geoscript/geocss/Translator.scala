@@ -741,8 +741,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     val negate = (x: Rule) =>
       x.copy(selectors = Seq(Not(And(x.selectors))))
-    val include = (xs: Traversable[Rule]) =>
-      if (xs isEmpty) ExclusiveRule else (xs reduceLeft merge)
+    val include = (in: Set[Rule]) =>
+      if (in isEmpty) ExclusiveRule else (xs.view filter(in) reduceLeft(merge))
     val exclude = (xs: Seq[Rule]) =>
       xs.map { r => Not(And(r.selectors)) }
 
