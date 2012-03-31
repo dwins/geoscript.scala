@@ -571,8 +571,6 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     val rules = stableSort(styleSheet, Specificity.order _).reverse
 
-    import SelectorOps._
-
     def extractTypeName(rule: Rule): Option[String] =
       flatten(And(rule.selectors)).collect { 
         case Typename(typename) => typename 
