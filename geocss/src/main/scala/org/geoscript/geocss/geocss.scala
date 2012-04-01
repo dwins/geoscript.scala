@@ -1,9 +1,11 @@
 package org.geoscript
 
+import collection.JavaConversions._
 import support.logic.Knowledge
 import org.opengis.{ filter => ogc }
 
 package object geocss {
+  val filters = org.geotools.factory.CommonFactoryFinder.getFilterFactory
   // should produce a seq of all the simple terms in the given (possibly
   // complex) selector.
   def flatten(sel: Selector): Seq[Selector] =
@@ -27,7 +29,7 @@ package object geocss {
         (xs flatMap realize) match {
           case Nil => None
           case Seq(f) => Some(f)
-          case fs  => Some(filter.FilterOps.allOf(fs))
+          case fs  => Some(filters.and(fs))
         }
       case Or(xs) =>
         (xs flatMap realize) match {

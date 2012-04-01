@@ -120,16 +120,19 @@ object Knowledge {
   private abstract class Impl[S : Sentential] extends Knowledge[S] {
     def reduce(p: S): S = {
       @annotation.tailrec
-      def iterate(p: S, limit: Int): S =
+      def iterate(p: S, limit: Int): S = {
         if (limit <= 0) {
           p
         } else {
           val p_ = simplifyOnce(p, this)
           if (p == p_)
             p
-          else
+          else {
+            // println("%s => %s" format(p, p_))
             iterate(p_, limit - 1)
+          }
         }
+      }
 
       iterate(p, 10)
     }

@@ -6,7 +6,16 @@ import org.geotools.filter.text.ecql.ECQL
 import org.specs2._
 
 class FilterTest extends Specification with matcher.DataTables {
-  import FilterOps._
+  import FilterOps.{ 
+    allOf,
+    constrain,
+  //  equivalent,
+    intersection,
+  //  isSubSet,
+    negate,
+    simplify,
+    union
+  }
   import ECQL.{ toFilter => f }
 
   def is =
@@ -371,4 +380,22 @@ class FilterTest extends Specification with matcher.DataTables {
         )
     }
 
+  import org.geoscript.support.logic.Knowledge.{ Absurdity, Oblivion }
+  val kb = Oblivion[Filter]
+  import kb.{ reduce, given }
+
+  def equivalent(f: Filter, g: Filter): Boolean = 
+    (reduce(f) == reduce(g)) ||
+    (given(f).reduce(g) == Filter.INCLUDE) &&
+    (given(g).reduce(f) == Filter.INCLUDE)
+
+  def isSubSet(f: Filter, g: Filter): Boolean =
+    reduce(g) == Filter.EXCLUDE ||
+    given(g) != Absurdity &&
+    given(g).reduce(f) == Filter.INCLUDE
+
+  // def union(f: Filter, g: Filter): Option[Filter] = {
+  //   val or = FiltersAreSentential.or(f, g)
+  //   Some(reduce(or)).filter(or !=)
+  // }
 }

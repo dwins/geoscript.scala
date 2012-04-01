@@ -70,8 +70,7 @@ object Interval {
         }
       val right =
         max match {
-          case Some(Closed(v)) => v + "]"
-          case Some(Open(v)) => v + ")"
+          case Some(Closed(v)) => v + "]" case Some(Open(v)) => v + ")"
           case None => "+∞]"
         }
 

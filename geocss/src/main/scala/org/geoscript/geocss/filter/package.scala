@@ -74,20 +74,34 @@ package object filter {
         case _ => true
       }
 
+    def report[V](s: String)(v: V): V = {
+      // println(s + v)
+      v
+    }
+
     def provenBy(givens: Set[ogc.Filter], p: ogc.Filter): Boolean =
-      givens.contains(p) ||
-      givens.exists(q => implies(q, p))
+      report("%s proves %s? " format(givens, p)) {
+        givens.contains(p) ||
+        givens.exists(q => implies(q, p))
+      }
 
     def disprovenBy(givens: Set[ogc.Filter], p: ogc.Filter): Boolean =
-      p match {
-        case Not(p) => provenBy(givens, p)
-        case p => givens.exists(q => !compatible(p, q))
+      report("%s disproves %s (aka %s)? " format(givens, p, constraint(p))) {
+        p match {
+          case p if constraint(p) != Unconstrained => 
+            givens.exists(q => !compatible(p, q))
+          case Not(p) =>
+            provenBy(givens, p)
+          case p => false
+        }
       }
 
     def compatible(p: ogc.Filter, q: ogc.Filter): Boolean =
       q match {
+        case q if constraint(q) != Unconstrained =>
+          constraint(p) compatibleWith constraint(q)
         case Not(q) => !(constraint(p) implies constraint(q))
-        case q => constraint(p) compatibleWith constraint(q)
+        case q => true
       }
 
     def implies(p: ogc.Filter, q: ogc.Filter): Boolean =
@@ -97,34 +111,43 @@ package object filter {
       }
 
     sealed trait Constraint {
-      def compatibleWith(that: Constraint): Boolean =
-        (this, that) match {
-          case (Unconstrained, _) | (_, Unconstrained) => true
-          case (IsNull(_), In(_, _)) | (In(_, _), IsNull(_)) => false
-          case (In(x, xrange), In(y, yrange)) if x == y =>
-            Interval.intersection(xrange, yrange) != Interval.Empty
-          case (In(x, xrange), IsNot(y, yvalue)) if x == y =>
-            !(xrange == Interval.degenerate(yvalue))
-          case (IsNot(x, xvalue), In(y, yrange)) if x == y =>
-            !(yrange == Interval.degenerate(xvalue))
-          case _ => true
+      def compatibleWith(that: Constraint): Boolean = 
+        report("Compatible? %s %s" format(this, that)) {
+          (this, that) match {
+            case (Unconstrained, _) | (_, Unconstrained) => true
+            case (IsNull(x), In(y, _)) => x != y
+            case (In(x, _), IsNull(y)) => x != y
+            case (In(x, xrange), In(y, yrange)) if x == y =>
+              Interval.intersection(xrange, yrange) != Interval.Empty
+            case (In(x, xrange), IsNot(y, yvalue)) if x == y =>
+              !(xrange == Interval.degenerate(yvalue))
+            case (IsNot(x, xvalue), In(y, yrange)) if x == y =>
+              !(yrange contains xvalue)
+            case (IsNot(x, _), IsNull(y)) => x != y
+            case (IsNull(x), IsNot(y, _)) => x != y
+            case _ => true
+          }
         }
 
       def implies(that: Constraint): Boolean =
-        (this, that) match {
-          case _ if this == that => true
-          case (IsNull(x), IsNot(y, yvalue)) => y == x
-          case (In(x, xrange), In(y, yrange)) =>
-            x == y &&
-            Interval.intersection(xrange, yrange) == xrange
-          case (In(x, xrange), IsNot(y, yvalue)) =>
-            x == y &&
-            Interval.intersection(xrange, Interval.degenerate(yvalue)) != Interval.Empty
-          case _ => false
+        report("Implied? %s %s " format(this, that)) {
+          (this, that) match {
+            case (Unconstrained, _) => false
+            case _ if this == that => true
+            case (IsNull(x), IsNot(y, yvalue)) => y == x
+            case (In(x, xrange), In(y, yrange)) =>
+              x == y &&
+              Interval.intersection(xrange, yrange) == xrange
+            case (In(x, xrange), IsNot(y, yvalue)) =>
+              x == y &&
+              Interval.intersection(xrange, Interval.degenerate(yvalue)) != Interval.Empty
+            case _ => false
+          }
         }
     }
 
     class Value(val text: String) {
+      override def toString = text
       override def equals(that: Any) =
         that match {
           case (that: Value) => 
@@ -234,10 +257,6 @@ package object filter {
               Unconstrained
           }
         case (n: Not) if n.getFilter.isInstanceOf[PropertyIsEqualTo] =>
-          // BUGBUG: The simplifier should only pass "atom" filters, ie, not
-          //   logical combinators like and/or/not.  AFAIK it does so, but the
-          //   CQL parser in GeoTools produces a Not(PropertyIsEqualTo) instead
-          //   of a PropertyIsNotEqualTo when reading the '<>' operator.
           val f = n.getFilter.asInstanceOf[PropertyIsEqualTo]
           val lhs = f.getExpression1
           val rhs = f.getExpression2
@@ -246,6 +265,15 @@ package object filter {
               IsNot(variable.getPropertyName, Value(value))
             case (value: Literal, variable: PropertyName) =>
               IsNot(variable.getPropertyName, Value(value))
+            case _ =>
+              Unconstrained
+          }
+        case (n: Not) if n.getFilter.isInstanceOf[PropertyIsNull] =>
+          val f = n.getFilter.asInstanceOf[PropertyIsNull]
+          val lhs = f.getExpression
+          (lhs) match {
+            case (variable: PropertyName) =>
+              In(variable.getPropertyName, Interval.Full)
             case _ =>
               Unconstrained
           }

@@ -2,8 +2,6 @@ package org.geoscript.geocss
 
 import collection.JavaConversions._
 
-import filter.FilterOps.filters
-
 import org.opengis.{ filter => ogc }, ogc.Filter
 
 /**
@@ -160,9 +158,6 @@ object Selector {
  * A Selector which filters on typical database attributes.
  */
 abstract class DataSelector extends Selector {
-  protected val filters = 
-    org.geotools.factory.CommonFactoryFinder.getFilterFactory2(null)
-
   /**
    * The OGC Filter corresponding to this Selector
    */
