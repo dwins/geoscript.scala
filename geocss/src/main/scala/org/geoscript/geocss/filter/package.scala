@@ -74,26 +74,17 @@ package object filter {
         case _ => true
       }
 
-    def report[V](s: String)(v: V): V = {
-      // println(s + v)
-      v
-    }
-
     def provenBy(givens: Set[ogc.Filter], p: ogc.Filter): Boolean =
-      report("%s proves %s? " format(givens, p)) {
-        givens.contains(p) ||
-        givens.exists(q => implies(q, p))
-      }
+      givens.contains(p) ||
+      givens.exists(q => implies(q, p))
 
     def disprovenBy(givens: Set[ogc.Filter], p: ogc.Filter): Boolean =
-      report("%s disproves %s (aka %s)? " format(givens, p, constraint(p))) {
-        p match {
-          case p if constraint(p) != Unconstrained => 
-            givens.exists(q => !compatible(p, q))
-          case Not(p) =>
-            provenBy(givens, p)
-          case p => false
-        }
+      p match {
+        case p if constraint(p) != Unconstrained => 
+          givens.exists(q => !compatible(p, q))
+        case Not(p) =>
+          provenBy(givens, p)
+        case p => false
       }
 
     def compatible(p: ogc.Filter, q: ogc.Filter): Boolean =
@@ -112,37 +103,33 @@ package object filter {
 
     sealed trait Constraint {
       def compatibleWith(that: Constraint): Boolean = 
-        report("Compatible? %s %s" format(this, that)) {
-          (this, that) match {
-            case (Unconstrained, _) | (_, Unconstrained) => true
-            case (IsNull(x), In(y, _)) => x != y
-            case (In(x, _), IsNull(y)) => x != y
-            case (In(x, xrange), In(y, yrange)) if x == y =>
-              Interval.intersection(xrange, yrange) != Interval.Empty
-            case (In(x, xrange), IsNot(y, yvalue)) if x == y =>
-              !(xrange == Interval.degenerate(yvalue))
-            case (IsNot(x, xvalue), In(y, yrange)) if x == y =>
-              !(yrange contains xvalue)
-            case (IsNot(x, _), IsNull(y)) => x != y
-            case (IsNull(x), IsNot(y, _)) => x != y
-            case _ => true
-          }
+        (this, that) match {
+          case (Unconstrained, _) | (_, Unconstrained) => true
+          case (IsNull(x), In(y, _)) => x != y
+          case (In(x, _), IsNull(y)) => x != y
+          case (In(x, xrange), In(y, yrange)) if x == y =>
+            Interval.intersection(xrange, yrange) != Interval.Empty
+          case (In(x, xrange), IsNot(y, yvalue)) if x == y =>
+            !(xrange == Interval.degenerate(yvalue))
+          case (IsNot(x, xvalue), In(y, yrange)) if x == y =>
+            !(yrange contains xvalue)
+          case (IsNot(x, _), IsNull(y)) => x != y
+          case (IsNull(x), IsNot(y, _)) => x != y
+          case _ => true
         }
 
       def implies(that: Constraint): Boolean =
-        report("Implied? %s %s " format(this, that)) {
-          (this, that) match {
-            case (Unconstrained, _) => false
-            case _ if this == that => true
-            case (IsNull(x), IsNot(y, yvalue)) => y == x
-            case (In(x, xrange), In(y, yrange)) =>
-              x == y &&
-              Interval.intersection(xrange, yrange) == xrange
-            case (In(x, xrange), IsNot(y, yvalue)) =>
-              x == y &&
-              Interval.intersection(xrange, Interval.degenerate(yvalue)) != Interval.Empty
-            case _ => false
-          }
+        (this, that) match {
+          case (Unconstrained, _) => false
+          case _ if this == that => true
+          case (IsNull(x), IsNot(y, yvalue)) => y == x
+          case (In(x, xrange), In(y, yrange)) =>
+            x == y &&
+            Interval.intersection(xrange, yrange) == xrange
+          case (In(x, xrange), IsNot(y, yvalue)) =>
+            x == y &&
+            Interval.intersection(xrange, Interval.degenerate(yvalue)) != Interval.Empty
+          case _ => false
         }
     }
 
@@ -193,7 +180,7 @@ package object filter {
       }
       import ogc.expression.{ Literal, PropertyName }
 
-      p match {
+      val res = p match {
         case p: PropertyIsBetween =>
           (p.getExpression, p.getLowerBoundary, p.getUpperBoundary) match {
             case (x: PropertyName, lower: Literal, upper: Literal) =>
@@ -277,6 +264,22 @@ package object filter {
             case _ =>
               Unconstrained
           }
+        case (n: Not) =>
+          constraint(n.getFilter) match {
+            case Unconstrained => Unconstrained
+            case IsNull(x) => In(x, Interval.Full)
+            case IsNot(x, v) => In(x, Interval.Degenerate(v))
+            case In(x, Interval.NonEmpty(None, None)) => IsNull(x)
+            case In(x, Interval.Degenerate(v)) => IsNot(x, v)
+            case In(x, Interval.NonEmpty(Some(_), Some(_))) => Unconstrained
+            case In(x, Interval.NonEmpty(min, max)) =>
+              val flip: Cap[Value] => Cap[Value] = {
+                case Open(v) => Closed(v)
+                case Closed(v) => Open(v)
+              }
+              val toggle = (_: Option[Cap[Value]]) map flip
+              In(x, Interval.NonEmpty(toggle(max), toggle(min)))
+          }
         case p: PropertyIsNotEqualTo =>
           val lhs = p.getExpression1
           val rhs = p.getExpression2
@@ -298,6 +301,8 @@ package object filter {
           }
         case _ => Unconstrained
       }
+      if (res == Unconstrained) println("%s => Unconstrained".format(p))
+      res
     }
 
     def constraintToFilter(c: Constraint): ogc.Filter = {

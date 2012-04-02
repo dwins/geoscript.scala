@@ -3,7 +3,6 @@ package org.geoscript.geocss
 import math._
 import util.Sorting.stableSort
 
-import org.geoscript.geocss.filter.FilterOps
 import org.geoscript.support.logic.Knowledge
 
 import org.geotools.feature.NameImpl
@@ -31,7 +30,6 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def this(url: String) = this(Some(new java.net.URL(url)))
 
   import CssOps.{ Color, Specificity, Symbol, URL, colors, expand }
-  import FilterOps.{ filters }
   val styles = org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
   type OGCExpression = org.opengis.filter.expression.Expression
 

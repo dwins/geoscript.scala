@@ -17,6 +17,15 @@ object Interval {
 
   def Full[T : Ordering] = NonEmpty(None, None)
 
+  object Degenerate {
+    def apply[T : Ordering](v: T): Interval[T] =
+      NonEmpty(Some(Closed(v)), Some(Closed(v)))
+    def unapply[T](i: Interval[T]): Option[T] =
+      Some(i) collect {
+        case NonEmpty(Some(Closed(v)), Some(Closed(v0))) if v == v0 => v
+      }
+  }
+
   def left[T : Ordering](c: Cap[T]): Interval[T] = NonEmpty(Some(c), None)
 
   def right[T : Ordering](c: Cap[T]): Interval[T] = NonEmpty(None, Some(c))

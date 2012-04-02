@@ -35,10 +35,10 @@ package object geocss {
         (xs flatMap realize) match {
           case Nil => None
           case Seq(f) => Some(f)
-          case fs  => Some(filter.FilterOps.anyOf(fs))
+          case fs  => Some(filters.or(fs))
         }
       case Not(x) =>
-        for (f <- realize(x)) yield filter.FilterOps.negate(f)
+        for (f <- realize(x)) yield filters.not(f)
       case (f: DataSelector) => f.filterOpt
       case _ => None
     }
