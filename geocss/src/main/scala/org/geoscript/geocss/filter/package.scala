@@ -180,7 +180,7 @@ package object filter {
       }
       import ogc.expression.{ Literal, PropertyName }
 
-      val res = p match {
+      p match {
         case p: PropertyIsBetween =>
           (p.getExpression, p.getLowerBoundary, p.getUpperBoundary) match {
             case (x: PropertyName, lower: Literal, upper: Literal) =>
@@ -301,8 +301,6 @@ package object filter {
           }
         case _ => Unconstrained
       }
-      if (res == Unconstrained) println("%s => Unconstrained".format(p))
-      res
     }
 
     def constraintToFilter(c: Constraint): ogc.Filter = {

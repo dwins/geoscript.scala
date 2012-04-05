@@ -127,10 +127,8 @@ object Knowledge {
           val p_ = simplifyOnce(p, this)
           if (p == p_)
             p
-          else {
-            // println("%s => %s" format(p, p_))
+          else
             iterate(p_, limit - 1)
-          }
         }
       }
 

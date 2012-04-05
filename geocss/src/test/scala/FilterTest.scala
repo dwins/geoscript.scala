@@ -14,10 +14,6 @@ class FilterTest extends Specification with matcher.DataTables {
   def is =
     "basic filter equivalence tests should work" ^
       equivalenceTests ^ end ^
-    "filter negation should be aware of binary operations" ^
-      negationTests ^ end ^
-    "negated binary operators are complicated" ^
-      binaryOperatorSimplificationTests ^ end ^
     "subset tests should be aware of binary operations" ^ 
       subsetTests ^ end ^
     "positive subset tests" ^ 
@@ -34,127 +30,47 @@ class FilterTest extends Specification with matcher.DataTables {
       unionTests ^ end
 
   val equivalenceTests =
-    "exclude === exclude" ! {
-      f("EXCLUDE") must beEquivalentTo(f("EXCLUDE")) 
-    } ^
-    "include === include" ! {
-      f("INCLUDE") must beEquivalentTo(f("INCLUDE"))
-    } ^
-    "A < 1 === A < 1" ! {
-      f("A < 1") must beEquivalentTo(f("A < 1"))
-    } ^
-    "A <> 1 === A <> 1" ! {
-      f("A <> 1") must beEquivalentTo(f("A <> 1"))
-    } ^
-    "A IS NULL === A IS NULL" ! {
-      f("A IS NULL") must beEquivalentTo(f("A IS NULL"))
-    } ^
-    "A <= 1 OR B >= 1 === A <= 1 OR B >= 2" ! {
-      f("A <= 1 OR B >= 2") must beEquivalentTo(f("A <= 1 OR B >= 2"))
-    } ^
-    "A <= 1 AND B >= 2 === A <= 1 AND B >= 2" ! {
-      f("A <= 1 AND B >= 2") must beEquivalentTo(f("A <= 1 AND B >= 2"))
-    } ^
-    "A < 1 !=== A > 1" !  {
-      f("A < 1") must not(beEquivalentTo(f("A > 1")))
-    } ^
-    "A < 1 !=== A = 1" ! {
-      f("A < 1") must not(beEquivalentTo(f("A = 1")))
-    } ^
-    "A = 1 !=== A > 1" ! {
-      f("A = 1") must not(beEquivalentTo(f("A > 1")))
+    "Basic equivalence tests" ! {
+      "LHS"               || "RHS"               |
+      "EXCLUDE"           !! "EXCLUDE"           | 
+      "INCLUDE"           !! "INCLUDE"           |
+      "A < 1"             !! "A < 1"             |
+      "A <> 1"            !! "A <> 1"            |
+      "A IS NULL"         !! "A IS NULL"         |
+      "A <= 1 OR B >= 2"  !! "A <= 1 OR B >= 2"  |
+      "A <= 1 AND B >= 2" !! "A <= 1 AND B >= 2" |> {
+        (a, b) => f(a) must beEquivalentTo(f(b))
+      }
     }
 
-  val negationTests = pending
-    // "NOT (A < 1) === (A >= 1 OR A IS NULL)" ! {
-    //   negate(f("A < 1")) must beEquivalentTo(f("A >= 1 OR A IS NULL"))
-    // } ^
-    // "NOT (A > 1) === (A <= 1 OR A IS NULL)" ! {
-    //   negate(f("A > 1")) must beEquivalentTo(f("A <= 1 OR A IS NULL"))
-    // } ^
-    // "NOT (A <= 1) === (A > 1 OR A IS NULL)" ! {
-    //   negate(f("A <= 1")) must beEquivalentTo(f("A > 1 OR A IS NULL"))
-    // } ^
-    // "NOT (A >= 1) === (A < 1 OR A IS NULL)" ! {
-    //   negate(f("A >= 1")) must beEquivalentTo(f("A < 1 OR A IS NULL"))
-    // } ^ {
-    //   pending // ("Need to canonicalize filters before the equality check here works")
-    //   // TODO: negate(f("A > 1 AND B < 2")) must beEquivalentTo(f("A <= 1 OR A IS NULL OR B >= 2 OR B IS NULL"))
-    //   // TODO: figure out and implement a canonical form for nested logical filters
-    //   // negate(f("A > 1 OR B < 2")) must beEquivalentTo(f("(A <= 1 OR A IS NULL) AND (B >= 2 OR B IS NULL)"))
-    //   // TODO: simplify(negate(f("A < 1 AND A <> 2"))) must beEquivalentTo(f("A IS NULL OR A >= 1"))
-    //   // TODO: simplify(negate(negate(f("A < 1 AND A <> 2")))) must beEquivalentTo(f("A < 1"))
-    // }
+  val negativeEquivalenceTests =
+    "equivalence tests that must produce false" ! {
+      "LHS"   || "RHS"   |
+      "A < 1" !! "A > 1" |
+      "A < 1" !! "A = 1" |
+      "A = 1" !! "A > 1" |> {
+        (a, b) => f(a) must not(beEquivalentTo(f(b))) 
+      }
+    }
 
-
-  val binaryOperatorSimplificationTests = pending
-    // "NOT(A < 1) AND (A > 0) === A IS NULL" ! {
-    //   intersection(negate(f("A < 1")), negate(f("A > 0"))) must beSome.which {
-    //     _ must beEquivalentTo(f("A IS NULL"))
-    //   }
-    // } ^ 
-    // "NOT(A < 2) AND NOT (A >= 2 OR A <= 4) AND NOT(A > 4) === A IS NULL" ! {
-    //   simplify(allOf(Seq("A < 2", "A >= 2 OR A <= 4", "A > 4") map { s => negate(f(s)) } )) must
-    //     beEquivalentTo(f("A IS NULL"))
-    // }
-   
   val subsetTests = 
-    "Anything is a subset of INCLUDE" ! {
-      isSubSet(f("INCLUDE"), f("A = 2")) must beTrue
-    } ^
-    "A = 2 is a subset of A >= 1" ! {
-      isSubSet(f("A >= 1"), f("A = 2")) must beTrue
-    } ^ 
-    "A > 1 is not a subset of A = 1" ! {
-      isSubSet(f("A = 1"), f("A > 1")) must beFalse
-    } ^ 
-    "A = 1 is not a subset of A > 1" ! {
-      isSubSet(f("A > 1"), f("A = 1")) must beFalse
-    } ^ 
-    "A < 1 is a subset of A < 1" ! {
-      isSubSet(f("A < 1"), f("A < 1")) must beTrue
-    } ^
-    "A < 2 is not a subset of A < 1" ! {
-      isSubSet(f("A < 1"), f("A < 2")) must beFalse 
-    } ^ 
-    "A < 1 is a subset of A < 2" ! {
-      isSubSet(f("A < 2"), f("A < 1")) must beTrue
-    } ^ 
-    "A < 1 OR B > 2 is not a subset of A < 1" ! {
-      isSubSet(f("A < 1"), f("A < 1 OR B > 2")) must beFalse
-    } ^ 
-    "A < 0 OR B > 2 is not a subset of A < 1" ! {
-      isSubSet(f("A < 1"), f("A < 0 OR B > 2")) must beFalse
-    } ^ 
-    "A < 1 is a subset of A IS NOT NULL" ! {
-      isSubSet(f("A IS NOT NULL"), f("A < 1")) must beTrue
-    } ^ 
-    "A < 2 is a subset of A <> 2" ! {
-      isSubSet(f("A <> 2"), f("A < 2")) must beTrue
-    } ^ 
-    "A < 1 is a subset of A <> 2" ! {
-      isSubSet(f("A <> 2"), f("A < 1")) must beTrue
-    } ^ 
-    "A < 1 and A <> 2 is a subset of A < 1" ! {
-      isSubSet(f("A < 1"), f("A < 1 AND A <> 2")) must beTrue
-    } ^ 
-    "A < 1 AND A > 0 is a subset of A < 1" ! {
-      isSubSet(f("A < 1"), f("A < 1 AND A > 0")) must beTrue
-    } ^ 
-    "A < 1 is not a subset of A < 1 and A > 0" ! {
-      isSubSet(f("A < 1 AND A > 0"), f("A < 1")) must beFalse
-    } ^ 
-    "A < 1 is a subset of A <> 1" ! {
-      isSubSet(f("A <> 1"), f("A < 1")) must beTrue
-    } ^
-    "A IS NULL is a subset of A <> 1 OR A IS NULL" ! {
-      isSubSet(f("A <> 1 OR A IS NULL"), f("A IS NULL")) must beTrue
-    } ^ 
-    "A = 1 OR A = 2 is a subset of A = 1 OR A = 2" ! {
-      isSubSet(f("A = 1 OR A = 2"), f("A = 1 OR A = 2")) must beTrue
-    } ^ 
-    "A < 1 OR A IS NULL is a subset of A <> 1 OR A is NULL" ! {
-      isSubSet(f("A <> 1 OR A IS NULL"), f("A < 1 OR A IS NULL")) must beTrue
+    "Cases where isSubSet should definitely give true" ! {
+      "LHS"                 || "RHS"                |
+      "INCLUDE"             !! "A = 2"              |
+      "A >= 1"              !! "A = 2"              |
+      "A < 1"               !! "A < 1"              |
+      "A < 2"               !! "A < 1"              |
+      "A IS NOT NULL"       !! "A < 1"              |
+      "A <> 2"              !! "A < 2"              |
+      "A <> 2"              !! "A < 1"              |
+      "A < 1"               !! "A < 1 AND A <> 2"   |
+      "A < 1"               !! "A < 1 AND A > 0"    |
+      "A <> 1"              !! "A < 1"              |
+      "A <> 1 OR A IS NULL" !! "A IS NULL"          |
+      "A = 1 OR A = 2"      !! "A = 1 OR A = 2"     |
+      "A <> 1 OR A IS NULL" !! "A < 1 OR A IS NULL" |> { (p, q) => 
+        f(p) must haveAsSubset(f(q))
+      }
     }
 
   val negativeSubsetTests =

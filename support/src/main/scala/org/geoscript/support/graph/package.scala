@@ -16,8 +16,6 @@ package object graph {
 
     def degree(v: V) = vertices.count(connected(_, v))
 
-    def report(v: Any) = println(v)
-
     def recurse
       (r: Set[V], p: Set[V], x: Set[V], accum: Set[Set[V]])
       : Set[Set[V]]
