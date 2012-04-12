@@ -607,14 +607,24 @@ class Translator(val baseURL: Option[java.net.URL]) {
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
 
     for ((typename, overlays) <- styleRules) {
-      val zGroups: Seq[(Double, (Rule, Seq[gt.Symbolizer]))] = 
+      val zGroups: Seq[((Double, Option[OGCExpression]), (Rule, Seq[gt.Symbolizer]))] =
         for {
           rule <- cascading2exclusive(overlays)
           (z, syms) <- groupByZ(symbolize(rule))
-        } yield (z, (rule, syms))
+        } yield ((z, None), (rule, syms))
 
-      for ((_, group) <- orderedRuns(zGroups)) {
+      // In order to ensure minimal output, the conversion requires that like
+      // transforms be sorted together. However, there is no natural ordering
+      // over OGC Expressions.  Instead, we synthesize one by generating a list
+      // of all transform expressions used in this stylesheet and indexing into
+      // it to get a sort key.
+      val allTransforms = zGroups.map { case ((_, tx), _) => tx }.distinct
+      implicit val transformOrdering: Ordering[OGCExpression] =
+        Ordering.by { x => allTransforms.indexOf(x) }
+
+      for (((_, transform), group) <- orderedRuns(zGroups)) {
         val fts = styles.createFeatureTypeStyle
+        transform.foreach { fts.setTransformation }
         typename.foreach { t => fts.featureTypeNames.add(new NameImpl(t)) }
         for ((rule, syms) <- group if !syms.isEmpty) {
           val sldRule = styles.createRule()
