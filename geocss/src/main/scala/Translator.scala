@@ -607,12 +607,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
 
     for ((typename, overlays) <- styleRules) {
-      val zGroups: Seq[Seq[(Double, Rule, Seq[gt.Symbolizer])]] = 
-        for (rule <- cascading2exclusive(overlays)) yield
-          for ((z, syms) <- groupByZ(symbolize(rule))) yield
-            (z, rule, syms)
+      val zGroups: Seq[(Double, (Rule, Seq[gt.Symbolizer]))] = 
+        for {
+          rule <- cascading2exclusive(overlays)
+          (z, syms) <- groupByZ(symbolize(rule))
+        } yield (z, (rule, syms))
 
-      for ((_, group) <- flattenByZ(zGroups.flatten)) {
+      for ((_, group) <- orderedRuns(zGroups)) {
         val fts = styles.createFeatureTypeStyle
         typename.foreach { t => fts.featureTypeNames.add(new NameImpl(t)) }
         for ((rule, syms) <- group if !syms.isEmpty) {
@@ -656,13 +657,34 @@ class Translator(val baseURL: Option[java.net.URL]) {
     return sld 
   }
 
-  private def flattenByZ[R, S](zGroups: Seq[(Double, R, Seq[S])])
-  : Seq[(Double, Seq[(R, Seq[S])])]
-  = {
-    val zFlattened = zGroups map { case (z, r, s) => (z, (r, s)) }
-    (zFlattened groupBy(_._1) mapValues(_ map (_._2)) toSeq).sortBy(_._1)
+  /**
+   * Order-preserving grouping of pairs by the first item in the tuple
+   * "runs" as in run-length encoding.
+   */
+  private def runs[K, V](xs: Seq[(K,V)]): Seq[(K,Seq[V])] = {
+    type In = Seq[(K,V)]
+    type Out = Seq[(K,Seq[V])]
+
+    @annotation.tailrec
+    def recurse(xs: In, accum: Out): Out =
+      xs match {
+        case Seq() => accum
+        case Seq(x, _*) => 
+          val (in, out) = xs.span(_._1 == x._1)
+          val in0 = (x._1, (in map (_._2)))
+          recurse(out, accum :+ in0)
+      }
+
+    recurse(xs, Seq.empty)
   }
 
+  /**
+   * Sort, then find runs in the sorted results
+   *
+   * @see runs
+   */
+  private def orderedRuns[K : Ordering, V] (xs: Seq[(K, V)]) : Seq[(K, Seq[V])] =
+    runs(xs sortBy(_._1))
 
   private def groupByZ(syms: Seq[(Double, Symbolizer)])
   : Seq[(Double, Seq[Symbolizer])] = {
