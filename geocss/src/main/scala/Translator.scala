@@ -361,6 +361,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val rotation = props.get("stroke-rotation") map angle getOrElse filters.literal(0)
         val geom = 
           props.get("stroke-geometry") orElse props.get("geometry") map expression getOrElse null
+        val transform =
+          props.get("stroke-transform") orElse props.get("transform") map expression
         val zIndex: Double = 
           props.get("stroke-z-index") orElse props.get("z-index") map {
             x => keyword("0", x).toDouble
@@ -389,7 +391,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
             null
           )
         sym.setGeometry(geom)
-        ((zIndex, None), sym)
+        ((zIndex, transform), sym)
       }
 
     val polySyms: Seq[(Key, PolygonSymbolizer)] = 
@@ -402,6 +404,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val opacity = props.get("fill-opacity") map scale getOrElse null
         val geom =
           props.get("fill-geometry") orElse props.get("geometry") map expression getOrElse null
+        val transform =
+          props.get("fill-transform") orElse props.get("transform") map expression
         val zIndex: Double = 
           props.get("fill-z-index") orElse props.get("z-index") map {
             x => keyword("0", x).toDouble
@@ -420,7 +424,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           null
         )
         sym.setGeometry(geom)
-        ((zIndex, None), sym)
+        ((zIndex, transform), sym)
       }
 
     val pointSyms: Seq[(Key, PointSymbolizer)] = 
@@ -429,6 +433,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
       ).flatMap { case (props, markProps) => 
         val geom = (props.get("mark-geometry") orElse props.get("geometry"))
           .map(expression).getOrElse(null)
+        val transform =
+          props.get("mark-transform") orElse props.get("transform") map expression
         val zIndex: Double = 
           props.get("mark-z-index") orElse props.get("z-index") map {
             x => keyword(x).toDouble
@@ -439,7 +445,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         for (g <- graphic) yield {
           val sym = styles.createPointSymbolizer(g, null)
           sym.setGeometry(geom)
-          ((zIndex, None), sym)
+          ((zIndex, transform), sym)
         }
       }
 
@@ -455,6 +461,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val rotation = props.get("label-rotation").map(angle)
         val geom = (props.get("label-geometry") orElse props.get("geometry"))
           .map(expression).getOrElse(null)
+        val transform =
+          props.get("label-transform") orElse props.get("transform") map expression
         val zIndex: Double = 
           props.get("label-z-index") orElse props.get("z-index") map {
             x => keyword("0", x).toDouble
@@ -550,7 +558,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           )
         }
 
-        ((zIndex, None), sym)
+        ((zIndex, transform), sym)
       }
 
     Seq(polySyms, lineSyms, pointSyms, textSyms).flatten
