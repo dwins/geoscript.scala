@@ -668,8 +668,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
   }
 
   /**
-   * Order-preserving grouping of pairs by the first item in the tuple
-   * "runs" as in run-length encoding.
+   * "runs" as in run-length encoding: Order-preserving grouping of pairs by
+   * the first item in the tuple
    */
   private def runs[K, V](xs: Seq[(K,V)]): Seq[(K,Seq[V])] = {
     type In = Seq[(K,V)]
