@@ -338,13 +338,14 @@ class Translator(val baseURL: Option[java.net.URL]) {
    * Convert a set of properties to a set of Symbolizer objects attached to the
    * given Rule.
    */
-  def symbolize(rule: Rule): Seq[Pair[Double, Symbolizer]] = {
+  def symbolize(rule: Rule): Seq[Pair[(Double, Option[OGCExpression]), Symbolizer]] = {
+    type Key = (Double, Option[OGCExpression])
     val properties = rule.properties
 
     def orderedMarkRules(symbolizerType: String, order: Int): Seq[Property] =
       rule.context(symbolizerType, order)
 
-    val lineSyms: Seq[(Double, LineSymbolizer)] = 
+    val lineSyms: Seq[(Key, LineSymbolizer)] = 
       (expand(properties, "stroke").toStream zip
        (Stream.from(1) map { orderedMarkRules("stroke", _) })
       ).map { case (props, markProps) =>
@@ -388,10 +389,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
             null
           )
         sym.setGeometry(geom)
-        (zIndex, sym)
+        ((zIndex, None), sym)
       }
 
-    val polySyms: Seq[(Double, PolygonSymbolizer)] = 
+    val polySyms: Seq[(Key, PolygonSymbolizer)] = 
       (expand(properties, "fill").toStream zip
        (Stream.from(1) map { orderedMarkRules("fill", _) })
       ).map { case (props, markProps) =>
@@ -419,10 +420,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
           null
         )
         sym.setGeometry(geom)
-        (zIndex, sym)
+        ((zIndex, None), sym)
       }
 
-    val pointSyms: Seq[(Double, PointSymbolizer)] = 
+    val pointSyms: Seq[(Key, PointSymbolizer)] = 
       (expand(properties, "mark").toStream zip
        (Stream.from(1) map { orderedMarkRules("mark", _) })
       ).flatMap { case (props, markProps) => 
@@ -438,11 +439,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
         for (g <- graphic) yield {
           val sym = styles.createPointSymbolizer(g, null)
           sym.setGeometry(geom)
-          (zIndex, sym)
+          ((zIndex, None), sym)
         }
       }
 
-    val textSyms: Seq[(Double, TextSymbolizer)] =
+    val textSyms: Seq[(Key, TextSymbolizer)] =
       (expand(properties, "label").toStream zip
        (Stream.from(1) map { orderedMarkRules("shield", _) })
       ).map { case (props, shieldProps) => 
@@ -549,7 +550,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           )
         }
 
-        (zIndex, sym)
+        ((zIndex, None), sym)
       }
 
     Seq(polySyms, lineSyms, pointSyms, textSyms).flatten
@@ -607,20 +608,28 @@ class Translator(val baseURL: Option[java.net.URL]) {
       for (name <- typenames) yield (name, rules filter isForTypename(name) map stripTypenames)
 
     for ((typename, overlays) <- styleRules) {
-      val zGroups: Seq[((Double, Option[OGCExpression]), (Rule, Seq[gt.Symbolizer]))] =
-        for {
-          rule <- cascading2exclusive(overlays)
-          (z, syms) <- orderedRuns(symbolize(rule))
-        } yield ((z, None), (rule, syms))
+      val expandedRules = cascading2exclusive(overlays)
 
       // In order to ensure minimal output, the conversion requires that like
       // transforms be sorted together. However, there is no natural ordering
       // over OGC Expressions.  Instead, we synthesize one by generating a list
       // of all transform expressions used in this stylesheet and indexing into
       // it to get a sort key.
-      val allTransforms = zGroups.map { case ((_, tx), _) => tx }.distinct
+      val allTransforms = 
+        expandedRules
+          .flatMap(symbolize)
+          .map { case ((_, tx), _) => tx }
+          .distinct
+
       implicit val transformOrdering: Ordering[OGCExpression] =
         Ordering.by { x => allTransforms.indexOf(x) }
+
+      val zGroups: Seq[((Double, Option[OGCExpression]), (Rule, Seq[gt.Symbolizer]))] =
+        for {
+          rule <- expandedRules
+          (key, syms) <- orderedRuns(symbolize(rule))
+        } yield (key, (rule, syms))
+
 
       for (((_, transform), group) <- orderedRuns(zGroups)) {
         val fts = styles.createFeatureTypeStyle
