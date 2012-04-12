@@ -610,7 +610,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
       val zGroups: Seq[((Double, Option[OGCExpression]), (Rule, Seq[gt.Symbolizer]))] =
         for {
           rule <- cascading2exclusive(overlays)
-          (z, syms) <- groupByZ(symbolize(rule))
+          (z, syms) <- orderedRuns(symbolize(rule))
         } yield ((z, None), (rule, syms))
 
       // In order to ensure minimal output, the conversion requires that like
@@ -695,18 +695,6 @@ class Translator(val baseURL: Option[java.net.URL]) {
    */
   private def orderedRuns[K : Ordering, V] (xs: Seq[(K, V)]) : Seq[(K, Seq[V])] =
     runs(xs sortBy(_._1))
-
-  private def groupByZ(syms: Seq[(Double, Symbolizer)])
-  : Seq[(Double, Seq[Symbolizer])] = {
-    // we make a special case for labels; they will be rendered last anyway, so
-    // we can fold them into one layer
-    val (labels, symbols) = syms partition { _.isInstanceOf[TextSymbolizer] }
-    val grouped =
-      for {
-        (z, syms) <- symbols.groupBy(_._1).toSeq.sortBy(_._1)
-      } yield (z, syms map (_._2))
-    grouped ++ Seq((0d, labels map (_._2)))
-  }
 
   /**
    * Given a list, generate all possible groupings of the contents of that list
