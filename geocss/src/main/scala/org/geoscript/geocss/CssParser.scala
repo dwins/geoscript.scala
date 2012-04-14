@@ -29,8 +29,10 @@ object CssParser extends RegexParsers {
     }
 
   private val expressionSelectorPartial =
-    new PartialFunction[String,ExpressionSelector] {
-      def apply(s: String): ExpressionSelector = ExpressionSelector(s)
+    new PartialFunction[String, Selector] {
+      def apply(exp: String): Selector = 
+        Selector.asSelector(ECQL.toFilter(exp)) 
+
       def isDefinedAt(exp: String): Boolean = 
         try {
           ECQL.toFilter(exp); true

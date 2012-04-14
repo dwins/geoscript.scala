@@ -12,8 +12,11 @@ class TokenTest extends Specification with matcher.DataTables {
     org.geotools.factory.CommonFactoryFinder.getFilterFactory2(null)
   import filterFactory._
 
-  val expr1 = ExpressionSelector("a>b")
-  val expr2 = ExpressionSelector("c<d")
+  val expr = 
+    (org.geotools.filter.text.ecql.ECQL.toFilter(_: String)) andThen
+    (Selector.asSelector)
+  val expr1 = expr("a>b")
+  val expr2 = expr("c<d")
 
   def is = 
     "'And' Selectors should do some basic simplification" ^ 

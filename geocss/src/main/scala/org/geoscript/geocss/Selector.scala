@@ -19,7 +19,7 @@ sealed abstract class Selector {
 
 object Selector {
   import org.geoscript.support.logic.{ given, Sentential }
-  private implicit val filtersAreSentential = filter.FiltersAreSentential
+  private implicit val filt = filter.FiltersAreSentential
 
   implicit object SelectorsAreSentential extends Sentential[Selector] {
     val False = Exclude
@@ -29,8 +29,7 @@ object Selector {
       def unapply(s: Selector): Option[ogc.Filter] = s.filterOpt
     }
 
-    def implies(p: Selector, q: Selector): Boolean = {
-      val res = 
+    def implies(p: Selector, q: Selector): Boolean =
       (p, q) match {
         case (Accept, Accept) => true
         case (DataFilter(ogc.Filter.INCLUDE), DataFilter(ogc.Filter.INCLUDE)) => true
@@ -38,7 +37,8 @@ object Selector {
         case (DataFilter(ogc.Filter.INCLUDE), _) => false
         case (Exclude, _) => false
         case (DataFilter(ogc.Filter.EXCLUDE), _) => false
-        case (Not(p), q) => negate(q).exists(!implies(_, p))
+        case (Not(p), Not(q)) => implies(q, p)
+        case (p, Not(q)) => !allows(p, q)
         case (PseudoSelector("scale", ">", a), PseudoSelector("scale", ">", b)) => 
           b.toDouble <= a.toDouble
         case (PseudoSelector("scale", "<", a), PseudoSelector("scale", "<", b)) => 
@@ -53,13 +53,8 @@ object Selector {
           }
         case _ => false
       } 
-      // if (res)
-      //   println("%s => %s ? %s" format(p,q, res))
-      res
-    }
 
-    def allows(p: Selector, q: Selector): Boolean = {
-      val res =
+    def allows(p: Selector, q: Selector): Boolean =
       (p, q) match {
         case (Accept, Accept) => true
         case (DataFilter(ogc.Filter.INCLUDE), DataFilter(ogc.Filter.INCLUDE)) => true
@@ -70,6 +65,7 @@ object Selector {
         case (_, Exclude) => false
         case (_, DataFilter(ogc.Filter.EXCLUDE)) => false
         //case (NotSelector(p), NotSelector(q)) => allows(p, q)
+        case (Not(p), Not(q)) => allows(q, p)
         case (Not(p), q) => !implies(q, p)
         case (PseudoSelector("scale", ">", a), PseudoSelector("scale", "<", b)) => 
           b.toDouble > a.toDouble
@@ -84,11 +80,7 @@ object Selector {
               sys.error(tpl format(f, g))
           }
         case _ => true
-      } 
-      // if (!res)
-      //   println("%s && %s ? %s" format(p,q, res))
-      res
-    }
+      }
 
     private def negate(p: Selector): Option[Selector] =
       Some(p) collect { case Not(sel) => sel }
@@ -127,7 +119,7 @@ object Selector {
           case Seq(h, t @ _*) => (h, Or(t))
         }
         case DataSelector(filt.Ops.Or(p, q)) =>
-          Some((asSelector(p), asSelector(q)))
+          (asSelector(p), asSelector(q))
       }
 
     def and(p: Selector, q: Selector) = {
@@ -148,7 +140,7 @@ object Selector {
           case Seq(h, t @ _*) => (h, And(t))
         }
         case DataSelector(filt.Ops.And(p, q)) =>
-          Some((asSelector(p), asSelector(q)))
+          (asSelector(p), asSelector(q))
       }
 
     def not(p: Selector) = Not(p)
@@ -156,8 +148,29 @@ object Selector {
     def extractNot(p: Selector): Option[Selector] =
       Option(p) collect { 
         case Not(p) => p
-        case DataSelector(filt.Ops.Not(p)) => asSelector(p)
+        case DataSelector(filt.Ops.Not(p)) =>
+          asSelector(p)
       }
+  }
+
+
+  private case class FilterAsSelector(filter: ogc.Filter)
+  extends DataSelector {
+    override def asFilter = filter
+    override def toString = filter.toString
+  }
+
+  def asSelector(f: ogc.Filter): Selector = {
+    import filter.FiltersAreSentential.Ops
+    f match {
+      case Ops.And(p, q) =>
+        SelectorsAreSentential.and(asSelector(p), asSelector(q))
+      case Ops.Or(p, q) =>
+        SelectorsAreSentential.or(asSelector(p), asSelector(q))
+      case Ops.Not(p) =>
+        SelectorsAreSentential.not(asSelector(p))
+      case f => FilterAsSelector(f)
+    }
   }
 }
 
@@ -170,6 +183,10 @@ abstract class DataSelector extends Selector {
    */
   def asFilter: Filter
   override def filterOpt = Some(asFilter)
+}
+
+object DataSelector {
+  def unapply(sel: DataSelector): Some[Filter] = Some(sel.asFilter)
 }
 
 /**
@@ -253,24 +270,6 @@ case class PseudoClass(name: String) extends Context {
 case class ParameterizedPseudoClass(name: String, param: String) 
 extends Context {
   override def toString = ":%s(%s)".format(name, param)
-}
-
-/**
- * A Selector which wraps a CQL expression.
- */
-case class ExpressionSelector(expression: String) extends DataSelector {
-  override lazy val asFilter = 
-    org.geotools.filter.text.ecql.ECQL.toFilter(expression)
-  override def toString = expression
-}
-
-/**
- * A Selector which wraps an OGC Filter instance.
- */
-case class WrappedFilter(filter: org.opengis.filter.Filter) 
-extends DataSelector {
-  override def asFilter = filter
-  override def toString = filter.toString
 }
 
 /**

@@ -10,7 +10,7 @@ class SelectorTest extends Specification with matcher.DataTables {
   def scale_<(s: String): Selector = PseudoSelector("scale", "<", s)
   def scale_>(s: String): Selector = PseudoSelector("scale", ">", s)
   def not(s: Selector): Selector = Not(s)
-  def cql(s: String): Selector = ExpressionSelector(s)
+  val cql = (ECQL.toFilter(_: String)) andThen (Selector.asSelector)
 
   def is = 
     "disproven test" ! {

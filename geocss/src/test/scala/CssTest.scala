@@ -110,13 +110,16 @@ class CssTest extends Specification {
         ) 
       } ^ end
 
-  val any = Accept
-  val id = Id("states.9")
-  val cql = ExpressionSelector("STATE_NAME LIKE '%ia'")
+  lazy val any = Accept
+  lazy val id = Id("states.9")
+  lazy val cql = expr("STATE_NAME LIKE '%ia'")
 
   val propLists = List(
     Property("stroke", List(List(Literal("red")), List(Literal("green")))),
     Property("opacity", List(List(Literal("0.70")))),
     Property("width", List(List(Literal("10")), List(Literal("8")), List(Literal("6"))))
   )
+
+  import gt.filter.text.ecql.ECQL.toFilter
+  lazy val expr = (toFilter(_: String)) andThen (Selector.asSelector)
 }

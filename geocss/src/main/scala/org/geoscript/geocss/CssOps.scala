@@ -255,8 +255,8 @@ object CssOps {
         (children.map(apply) :\ Specificity(0, 0, 0)) { _ + _ }
       case Or(children) =>
         children.map(apply).max
-      case expr: ExpressionSelector =>
-        Specificity(0, countAttributes(expr.asFilter), 0)
+      case DataSelector(f) =>
+        Specificity(0, countAttributes(f), 0)
       case _ => Specificity(0, 0, 0)
     }
 
