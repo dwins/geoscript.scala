@@ -126,6 +126,8 @@ object Selector {
           case Seq(p, q) => (p, q)
           case Seq(h, t @ _*) => (h, Or(t))
         }
+        case DataSelector(filt.Ops.Or(p, q)) =>
+          Some((asSelector(p), asSelector(q)))
       }
 
     def and(p: Selector, q: Selector) = {
@@ -145,12 +147,17 @@ object Selector {
           case Seq(p, q) => (p, q)
           case Seq(h, t @ _*) => (h, And(t))
         }
+        case DataSelector(filt.Ops.And(p, q)) =>
+          Some((asSelector(p), asSelector(q)))
       }
 
     def not(p: Selector) = Not(p)
 
     def extractNot(p: Selector): Option[Selector] =
-      Option(p) collect { case Not(p) => p }
+      Option(p) collect { 
+        case Not(p) => p
+        case DataSelector(filt.Ops.Not(p)) => asSelector(p)
+      }
   }
 }
 

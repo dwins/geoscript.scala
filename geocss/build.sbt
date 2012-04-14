@@ -16,8 +16,7 @@ import org.opengis.{ filter => ogc }
 import org.geoscript._
 import gt.filter.text.ecql.ECQL.{ toFilter => cql }
 import geocss.filter.FiltersAreSentential
-import support.logic.Sentential, support.logic.Knowledge.Oblivion
-def reduce[P : Sentential](p: P) = Oblivion[P].reduce(p)
+import support.logic.{ given, reduce }
 def in(path: String) = new java.io.FileReader(new java.io.File(path))
 def load(path: String) = 
   geocss.CssParser.parseAll(
