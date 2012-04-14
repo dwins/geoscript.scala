@@ -3,7 +3,7 @@ package org.geoscript.geocss
 import math._
 import util.Sorting.stableSort
 
-import org.geoscript.support.logic.Knowledge
+import org.geoscript.support.logic.reduce
 
 import org.geotools.feature.NameImpl
 import org.geotools.{styling => gt}
@@ -590,7 +590,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     def isForTypename(typename: Option[String])(rule: Rule): Boolean =
       typename map { t => 
-        simplify(allOf(Typename(t) +: rule.selectors)) != Exclude
+        reduce(allOf(Typename(t) +: rule.selectors)) != Exclude
       } getOrElse true
 
     def stripTypenames(rule: Rule): Rule =
@@ -621,7 +621,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
             val minSelector = min.map(x => PseudoSelector("scale", ">", x.toString))
             val maxSelector = max.map(x => PseudoSelector("scale", "<", x.toString))
             val restricted = 
-              simplify(allOf(rule.selectors ++ minSelector ++ maxSelector))
+              reduce(allOf(rule.selectors ++ minSelector ++ maxSelector))
 
             if (restricted != Exclude) {
               val sldRule = styles.createRule()
@@ -672,12 +672,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
   }
 
   def simplifyList(sels: Seq[Selector]): Seq[Selector] = {
-    val kb = Knowledge.Oblivion[Selector]
     if (sels.isEmpty) Seq()
     else {
       val reduced = 
         sels.map(consolidate).reduce {
-          (a,b) => kb.reduce(And(Seq(a, b)))
+          (a,b) => reduce[Selector](And(Seq(a, b)))
         }
       reduced match {
         case And(sels) => sels
@@ -726,9 +725,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def cascading2exclusive(xs: Seq[Rule]): Seq[Rule] = {
     import org.geoscript.support.graph._
 
-    val kb = Knowledge.Oblivion[Selector]
     val mutuallyExclusive = (a: Rule, b: Rule) =>
-      kb.reduce(And(a.selectors ++ b.selectors)) == Exclude
+      reduce[Selector](And(a.selectors ++ b.selectors)) == Exclude
      
     val cliques = maximalCliques(xs.toSet, mutuallyExclusive)
     val combinations = enumerateCombinations(cliques)

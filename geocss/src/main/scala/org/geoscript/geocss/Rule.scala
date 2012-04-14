@@ -1,4 +1,5 @@
 package org.geoscript.geocss
+import org.geoscript.support.logic.reduce
 
 /**
  * A Rule is the basic unit of a CSS style.  Rules identify a subset of all
@@ -30,7 +31,7 @@ case class Rule(
    * selectors?
    */
   lazy val isSatisfiable = {
-    !(simplify(And(selectors)) == Exclude)
+    !(reduce[Selector](And(selectors)) == Exclude)
   }
 
   /**

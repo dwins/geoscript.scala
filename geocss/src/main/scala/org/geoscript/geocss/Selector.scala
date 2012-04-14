@@ -18,16 +18,16 @@ sealed abstract class Selector {
 }
 
 object Selector {
-  import org.geoscript.support.logic
-  implicit object SelectorsAreSentential extends logic.Sentential[Selector] {
+  import org.geoscript.support.logic.{ given, Sentential }
+  private implicit val filtersAreSentential = filter.FiltersAreSentential
+
+  implicit object SelectorsAreSentential extends Sentential[Selector] {
     val False = Exclude
     val True = Accept
 
     private object DataFilter {
       def unapply(s: Selector): Option[ogc.Filter] = s.filterOpt
     }
-
-    private val kb = logic.Knowledge.Oblivion(filter.FiltersAreSentential)
 
     def implies(p: Selector, q: Selector): Boolean = {
       val res = 
@@ -45,7 +45,7 @@ object Selector {
           b.toDouble >= a.toDouble
         case (DataFilter(f), DataFilter(g)) =>
           try {
-            kb.given(f).reduce(g) == ogc.Filter.INCLUDE
+            given(f).reduce(g) == ogc.Filter.INCLUDE
           } catch {
             case _ => 
               val tpl = "Tried to reduce with inconsistent givens: \n%s\n%s"
@@ -77,7 +77,7 @@ object Selector {
           b.toDouble < a.toDouble
         case (DataFilter(f), DataFilter(g)) =>
           try {
-            kb.given(f).reduce(g) != ogc.Filter.EXCLUDE
+            given(f).reduce(g) != ogc.Filter.EXCLUDE
           } catch {
             case _ => 
               val tpl = "Tried to reduce with inconsistent givens: \n%s\n%s"

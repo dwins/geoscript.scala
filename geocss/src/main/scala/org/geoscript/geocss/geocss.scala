@@ -1,7 +1,6 @@
 package org.geoscript
 
 import collection.JavaConversions._
-import support.logic.Knowledge
 import org.opengis.{ filter => ogc }
 
 package object geocss {
@@ -14,12 +13,6 @@ package object geocss {
       case Or(children) => (children flatMap flatten)
       case sel => Seq(sel)
     }
-
-  // should produce an equivalent selector to the input with possibly fewer
-  // total terms
-  def simplify(sel: Selector): Selector = {
-    Knowledge.Oblivion[Selector].reduce(sel)
-  }
 
   // should produce an OGC filter expressing the constraints in a selector
   // that can be expressed in OGC filters.
