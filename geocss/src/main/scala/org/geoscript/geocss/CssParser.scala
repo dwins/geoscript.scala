@@ -181,6 +181,7 @@ object CssParser extends RegexParsers {
   def parse(input: java.io.InputStream): ParseResult[Seq[Rule]] =
     parse(new java.io.InputStreamReader(input))
 
-  def parse(input: java.io.Reader): ParseResult[Seq[Rule]] =
+  def parse(input: java.io.Reader): ParseResult[Seq[Rule]] = synchronized {
     parseAll(styleSheet, input)
+  }
 }
