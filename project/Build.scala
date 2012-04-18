@@ -28,32 +28,30 @@ object GeoScript extends Build {
       )
     ) ++ meta ++ defaultSettings
 
+  val sphinxSettings =
+    Seq(
+      baseDirectory <<= thisProject(_.base),
+      target <<= baseDirectory / "target",
+      sphinxDir <<= crossTarget(_ / "sphinx"),
+      sphinxSource <<= baseDirectory(_ / "src" / "main" / "sphinx"),
+      sphinxBuild := "sphinx-build",
+      sphinxOpts := Nil,
+      sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) map (runSphinx),
+      watchSources <<= (baseDirectory, target) map { (b, t) => (b ** "*") --- (t ** "*") get }
+    )
+
   lazy val root =
-    Project("root", file(".")) aggregate(css, docs, examples, library)
+    Project("root", file(".")) aggregate(css, /*docs,*/ examples, library)
   lazy val css = 
     Project("css", file("geocss"), settings = common) dependsOn(support)
   lazy val examples = 
     Project("examples", file("examples"), settings = common) dependsOn(library)
   lazy val library =
-    Project("library", file("geoscript"), settings = common) dependsOn(css, dummy)
+    Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css, dummy)
   lazy val support =
     Project("support", file("support"), settings = common)
   lazy val dummy = 
     Project("dummy", file("dummy"), settings = meta ++ defaultSettings)
-  lazy val docs = Project(
-    "docs", file("docs"),
-    settings = Seq(
-      baseDirectory <<= thisProject(_.base),
-      target <<= baseDirectory / "target",
-      docDirectory <<= target / "doc",
-      sphinxDir <<= docDirectory(_ / "sphinx"),
-      sphinxSource <<= baseDirectory.identity,
-      sphinxBuild := "sphinx-build",
-      sphinxOpts := Nil,
-      sphinx <<= (sphinxBuild, sphinxSource, sphinxDir, sphinxOpts) map (runSphinx),
-      watchSources <<= (baseDirectory, target) map { (b, t) => (b ** "*") --- (t ** "*") get }
-    ) ++ meta
-  )
 
   lazy val sphinx = 
     TaskKey[java.io.File]("sphinx", "runs sphinx documentation generator")
