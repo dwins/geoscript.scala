@@ -205,6 +205,9 @@ object CssOps {
 
   object Specificity extends (Rule => Specificity) {
     import Seq.empty
+
+    val Zero = Specificity(0, 0, 0)
+
     private def extract(f: org.opengis.filter.Filter): Seq[String] = {
       f match {
         case b: BinaryComparisonOperator =>
@@ -251,13 +254,10 @@ object CssOps {
       case (_: ParameterizedPseudoClass) => Specificity(0, 0, 2)
       case (_: PseudoClass) => Specificity(0, 0, 1)
       case (_: Id) => Specificity(1, 0, 0)
-      case And(children) =>
-        (children.map(apply) :\ Specificity(0, 0, 0)) { _ + _ }
-      case Or(children) =>
-        children.map(apply).max
-      case DataSelector(f) =>
-        Specificity(0, countAttributes(f), 0)
-      case _ => Specificity(0, 0, 0)
+      case And(children) => (children map apply).fold(Zero) { _ + _ }
+      case Or(children) => children.map(apply).max
+      case DataSelector(f) => Specificity(0, countAttributes(f), 0)
+      case _ => Zero
     }
 
     /**
