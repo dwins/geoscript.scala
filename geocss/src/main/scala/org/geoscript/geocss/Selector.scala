@@ -200,7 +200,7 @@ abstract class MetaSelector extends Selector {
 /**
  * A Selector which only applies to pseudo-elements
  */
-trait Context extends MetaSelector
+trait Context
 
 /**
  * A Selector which only accepts the feature with a specific FID.  This

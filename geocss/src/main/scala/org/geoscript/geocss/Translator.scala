@@ -63,9 +63,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
       case Seq(URL(url), Color(color)) =>
         (resolve(url), null, filters.literal(color))
       case Seq(URL(url)) =>
-        (resolve(url), null, defaultRGB)
+        (resolve(url), null, null)
       case Seq(Symbol(sym)) =>
-        (null, sym, defaultRGB)
+        (null, sym, null)
       case Seq(Color(color))  =>
         (null, null, filters.literal(color))
       case _ =>
