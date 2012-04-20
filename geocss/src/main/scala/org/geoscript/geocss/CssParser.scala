@@ -149,20 +149,13 @@ object CssParser extends RegexParsers {
       case comment ~ selector ~ props =>
         val desc = comment.getOrElse(Description.empty)
 
-        def spec(xs: List[Either[Selector, Context]]): Specificity =
-          xs map {
-            case Left(sel) => Specificity(sel)
-            case Right(pseudoSel) => Specificity(pseudoSel)
-          } reduceLeft { _ + _ }
+        val spec = (_: List[Either[Selector, _]])
+           .collect { case Left(sel) => Specificity(sel) }
+           .fold(Specificity.Zero) { _ + _ }
 
         for (s <- selector.groupBy(spec).values) yield {
           def extractSelector(xs: List[Either[Selector, Context]]): Selector =
-            And(
-              xs map {
-                case Left(sel) => sel
-                case Right(pseudoSel) => pseudoSel
-              }
-            )
+            And(xs collect { case Left(sel) => sel })
 
           def extractContext(xs: List[Either[Selector, Context]]): Option[Context] =
             xs collect { case Right(x) => x } headOption
