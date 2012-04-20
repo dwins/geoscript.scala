@@ -232,20 +232,6 @@ class Translator(val baseURL: Option[java.net.URL]) {
     org.geotools.filter.text.ecql.ECQL.toFilter(cql)
   }
 
-  /**
-   * A conversion from Strings to filter Expressions using the ECQL
-   * parser.  Strings are assumed to be ECQL expressions if they are wrapped in
-   * square braces; otherwise they are taken as literals.
-   */
-  def stringToExpression(literal: String): OGCExpression =
-    if (literal == null) null
-    else if ((literal startsWith "[") && (literal endsWith "]")) {
-      val cql = literal.substring(1, literal.length - 1)
-      org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    } else {
-      filters.literal(literal)
-    }
-
   implicit def valToExpression(v: Value): OGCExpression =
     v match {
       case Expression(cql) =>
