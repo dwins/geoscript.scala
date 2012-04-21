@@ -180,7 +180,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
   }
 
   def concatenatedExpression(xs: Seq[Value]): OGCExpression =
-    xs map {
+    xs collect {
       case Literal(body) => filters.literal(body)
       case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     } reduceLeft { filters.function("strConcat", _, _) }

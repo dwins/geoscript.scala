@@ -72,5 +72,5 @@ class Logger {
     insertLink.execute()
   }
 
-  def finish = conn.close()
+  def finish() = conn.close()
 }

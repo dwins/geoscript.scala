@@ -129,6 +129,9 @@ class RichEnvelope(envelope: jts.Envelope) {
   def height: Double = envelope.getHeight
   def width: Double = envelope.getWidth
 
+  def referenced(projection: Projection): ReferencedEnvelope =
+    new ReferencedEnvelope(minX, maxX, minY, maxY, projection)
+
   def grid(branching: Int = 4): Iterable[jts.Envelope] = {
     val cellHeight = height / branching
     val cellWidth =  width / branching

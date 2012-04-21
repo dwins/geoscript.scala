@@ -254,10 +254,13 @@ object Feature {
         wrapped.getDefaultGeometry().asInstanceOf[Geometry]
 
       def properties: Map[String, Any] = {
-        Map((0 until wrapped.getAttributeCount) map { i => 
-          val key = wrapped.getType().getDescriptor(i).getLocalName
-          ( key, get(key) )
-        }: _*)
+        val pairs = 
+          for {
+            i <- 0 until wrapped.getAttributeCount
+            key = wrapped.getType().getDescriptor(i).getLocalName
+            value = get[Any](key)
+          } yield (key -> value)
+        pairs.toMap
       }
     }
   }
