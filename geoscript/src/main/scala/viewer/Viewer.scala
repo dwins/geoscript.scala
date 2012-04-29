@@ -1,56 +1,59 @@
 package org.geoscript
-package viewer
 
-import geometry._, layer._, math._, render._, style._
-
-import org.geotools.geometry.jts.{ LiteShape, ReferencedEnvelope }
-import java.awt.{ Graphics2D, RenderingHints }
-import scala.collection.JavaConversions._
-
-private class MapWidget extends swing.Component {
-  var viewport = new ReferencedEnvelope(-180, -90, 180, 90, projection.Projection("EPSG:4326"))
-  var layers: Seq[SpatialRenderable] = Nil
-
-  override def paint(graphics: swing.Graphics2D) = {
-    locally { import RenderingHints._
-      graphics.setRenderingHints(new RenderingHints(Map(
-        KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
-        KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON
-      )))
-    }
-    import org.geoscript.render.Viewport.pad
-    val displayBounds = pad(viewport, (bounds.width, bounds.height))
-    render(pad(viewport), layers) on Direct(graphics, bounds)
+package object viewer {
+  def showWindow() {
+    val window = new javax.swing.JFrame
+    window.setDefaultCloseOperation(
+      javax.swing.WindowConstants.DISPOSE_ON_CLOSE)
+    window.setSize(512, 512)
+    window.setVisible(true)
+    window.add(geometryComponent)
   }
-}
 
-/**
- * The Viewer object provides some rudimentary methods for rendering
- * geospatial information on-screen.
- */
-object Viewer {
-  private var window: Option[(swing.Window, MapWidget)] = None
+  private var visibleGeometries = Seq.empty[geometry.Geometry]
 
-  def display(layers: Seq[SpatialRenderable]) {
-    window match {
-      case Some((frame, map)) =>
-        map.layers = layers
-        frame.repaint()
-      case None =>
-        swing.Swing.onEDT { 
-          val frame = new swing.MainFrame()
-          val mapViewer = new MapWidget()
-          mapViewer.layers = layers
-          // layers.flatMap(_.definitionExtent).reduceOption(_ ** _).foreach {
-          //   mapViewer.viewport = _
-          // }
-          frame.visible = true
-          frame.contents = mapViewer
-          frame.size = new swing.Dimension(500, 500)
-          Viewer.synchronized {
-            window = Some((frame, mapViewer))
+  def worldToScreen(
+    rect: java.awt.Rectangle,
+    env: geometry.Envelope
+  ): java.awt.geom.AffineTransform = {
+    val xscale = rect.getWidth / env.getWidth
+    val yscale = rect.getHeight / env.getHeight
+    val scale = math.min(xscale, yscale)
+    val deltax = rect.getX - env.getMinX
+    val deltay = rect.getY - env.getMinY
+    val tx = new java.awt.geom.AffineTransform()
+    tx.scale(scale, scale)
+    tx.translate(deltax, deltay)
+    tx
+  }
+   
+  val geometryComponent = 
+    new javax.swing.JComponent {
+      setPreferredSize(new java.awt.Dimension(512, 512))
+      
+      override def paint(graphics: java.awt.Graphics) {
+        import org.geotools.geometry.jts.LiteShape
+        import org.geoscript.geometry._
+        val envelope = 
+          visibleGeometries.foldLeft(EmptyEnvelope) { 
+            (e: Envelope, g: Geometry) => union(e, g.getEnvelopeInternal)
           }
+        val transform = worldToScreen(getBounds(), envelope)
+        val canvas = graphics.asInstanceOf[java.awt.Graphics2D]
+
+        visibleGeometries.foreach { g =>
+          val shp = new LiteShape(g, transform, true)
+          if (g.getArea > 0)
+            canvas.fill(shp)
+          canvas.draw(shp)
         }
+      }
     }
+
+  def draw(g: geometry.Geometry) {
+    synchronized {
+      visibleGeometries :+= g
+    }
+    geometryComponent.repaint()
   }
 }
