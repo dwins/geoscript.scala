@@ -54,6 +54,7 @@ package render {
 
   class Window extends Canvas[javax.swing.JFrame] {
     private val component = new java.awt.Canvas {
+      setBackground(java.awt.Color.WHITE)
       override def paint(g: awt.Graphics) =
         draw(g.asInstanceOf[awt.Graphics2D])
     }
@@ -68,9 +69,9 @@ package render {
       size: (Int, Int), draw: awt.Graphics2D => Unit
     ): javax.swing.JFrame = {
       frame.setSize(size._1, size._2)
-      frame.setVisible(true)
       this.draw = draw
-      frame.repaint()
+      component.repaint()
+      if (!frame.isVisible) frame.setVisible(true)
       frame
     }
   }
