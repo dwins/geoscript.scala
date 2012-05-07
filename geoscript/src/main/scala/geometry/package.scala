@@ -37,7 +37,7 @@ package object geometry {
   def envelope(minX: Double, maxX: Double, minY: Double, maxY: Double): Envelope =
     new jts.Envelope(minX, maxX, minY, maxY)
     
-  def point(x: Double, y: Double): Geometry =
+  def point(x: Double, y: Double): Point =
     factory.createPoint(coordinate(x, y))
   
   def lineString(coords: Seq[(Double, Double)]): Geometry =

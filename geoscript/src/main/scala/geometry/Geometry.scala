@@ -23,8 +23,7 @@ class RichGeometry(geometry: Geometry) {
   /**
    * All the coordinates that compose this Geometry as a sequence.
    */
-  def coordinates: Seq[Point] = 
-    geometry.getCoordinates() map (c => Point(c)) //  in projection)
+  def coordinates: Seq[Coordinate] = geometry.getCoordinates().toSeq
 
   /**
    * The length of the line segments that compose this geometry, in the same
@@ -40,4 +39,9 @@ class RichEnvelope(e: Envelope) {
   def maxX = e.getMaxX
   def minY = e.getMinY
   def minX = e.getMinX
+}
+
+class RichPoint(point: Point) extends RichGeometry(point) {
+  def x = point.getX
+  def y = point.getY
 }

@@ -8,7 +8,7 @@ import projection._
 class UsageTests extends Specification {
   "geometries" should { 
     "work like on the geoscript homepage" in { 
-      var p = Point(-111, 45.7)
+      var p = point(-111, 45.7)
       var p2 = (Projection("epsg:4326") to Projection("epsg:26912"))(p)
       var poly = p.buffer(100)
 
@@ -90,12 +90,12 @@ class UsageTests extends Specification {
 
       dummy += feature.Feature(
         "name" -> "San Francisco",
-        "geom" -> Point(37.78, -122.42)
+        "geom" -> point(37.78, -122.42)
       )
 
       dummy += feature.Feature(
         "name" -> "New York",
-        "geom" -> Point(40.47, -73.58)
+        "geom" -> point(40.47, -73.58)
       )
 
       dummy.count must_== 2

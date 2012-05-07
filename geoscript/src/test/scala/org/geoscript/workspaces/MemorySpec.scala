@@ -2,19 +2,18 @@ package org.geoscript
 package workspace
 
 import org.specs._
-import com.vividsolutions.jts.geom.Point
 
 class MemorySpec extends Specification {
   "Memory datastores" should {
     "be able to create layers" in {
       val schema = feature.Schema("cities",
-        feature.Field("the_geom", classOf[Point], "EPSG:4326"),
+        feature.Field("the_geom", classOf[geometry.Point], "EPSG:4326"),
         feature.Field("name", classOf[String])
       )
       val ws = workspace.Memory()
       val lyr = ws.create(schema)
       lyr += feature.Feature(
-        "the_geom" -> geometry.Point(0, 0),
+        "the_geom" -> geometry.point(0, 0),
         "name" -> "test"
       )
       lyr.envelope must not(throwAn[Exception])

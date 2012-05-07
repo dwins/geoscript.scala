@@ -7,7 +7,7 @@ import org.specs._
 class SerializationSpec extends Specification {
   "JSON Serialization" should {
     "round-trip points" in {
-      val p = Point(100, 0)
+      val p = point(100, 0)
       val json = io.GeoJSON.write(p, Sink.string)
       json must_== """{"type":"Point","coordinates":[100,0.0]}"""
       // io.GeoJSON.read(Source.string(json)) must_== p
