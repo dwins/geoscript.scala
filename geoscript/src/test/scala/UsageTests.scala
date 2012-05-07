@@ -18,17 +18,17 @@ class UsageTests extends Specification {
     }
 
     "linestrings should be easy" in { 
-      LineString(
+      lineString(Seq(
         (10.0, 10.0), (20.0, 20.0), (30.0, 40.0)
-      ).length must beCloseTo(36.503, 0.001)
+      )).length must beCloseTo(36.503, 0.001)
 
-      LineString((10, 10), (20.0, 20.0), (30, 40))
+      lineString(Seq((10, 10), (20.0, 20.0), (30, 40)))
         .length must beCloseTo(36.503, 0.001)
     }
 
     "polygon should be easy" in { 
-      Polygon(
-        LineString((10, 10), (10, 20), (20, 20), (20, 15), (10, 10))
+      polygon(
+        Seq((10, 10), (10, 20), (20, 20), (20, 15), (10, 10))
       ).area must_== 75
     }
 

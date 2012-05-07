@@ -15,19 +15,19 @@ class SerializationSpec extends Specification {
     }
 
     "round-trip linestrings" in {
-      val ls = LineString((100, 0), (101, 1))
+      val ls = lineString(Seq((100, 0), (101, 1)))
       io.GeoJSON.write(ls, Sink.string) must_==
         """{"type":"LineString","coordinates":[[100,0.0],[101,1]]}"""
     }
 
     "round-trip polygons" in {
-      val solid = Polygon(
-        LineString((100, 0), (101, 0), (101, 1), (100, 1), (100, 0))
+      val solid = polygon(
+        Seq((100, 0), (101, 0), (101, 1), (100, 1), (100, 0))
       )
 
-      val withHoles = Polygon(
-        LineString((100, 0), (101, 0), (101, 1), (100, 1), (100, 0)),
-        Seq(LineString(
+      val withHoles = polygon(
+        Seq((100, 0), (101, 0), (101, 1), (100, 1), (100, 0)),
+        Seq(Seq(
           (100.2, 0.2), (100.8, 0.2), (100.8, 0.8), (100.2, 0.8), (100.2, 0.2)
         ))
       )
@@ -45,28 +45,28 @@ class SerializationSpec extends Specification {
     }
 
     "round-trip a MultiLineString" in {
-      val mls = MultiLineString(
-        LineString((100, 0), Point(101, 1)),
-        LineString((102, 2), Point(103, 3))
-      )
+      val mls = multiLineString(Seq(
+        Seq((100, 0), (101, 1)),
+        Seq((102, 2), (103, 3))
+      ))
 
       io.GeoJSON.write(mls, Sink.string) must_== 
         """{"type":"MultiLineString","coordinates":[[[100,0.0],[101,1]],[[102,2],[103,3]]]}"""
     }
 
     "round-trip a MultiPolygon" in {
-      val mp = MultiPolygon(
-        Polygon(LineString(
+      val mp = multiPolygon(Seq(
+        (Seq(
           (102, 2), (103, 2), (103, 3), (102, 3), (102, 2)
-        )),
-        Polygon(LineString(
+        ), Nil),
+        (Seq(
             (100, 0), (101, 0), (101, 1), (100, 1), (100, 0)
           ),
-          Seq(LineString(
+          Seq(Seq(
             (100.2, 0.2), (100.8, 0.2), (100.8, 0.8), (100.2, 0.8), (100.2, 0.2)
           ))
         )
-      )
+      ))
 
       io.GeoJSON.write(mp, Sink.string) must_== 
         """{"type":"MultiPolygon","coordinates":[[[[102,2],[103,2],[103,3],[102,3],[102,2]]],[[[100,0.0],[101,0.0],[101,1],[100,1],[100,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]]}"""
