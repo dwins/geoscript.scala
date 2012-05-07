@@ -1,32 +1,6 @@
 package org.geoscript.geometry
 
-import com.vividsolutions.jts.{geom=>jts}
-import org.opengis.referencing.crs.CoordinateReferenceSystem
-import org.geoscript.projection.Projection
-
-/**
- * An enumeration of the valid end-cap styles when buffering a (line) Geometry.
- * Valid styles include: 
- * <ul>
- *   <li>Round - A semicircle </li>
- *   <li>Butt - A straight line perpendicular to the end segment</li>
- *   <li>Square - A half-square</li>
- * </ul>
- * 
- * @see org.geoscript.geometry.Geometry.buffer
- */
-object EndCap {
-  // import com.vividsolutions.jts.operation.buffer.BufferOp._
-  import com.vividsolutions.jts.operation.buffer.BufferParameters._
-
-  sealed abstract class Style { val intValue: Int }
-  /** @see EndCap */
-  case object Butt extends Style { val intValue = CAP_FLAT }
-  /** @see EndCap */
-  case object Round extends Style { val intValue = CAP_ROUND }
-  /** @see EndCap */
-  case object Square extends Style { val intValue = CAP_SQUARE }
-}
+import com.vividsolutions.jts.{ geom => jts }
 
 class RichGeometry(geometry: Geometry) {
   /**
@@ -57,15 +31,6 @@ class RichGeometry(geometry: Geometry) {
    * units as used by its coordinates.
    */
   def length: Double = geometry.getLength()
-
-  def mapVertices(op: Point => Point): Geometry = {
-    val geom = geometry.clone().asInstanceOf[jts.Geometry]
-    object filter extends jts.CoordinateFilter {
-      def filter(coord: jts.Coordinate) = op(Point(coord)).getCoordinate
-    }
-    geom.apply(filter)
-    geom
-  }
 
   override def toString = geometry.toString
 } 
