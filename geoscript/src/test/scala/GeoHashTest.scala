@@ -1,7 +1,7 @@
 package org.geoscript
 
 import org.specs._
-import GeoHash._
+import tutorial.GeoHash._
 
 class GeoHashTest extends Specification {
   val cases = Seq(

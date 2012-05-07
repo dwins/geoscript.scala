@@ -1,4 +1,6 @@
-package org.geoscript
+package tutorial
+
+import org.geoscript._, geometry._
 
 import Stream._
 
@@ -16,7 +18,7 @@ object GeoHash {
    * corresponds to the corners of the geometry's envelope, with a cutoff at 32
    * characters to avoid generating infinitely strings for point data.
    */
-  def geohash(geom: geometry.Geometry): String = {
+  def geohash(geom: Geometry): String = {
     val bbox = geom.envelope
     val blHash = geohashForever(bbox.minY, bbox.minX)
     val urHash = geohashForever(bbox.maxY, bbox.maxX)
@@ -62,7 +64,7 @@ object GeoHash {
     val (minLon, maxLon) = range(lonBits, -180, 180)
     val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    geometry.Envelope(minLon, maxLon, minLat, maxLat)
+    envelope(minLon, maxLon, minLat, maxLat)
   }
 
   /**

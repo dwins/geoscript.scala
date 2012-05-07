@@ -33,6 +33,9 @@ package object geometry {
 
   def coordinate(x: Double, y: Double): Coordinate =
     new jts.Coordinate(x, y)
+
+  def envelope(minX: Double, maxX: Double, minY: Double, maxY: Double): Envelope =
+    new jts.Envelope(minX, maxX, minY, maxY)
     
   def point(x: Double, y: Double): Geometry =
     factory.createPoint(coordinate(x, y))

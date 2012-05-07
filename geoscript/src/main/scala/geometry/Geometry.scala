@@ -69,3 +69,10 @@ class RichGeometry(geometry: Geometry) {
 
   override def toString = geometry.toString
 } 
+
+class RichEnvelope(e: Envelope) {
+  def maxY = e.getMaxY
+  def maxX = e.getMaxX
+  def minY = e.getMinY
+  def minX = e.getMinX
+}
