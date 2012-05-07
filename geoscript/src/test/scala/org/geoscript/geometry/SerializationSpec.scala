@@ -73,10 +73,10 @@ class SerializationSpec extends Specification {
     }
 
     "round-trip a GeometryCollection" in {
-      val gc = GeometryCollection(
-        Point(100.0, 0.0),
-        LineString((101.0, 0.0), (102.0, 1.0))
-      )
+      val gc = multi(Seq(
+        point(100.0, 0.0),
+        lineString(Seq((101.0, 0.0), (102.0, 1.0)))
+      ))
 
       io.GeoJSON.write(gc, Sink.string) must_==
         """{"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[100,0.0]},{"type":"LineString","coordinates":[[101,0.0],[102,1]]}]}"""
