@@ -33,7 +33,7 @@ class UsageTests extends Specification {
     }
 
     "multi point should be easy" in {
-      MultiPoint((20, 20), (10.0, 10.0)).area must_== 0
+      multiPoint(Seq((20, 20), (10.0, 10.0))).area must_== 0
     } 
   }  
 

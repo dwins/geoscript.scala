@@ -39,7 +39,7 @@ class SerializationSpec extends Specification {
     }
 
     "round-trip a multipoint" in {
-      val mp = MultiPoint((100.0, 0.0), (101.0, 1.0))
+      val mp = multiPoint(Seq((100.0, 0.0), (101.0, 1.0)))
       io.GeoJSON.write(mp, Sink.string) must_==
         """{"type":"MultiPoint","coordinates":[[100,0.0],[101,1]]}"""
     }
