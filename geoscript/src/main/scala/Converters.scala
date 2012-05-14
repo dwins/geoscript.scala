@@ -1,6 +1,7 @@
 package org
 package object geoscript {
   import geometry._
+  import layer._
 
   implicit def enrichGeometry(g: Geometry): RichGeometry =
     new RichGeometry(g)
@@ -10,4 +11,7 @@ package object geoscript {
 
   implicit def enrichEnvelope(e: Envelope) = 
     new RichEnvelope(e)
+
+  implicit def enrichLayer(layer: Layer): RichLayer =
+    new RichLayer(layer)
 }

@@ -56,7 +56,9 @@ class UsageTests extends Specification {
 
     "support search" in {
       val shp = layer.Shapefile(statesPath)
-      shp.features.find(_.id == "states.1") must beSome[feature.Feature]
+      shp.withAll { fs =>
+       fs.find(_.id == "states.1")
+      } must beSome[feature.Feature]
     }
 
     "provide access to schema information" in {
@@ -100,9 +102,9 @@ class UsageTests extends Specification {
 
       dummy.count must_== 2
       
-      dummy.features.find(
-        f => f.get[String]("name") == "New York"
-      ) must beSome[feature.Feature]
+      dummy.withAll { fs =>
+        fs.find(_.get[String]("name") == "New York")
+      } must beSome[feature.Feature]
     }
   }
 }

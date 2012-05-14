@@ -226,6 +226,8 @@ trait Feature {
     for ((k, v) <- properties) feature.setAttribute(k, v) 
   }
 
+  def underlying: org.opengis.feature.simple.SimpleFeature
+
   override def toString: String = 
     properties map {
       case (key, value: jts.Geometry) => 
@@ -262,6 +264,8 @@ object Feature {
           } yield (key -> value)
         pairs.toMap
       }
+
+      def underlying = wrapped
     }
   }
 
@@ -284,6 +288,8 @@ object Feature {
 
       def get[A](key: String): A = 
         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
+
+      def underlying: org.opengis.feature.simple.SimpleFeature = sys.error("Unimplemented")
 
       def properties: Map[String, Any] = Map(props.toSeq: _*)
     }

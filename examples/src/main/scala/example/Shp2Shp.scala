@@ -13,7 +13,7 @@ object Shp2Shp extends App {
     }
   )
   val dest = source.workspace.create(destSchema)
-  dest ++= source.features map { f =>
-    f.update(destSchema.geometry.name -> (f.geometry /* in proj */))
+  source.withAll { fs =>
+    dest ++= fs.toIterable
   }
 }

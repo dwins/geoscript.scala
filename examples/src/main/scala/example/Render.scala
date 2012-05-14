@@ -1,8 +1,7 @@
 package org.geoscript.example 
 
 object Render extends App {
-  import org.geoscript.{ layer, style, render, projection },
-    render.{ draw, png }
+  import org.geoscript._, render.{ draw, png }
 
   def reference(e: org.geoscript.geometry.Envelope, p: projection.Projection) = 
     new org.geotools.geometry.jts.ReferencedEnvelope(e, p)

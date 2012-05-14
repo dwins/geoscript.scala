@@ -18,6 +18,6 @@ object PostgisTest extends App {
 
   test += Feature( 
     "name" -> "test",
-    "geom" -> geometry.Point(43,74)
+    "geom" -> geometry.point(43,74)
   ) 
 } 

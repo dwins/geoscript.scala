@@ -23,9 +23,9 @@ object ColorRamp extends org.geoscript.feature.GeoCrunch {
     "#%02x02x02x".format(c.getRed, c.getGreen, c.getBlue)
 
   def colorRamp(data: layer.Layer, propertyName: String): style.Style = {
-    val propertyView = data.features.view.map(f => f.get[Double](propertyName))
-    val min = propertyView.min
-    val max = propertyView.max
+    val extract = (f: feature.Feature) => f.get[Double](propertyName)
+    val min = data.withAll { fs => (fs map extract).min }
+    val max = data.withAll { fs => (fs map extract).max }
 
     val k = 10
     val breaks = for (i <- (0 to k)) yield (i * max + (k - i) * min) / k

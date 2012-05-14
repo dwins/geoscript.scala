@@ -18,7 +18,7 @@ package render {
       new Stylable[layer.Layer] {
         override def applyStyle(lyr: layer.Layer, s: style.Style)
         : gt.map.Layer =
-          new gt.map.FeatureLayer(lyr.source, s.underlying, lyr.name)
+          new gt.map.FeatureLayer(lyr, s.underlying, lyr.name)
 
         override def boundsOf(lyr: layer.Layer): ReferencedEnvelope =
           new ReferencedEnvelope(lyr.envelope, lyr.schema.geometry.projection)

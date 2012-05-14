@@ -12,11 +12,7 @@ class Workspace(
 ) {
   def count = underlying.getTypeNames.length
   def names: Seq[String] = underlying.getTypeNames
-  def layer(theName: String): Layer = new Layer {
-    val name = theName
-    val workspace = Workspace.this
-    val store = underlying
-  }
+  def layer(theName: String): Layer = underlying.getFeatureSource(theName).asInstanceOf[Layer]
 
   def create(name: String, fields: Field*): Layer = create(name, fields) 
 
