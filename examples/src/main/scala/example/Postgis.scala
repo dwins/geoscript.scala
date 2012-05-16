@@ -5,19 +5,23 @@ import org.geoscript._
 import feature.{ Feature, Field }
 
 object PostgisTest extends App { 
-  val conflict = workspace.Postgis("database" -> "conflict")
-  val fields = conflict.layer("conflictsite").schema.fields
-  
-  for (field <- fields) println(field.name)
-  val workSpaceTest = workspace.Postgis() 
-  
-  val test = workSpaceTest.create("test",
-    Field("name", classOf[String]),
-    Field("geom", classOf[Geometry], "EPSG:4326")
-  )
+  val params = workspace.Params.postgis("conflict")
 
-  test += Feature( 
-    "name" -> "test",
-    "geom" -> geometry.point(43,74)
-  ) 
+  workspace.withWorkspace(params) { conflict =>
+    val fields = conflict.layerNamed("conflictsite").schema.fields
+    
+    for (field <- fields) println(field.name)
+
+    workspace.withWorkspace(workspace.Params.postgis("test")) { wsTest =>
+      val test = wsTest.create(feature.Schema("test",
+        Field("name", classOf[String]),
+        Field("geom", classOf[Geometry], "EPSG:4326")
+      ))
+
+      test += Feature( 
+        "name" -> "test",
+        "geom" -> geometry.point(43,74)
+      ) 
+    }
+  }
 } 

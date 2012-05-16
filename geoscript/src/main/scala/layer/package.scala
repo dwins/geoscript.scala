@@ -61,7 +61,7 @@ package layer {
     def apply(path: String): Layer = apply(new java.io.File(path))
     def apply(path: java.io.File): Layer = {
       val ws = workspace.Directory(path.getParent())
-      ws.layer(basename(path))
+      ws.layerNamed(basename(path))
     }
   }
 }

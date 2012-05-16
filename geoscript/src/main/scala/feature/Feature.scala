@@ -60,6 +60,8 @@ trait Schema {
     Feature(data: _*)
   }
 
+  def underlying: SimpleFeatureType
+
   override def toString: String = {
     "<Schema name: %s, fields: %s>".format(
       name,
@@ -86,6 +88,8 @@ object Schema {
       }
 
       def get(fieldName: String) = Field(wrapped.getDescriptor(fieldName))
+
+      def underlying = wrapped
     }
   }
 
@@ -101,6 +105,7 @@ object Schema {
 
       def fields = f.toSeq
       def get(fieldName: String) = f.find(_.name == fieldName).get
+      def underlying = sys.error("Unimplemented")
     }
   }
 }
