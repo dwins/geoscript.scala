@@ -10,13 +10,14 @@ class MemorySpec extends Specification {
         feature.Field("the_geom", classOf[geometry.Point], "EPSG:4326"),
         feature.Field("name", classOf[String])
       )
-      val ws = workspace.Memory()
-      val lyr = ws.create(schema)
-      lyr += feature.Feature(
-        "the_geom" -> geometry.point(0, 0),
-        "name" -> "test"
-      )
-      lyr.envelope must not(throwAn[Exception])
+      workspace.withMemoryWorkspace { ws => 
+        val lyr = ws.create(schema)
+        lyr += feature.Feature(
+          "the_geom" -> geometry.point(0, 0),
+          "name" -> "test"
+        )
+        lyr.envelope must not(throwAn[Exception])
+      }
     }
   }
 }

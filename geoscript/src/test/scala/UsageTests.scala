@@ -76,35 +76,38 @@ class UsageTests extends Specification {
   }
 
   "Workspaces" should {
+    import workspace._, feature.Schema
+
     "provide a listing of layers" in {
-      val mem = workspace.Memory()
-      mem.names must beEmpty
+      val names = withMemoryWorkspace { _.names }
+      names must beEmpty
     }
 
     "allow creating new layers" in {
-      val mem = workspace.Memory()
-      mem.names must beEmpty
-      var dummy = mem.create("dummy", 
-        feature.Field("name", classOf[String]),
-        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], "EPSG:4326")
-      )
-      mem.names.length must_== 1
+      withMemoryWorkspace { mem =>
+        mem.names must beEmpty
+        var dummy = mem.create(Schema("dummy", 
+          feature.Field("name", classOf[String]),
+          feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], "EPSG:4326")
+        ))
+        mem.names.length must_== 1
 
-      dummy += feature.Feature(
-        "name" -> "San Francisco",
-        "geom" -> point(37.78, -122.42)
-      )
+        dummy += feature.Feature(
+          "name" -> "San Francisco",
+          "geom" -> point(37.78, -122.42)
+        )
 
-      dummy += feature.Feature(
-        "name" -> "New York",
-        "geom" -> point(40.47, -73.58)
-      )
+        dummy += feature.Feature(
+          "name" -> "New York",
+          "geom" -> point(40.47, -73.58)
+        )
 
-      dummy.count must_== 2
-      
-      dummy.withAll { fs =>
-        fs.find(_.get[String]("name") == "New York")
-      } must beSome[feature.Feature]
+        dummy.count must_== 2
+        
+        dummy.withAll { fs =>
+          fs.find(_.get[String]("name") == "New York")
+        } must beSome[feature.Feature]
+      }
     }
   }
 }
