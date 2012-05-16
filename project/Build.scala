@@ -7,7 +7,7 @@ object GeoScript extends Build {
   val meta =
     Seq[Setting[_]](
       organization := "org.geoscript",
-      version := "0.7.4",
+      version := "0.8.0",
       gtVersion := "8.0-M4",
       scalaVersion := "2.9.1", 
       scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked")
@@ -47,7 +47,7 @@ object GeoScript extends Build {
   lazy val examples = 
     Project("examples", file("examples"), settings = common) dependsOn(library)
   lazy val library =
-    Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css, dummy)
+    Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css)
   lazy val support =
     Project("support", file("support"), settings = common)
   lazy val dummy = 
