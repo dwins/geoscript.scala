@@ -26,17 +26,15 @@ object Intersections {
     println("Found %d intersections".format(dest.count))
   }
 
-  def rewrite(schema: feature.Schema, fieldName: String): feature.Schema = 
-    feature.Schema(
+  import feature.{ Field, Schema, bind }
+  def rewrite(schema: Schema, fieldName: String): Schema = 
+    Schema(
       schema.name + "_intersections",
-      feature.Field(
-        "geom",
-        classOf[com.vividsolutions.jts.geom.Geometry],
-        schema.geometry.projection
-      ),
-      feature.Field(fieldName + "Left", classOf[String]),
-      feature.Field(fieldName + "Right", classOf[String])
-    )
+      Seq(
+        bind[geometry.Geometry]("geom",
+          schema.geometry.getCoordinateReferenceSystem),
+        bind[String](fieldName + "Left"),
+        bind[String](fieldName + "Right")))
 
   def main(args: Array[String]) = {
     if (args.length == 0) {
@@ -44,7 +42,7 @@ object Intersections {
     } else {
       val src = layer.Shapefile(args(0))
       val joinField = 
-        src.schema.fields.find { _.gtBinding == classOf[String] } match {
+        src.schema.fields.find { _.binding == classOf[String] } match {
           case Some(f) => f.name
           case None => "id"
         }

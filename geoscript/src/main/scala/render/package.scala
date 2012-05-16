@@ -21,7 +21,7 @@ package render {
           new gt.map.FeatureLayer(lyr, s.underlying, lyr.name)
 
         override def boundsOf(lyr: layer.Layer): ReferencedEnvelope =
-          new ReferencedEnvelope(lyr.envelope, lyr.schema.geometry.projection)
+          new ReferencedEnvelope(lyr.envelope, lyr.schema.geometry.getCoordinateReferenceSystem)
       }
   }
 

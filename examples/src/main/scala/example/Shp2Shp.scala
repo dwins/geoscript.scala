@@ -8,7 +8,7 @@ object Shp2Shp extends App {
   val source = layer.Shapefile(sourcefile)
   val destSchema = Schema(destname,
     source.schema.fields map {
-      case (g: GeoField) => g.copy(projection = proj)
+      case (g: GeoField) => g.withProjection(proj)
       case (f: Field) => f
     }
   )

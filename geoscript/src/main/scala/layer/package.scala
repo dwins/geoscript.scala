@@ -15,7 +15,7 @@ package layer {
     def count: Int = layer.getCount(new Query)
     def envelope: geometry.Envelope = layer.getBounds
     def name: String = layer.getName.getLocalPart
-    def schema: feature.Schema = feature.Schema(layer.getSchema)
+    def schema: feature.Schema = layer.getSchema
     def withAll[A](f: Iterator[feature.Feature] => A): A =
       this.withCollection(layer.getFeatures())(f)
 

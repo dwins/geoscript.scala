@@ -66,7 +66,7 @@ class UsageTests extends Specification {
       shp.schema.name must_== "states"
       val field = shp.schema.get("STATE_NAME")
       field.name must_== "STATE_NAME"
-      (field.gtBinding: AnyRef) must_== classOf[java.lang.String]
+      (field.binding: AnyRef) must_== classOf[java.lang.String]
     }
 
     "provide access to the containing workspace" in {
@@ -76,7 +76,7 @@ class UsageTests extends Specification {
   }
 
   "Workspaces" should {
-    import workspace._, feature.Schema
+    import workspace._, feature.{ Schema, bind }
 
     "provide a listing of layers" in {
       val names = withMemoryWorkspace { _.names }
@@ -87,9 +87,8 @@ class UsageTests extends Specification {
       withMemoryWorkspace { mem =>
         mem.names must beEmpty
         var dummy = mem.create(Schema("dummy", 
-          feature.Field("name", classOf[String]),
-          feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], "EPSG:4326")
-        ))
+          Seq(bind[String]("name"), bind[Geometry]("geom", "EPSG:4326"))))
+
         mem.names.length must_== 1
 
         dummy += feature.Feature(

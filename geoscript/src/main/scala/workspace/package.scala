@@ -122,7 +122,7 @@ package workspace {
   class RichWorkspace(ws: Workspace) {
     def count = ws.getTypeNames.length
     def create(schema: feature.Schema): Layer = {
-      ws.createSchema(schema.underlying)
+      ws.createSchema(schema)
       layerNamed(schema.name)
     }
 
