@@ -90,14 +90,13 @@ package object render {
   = {
     val effectiveBounds = bounds.getOrElse(ev.boundsOf(t))
 
-    val context = new gt.map.DefaultMapContext
-    context.setAreaOfInterest(effectiveBounds)
-    context.addLayer(ev.applyStyle(t, sty))
+    val content = new gt.map.MapContent
+    content.addLayer(ev.applyStyle(t, sty))
 
     val hints = renderHints(KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON)
     val renderer = new gt.renderer.lite.StreamingRenderer()
     renderer.setJava2DHints(hints)
-    renderer.setContext(context)
+    renderer.setMapContent(content)
     val (w, h) = size
     canvas.render(size, { g =>
       renderer.paint(g, new java.awt.Rectangle(w, h), effectiveBounds)
