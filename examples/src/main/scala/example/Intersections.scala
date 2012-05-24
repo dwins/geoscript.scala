@@ -13,7 +13,7 @@ object Intersections {
 
           dest ++= 
             intersections.filter(_.id > feat.id).map { corner =>
-              feature.Feature(
+              feature.fromAttributes(
                 "geom" -> (feat.geometry intersection corner.geometry),
                 (joinField + "Left") -> feat.get[Any](joinField),
                 (joinField + "Right") -> corner.get[Any](joinField)

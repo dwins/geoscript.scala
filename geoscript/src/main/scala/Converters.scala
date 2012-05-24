@@ -14,6 +14,8 @@ package object geoscript {
 
   implicit def enrichField(f: Field) = new RichField(f)
 
+  implicit def enrichFeature(f: Feature) = new RichFeature(f)
+
   implicit def enrichGeoField(f: GeoField) = new RichGeoField(f)
 
   implicit def enrichSchema(s: Schema) = new RichSchema(s)

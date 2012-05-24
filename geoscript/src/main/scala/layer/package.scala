@@ -27,7 +27,7 @@ package layer {
       val iter = collection.features()
       val features = new Iterator[feature.Feature] {
         def hasNext: Boolean = iter.hasNext
-        def next: feature.Feature = feature.Feature(iter.next)
+        def next: feature.Feature = iter.next
       }
       try
         f(features)
@@ -46,7 +46,7 @@ package layer {
     def += (fs: feature.Feature*) = this ++= fs
 
     def ++= (features: Iterable[feature.Feature]) {
-      layer.getFeatures().addAll(features.map(_.underlying).asJavaCollection) 
+      layer.getFeatures().addAll(features.asJavaCollection) 
     }
 
     def ++= (features: Iterator[feature.Feature]) {

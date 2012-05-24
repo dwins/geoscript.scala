@@ -191,112 +191,112 @@ import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
  * A Feature represents a record in a geospatial data set.  It should generally
  * identify a single "thing" such as a landmark or observation.
  */
-trait Feature {
-  /**
-   * An identifier for this feature in the dataset.
-   */
-  def id: String
-  
-  /**
-   * Retrieve a property of the feature, with an expected type. Typical usage is:
-   * <pre>
-   * val name = feature.get[String]("name")
-   * </pre>
-   */
-  def get[A](key: String): A
+// trait Feature {
+//   /**
+//    * An identifier for this feature in the dataset.
+//    */
+//   def id: String
+//   
+//   /**
+//    * Retrieve a property of the feature, with an expected type. Typical usage is:
+//    * <pre>
+//    * val name = feature.get[String]("name")
+//    * </pre>
+//    */
+//   def get[A](key: String): A
+// 
+//   /**
+//    * Get the geometry for this feature.  This allows you to access the geometry
+//    * without worrying about its property name.
+//    */
+//   def geometry: Geometry
+// 
+//   /**
+//    * Get all properties for this feature as a Map.
+//    */
+//   def properties: Map[String, Any]
+// 
+//   def update(data: (String, Any)*): Feature = update(data.toSeq)
+// 
+//   def update(data: Iterable[(String, Any)]): Feature = {
+//     val props = properties
+//     assert(data.forall { x => props contains x._1 })
+//     Feature(props ++ data)
+//   }
+// 
+//   /**
+//    * Write the values in this Feature to a particular OGC Feature object.
+//    */
+//   def writeTo(feature: org.opengis.feature.simple.SimpleFeature) {
+//     for ((k, v) <- properties) feature.setAttribute(k, v) 
+//   }
+// 
+//   def underlying: org.opengis.feature.simple.SimpleFeature
+// 
+//   override def toString: String = 
+//     properties map {
+//       case (key, value: jts.Geometry) => 
+//         "%s: <%s>".format(key, value.getGeometryType())
+//       case (key, value) => 
+//         "%s: %s".format(key, value)
+//     } mkString("<Feature ", ", ", ">")
+// }
 
-  /**
-   * Get the geometry for this feature.  This allows you to access the geometry
-   * without worrying about its property name.
-   */
-  def geometry: Geometry
-
-  /**
-   * Get all properties for this feature as a Map.
-   */
-  def properties: Map[String, Any]
-
-  def update(data: (String, Any)*): Feature = update(data.toSeq)
-
-  def update(data: Iterable[(String, Any)]): Feature = {
-    val props = properties
-    assert(data.forall { x => props contains x._1 })
-    Feature(props ++ data)
-  }
-
-  /**
-   * Write the values in this Feature to a particular OGC Feature object.
-   */
-  def writeTo(feature: org.opengis.feature.simple.SimpleFeature) {
-    for ((k, v) <- properties) feature.setAttribute(k, v) 
-  }
-
-  def underlying: org.opengis.feature.simple.SimpleFeature
-
-  override def toString: String = 
-    properties map {
-      case (key, value: jts.Geometry) => 
-        "%s: <%s>".format(key, value.getGeometryType())
-      case (key, value) => 
-        "%s: %s".format(key, value)
-    } mkString("<Feature ", ", ", ">")
-}
-
-/**
- * A companion object for Feature providing several methods for creating
- * Feature instances.
- */
-object Feature {
-  /**
-   * Create a GeoScript feature by wrapping a GeoAPI feature instance.
-   */
-  def apply(wrapped: SimpleFeature): Feature = {
-    new Feature {
-      def id: String = wrapped.getID
-
-      def get[A](key: String): A = 
-        wrapped.getAttribute(key).asInstanceOf[A]
-
-      def geometry: Geometry = 
-        wrapped.getDefaultGeometry().asInstanceOf[Geometry]
-
-      def properties: Map[String, Any] = {
-        val pairs = 
-          for {
-            i <- 0 until wrapped.getAttributeCount
-            key = wrapped.getType().getDescriptor(i).getLocalName
-            value = get[Any](key)
-          } yield (key -> value)
-        pairs.toMap
-      }
-
-      def underlying = wrapped
-    }
-  }
-
-  def apply(props: (String, Any)*): Feature = apply(props)
-
-  /**
-   * Create a feature from name/value pairs.  Example usage looks like:
-   * <pre>
-   * val feature = Feature("geom" -&gt; Point(12, 37), "type" -&gt; "radio tower")
-   * </pre>
-   */
-  def apply(props: Iterable[(String, Any)]): Feature = {
-    new Feature {
-      def id: String = null
-
-      def geometry = 
-        props.collectFirst({ 
-          case (name, geom: Geometry) => geom
-        }).get
-
-      def get[A](key: String): A = 
-        props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
-
-      def underlying: org.opengis.feature.simple.SimpleFeature = sys.error("Unimplemented")
-
-      def properties: Map[String, Any] = Map(props.toSeq: _*)
-    }
-  }
-}
+// /**
+//  * A companion object for Feature providing several methods for creating
+//  * Feature instances.
+//  */
+// object Feature {
+//   /**
+//    * Create a GeoScript feature by wrapping a GeoAPI feature instance.
+//    */
+//   def apply(wrapped: SimpleFeature): Feature = {
+//     new Feature {
+//       def id: String = wrapped.getID
+// 
+//       def get[A](key: String): A = 
+//         wrapped.getAttribute(key).asInstanceOf[A]
+// 
+//       def geometry: Geometry = 
+//         wrapped.getDefaultGeometry().asInstanceOf[Geometry]
+// 
+//       def properties: Map[String, Any] = {
+//         val pairs = 
+//           for {
+//             i <- 0 until wrapped.getAttributeCount
+//             key = wrapped.getType().getDescriptor(i).getLocalName
+//             value = get[Any](key)
+//           } yield (key -> value)
+//         pairs.toMap
+//       }
+// 
+//       def underlying = wrapped
+//     }
+//   }
+// 
+//   def apply(props: (String, Any)*): Feature = apply(props)
+// 
+//   /**
+//    * Create a feature from name/value pairs.  Example usage looks like:
+//    * <pre>
+//    * val feature = Feature("geom" -&gt; Point(12, 37), "type" -&gt; "radio tower")
+//    * </pre>
+//    */
+//   def apply(props: Iterable[(String, Any)]): Feature = {
+//     new Feature {
+//       def id: String = null
+// 
+//       def geometry = 
+//         props.collectFirst({ 
+//           case (name, geom: Geometry) => geom
+//         }).get
+// 
+//       def get[A](key: String): A = 
+//         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
+// 
+//       def underlying: org.opengis.feature.simple.SimpleFeature = sys.error("Unimplemented")
+// 
+//       def properties: Map[String, Any] = Map(props.toSeq: _*)
+//     }
+//   }
+// }

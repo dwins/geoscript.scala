@@ -17,7 +17,7 @@ object PostgisTest extends App {
         "test",
         Seq(bind[String]("name"), bind[Geometry]("geom", "EPSG:4326"))))
 
-      test += Feature( 
+      test += feature.fromAttributes(
         "name" -> "test",
         "geom" -> geometry.point(43,74)
       ) 
