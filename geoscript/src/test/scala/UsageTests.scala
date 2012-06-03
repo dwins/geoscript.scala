@@ -91,12 +91,12 @@ class UsageTests extends Specification {
 
         mem.names.length must_== 1
 
-        dummy += feature.Feature(
+        dummy += feature.fromAttributes(
           "name" -> "San Francisco",
           "geom" -> point(37.78, -122.42)
         )
 
-        dummy += feature.Feature(
+        dummy += feature.fromAttributes(
           "name" -> "New York",
           "geom" -> point(40.47, -73.58)
         )

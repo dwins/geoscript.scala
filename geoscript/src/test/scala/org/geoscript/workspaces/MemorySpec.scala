@@ -13,7 +13,7 @@ class MemorySpec extends Specification {
           bind[String]("name")))
       workspace.withMemoryWorkspace { ws => 
         val lyr = ws.create(schema)
-        lyr += feature.Feature(
+        lyr += feature.fromAttributes(
           "the_geom" -> geometry.point(0, 0),
           "name" -> "test"
         )

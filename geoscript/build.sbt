@@ -1,9 +1,5 @@
 name := "geoscript"
 
-libraryDependencies <+= scalaVersion { v =>
-  "org.scala-lang" % "scala-swing" % v 
-}
-
 libraryDependencies <++= gtVersion { v => 
   Seq(
     "org.geotools" % "gt-main" % v,
@@ -17,10 +13,7 @@ libraryDependencies <++= gtVersion { v =>
   )
 }
 
-libraryDependencies ++= 
-  Seq(
-    "javax.media" % "jai_core" % "1.1.3",
-    "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
-    "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test",
-    "com.lowagie" % "itext" % "2.1.5"
-  )
+libraryDependencies ++= Seq(
+  "javax.media" % "jai_core" % "1.1.3",
+  "org.scala-tools.testing" %% "specs" % "[1.6,1.7)" % "test"
+)

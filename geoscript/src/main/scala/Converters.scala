@@ -4,6 +4,7 @@ package object geoscript {
   import geometry._
   import layer._
   import workspace._
+  import render._
 
   implicit def enrichGeometry(g: Geometry): RichGeometry =
     new RichGeometry(g)
@@ -20,11 +21,14 @@ package object geoscript {
 
   implicit def enrichSchema(s: Schema) = new RichSchema(s)
 
-  implicit def enrichLayer(layer: Layer): RichLayer = new RichLayer(layer)
+  implicit def enrichLayer(l: layer.Layer): RichLayer = new RichLayer(l)
 
   implicit def enrichWorkspace(workspace: Workspace): RichWorkspace =
     new RichWorkspace(workspace)
 
   implicit def enrichConnector(connector: Connector): RichConnector =
     new RichConnector(connector)
+
+  implicit def enrichContent(content: Content): RichContent =
+    new RichContent(content)
 }
