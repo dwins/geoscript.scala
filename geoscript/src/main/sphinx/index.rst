@@ -9,10 +9,16 @@ GeoScript Scala
 .. toctree::
    :hidden: 
 
+   download
    quickstart
    introduction
+   tutorial
+   style
 
 GeoScript Scala is a GeoScript implementation for the Scala programming language.
+
+   :doc:`Download <download>`
+     Get GeoScript on your computer
 
    :doc:`Quickstart <quickstart>`
      Get up and running with GeoScript
