@@ -28,7 +28,7 @@ object Referenced {
       new FlatMapped(this, f)
 
     def force(p: Projection): T =
-      (proj to p)(value)
+      (org.geoscript.projection.transform(proj, p)(value))
   }
 
   private class Mapped[T, U](base: Referenced[T], f: T => U) extends Referenced[U] {

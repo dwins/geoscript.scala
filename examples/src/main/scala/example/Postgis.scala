@@ -3,6 +3,7 @@ package org.geoscript.example
 import com.vividsolutions.jts.geom.Geometry
 import org.geoscript._
 import feature.{ Feature, Field, Schema, bind }
+import projection.Projection
 
 object PostgisTest extends App { 
   val params = workspace.Params.postgis("conflict")
@@ -15,7 +16,7 @@ object PostgisTest extends App {
     workspace.withWorkspace(workspace.Params.postgis("test")) { wsTest =>
       val test = wsTest.create(Schema(
         "test",
-        Seq(bind[String]("name"), bind[Geometry]("geom", "EPSG:4326"))))
+        Seq(bind[String]("name"), bind[Geometry]("geom", Projection("EPSG:4326")))))
 
       test += feature.fromAttributes(
         "name" -> "test",
