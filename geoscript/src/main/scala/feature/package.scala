@@ -9,13 +9,32 @@ package object feature {
   type GeoField = org.opengis.feature.`type`.GeometryDescriptor
   type Schema = org.opengis.feature.simple.SimpleFeatureType
 
-  def bind[T : Manifest](name: String): Field =
-    sys.error("Unimplemented")
+  def bind[T : Manifest](name: String): Field = {
+    val builder = new org.geotools.feature.AttributeTypeBuilder
+    builder.setName(name)
+    builder.setBinding(manifest[T].erasure)
+    builder.buildDescriptor(name, builder.buildType())
+  }
 
   def bind[T <: geometry.Geometry : Manifest]
-    (name: String, proj: projection.Projection): GeoField = sys.error("Unimplemented")
+    (name: String, proj: projection.Projection): GeoField = {
+    val builder = new org.geotools.feature.AttributeTypeBuilder
+    builder.setName(name)
+    builder.setBinding(manifest[T].erasure)
+    builder.setCRS(proj)
+    builder.buildDescriptor(name, builder.buildGeometryType())
+  }
 
-  def fromAttributes(attributes: (String, Any)*): Feature = sys.error("Unimplemented")
+  def fromAttributes(attributes: (String, Any)*): Feature =
+   sys.error("Unimplemented")
+
+  def feature(schema: Schema, attributes: Seq[Any]): Feature = {
+    import org.geotools.feature.simple.SimpleFeatureBuilder
+    val builder = new SimpleFeatureBuilder(schema)
+    for ((value, idx) <- attributes.zipWithIndex)
+      builder.set(idx, value)
+    builder.buildFeature(null)
+  }
 }
 
 package feature {
@@ -38,6 +57,8 @@ package feature {
     def get(name: String): Field = schema.getDescriptor(name)
     def get(index: Int): Field = schema.getDescriptor(index)
     def withName(name: String): Schema = sys.error("Unimplemented")
+    def feature(attributes: Seq[Any]): Feature =
+      org.geoscript.feature.feature(schema, attributes)
   }
 
   class RichFeature(feature: Feature) {

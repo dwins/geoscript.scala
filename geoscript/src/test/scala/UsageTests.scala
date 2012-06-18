@@ -9,7 +9,7 @@ class UsageTests extends Specification {
   "geometries" should { 
     "work like on the geoscript homepage" in { 
       var p = point(-111, 45.7)
-      var p2 = (projection.transform(Projection("epsg:4326"), Projection("epsg:26912")))(p)
+      var p2 = (projection.reproject(Projection("epsg:4326"), Projection("epsg:26912")))(p)
       var poly = p.buffer(100)
 
       p2.x must beCloseTo(499999.0, 1)

@@ -1,14 +1,19 @@
 package org.geoscript
 package projection
 
+import geometry.Envelope
+import org.geotools.geometry.jts.ReferencedEnvelope
+
 trait Referenced[T] {
   def map[U](f: T => U): Referenced[U]
   def flatMap[U](f: T => Referenced[U]): Referenced[U]
+  def native: Option[Projection]
   def force(p: Projection): T
+  def forceNative: T = force(native.get)
 }
 
 object Referenced {
-  def apply[T <: geometry.Geometry](value: T, projection: Projection)
+  def apply[T : Projectable](value: T, projection: Projection)
     : Referenced[T] = new Physical(value, projection)
 
   def apply[T](value: T): Referenced[T] = new Ideal(value)
@@ -17,9 +22,10 @@ object Referenced {
     def map[U](f: T => U): Referenced[U] = new Ideal(f(value))
     def flatMap[U](f: T => Referenced[U]): Referenced[U] = f(value)
     def force(p: Projection): T = value
+    def native = None
   }
 
-  private class Physical[T <: geometry.Geometry](value: T, proj: Projection)
+  private class Physical[T : Projectable](value: T, proj: Projection)
   extends Referenced[T] {
     def map[U](f: T => U): Referenced[U] =
       new Mapped(this, f)
@@ -28,7 +34,9 @@ object Referenced {
       new FlatMapped(this, f)
 
     def force(p: Projection): T =
-      (org.geoscript.projection.transform(proj, p)(value))
+      implicitly[Projectable[T]].project(proj, p)(value)
+
+    def native = Some(proj)
   }
 
   private class Mapped[T, U](base: Referenced[T], f: T => U) extends Referenced[U] {
@@ -39,6 +47,8 @@ object Referenced {
       new FlatMapped(base, f andThen g)
 
     def force(p: Projection): U = f(base.force(p))
+
+    def native = base.native
   }
 
   private class FlatMapped[T, U](base: Referenced[T], f: T => Referenced[U])
@@ -50,5 +60,14 @@ object Referenced {
 
     def force(p: Projection): U =
       f(base.force(p)).force(p)
+
+    def native = base.native
   }
+
+  import org.geotools.geometry.jts.ReferencedEnvelope
+  implicit def referenceEnvelope(renv: ReferencedEnvelope): Referenced[Envelope] =
+    Referenced(renv, renv.getCoordinateReferenceSystem)
+
+  def envelope(renv: Referenced[Envelope]): ReferencedEnvelope =
+    new ReferencedEnvelope(renv.forceNative, renv.native.orNull)
 }

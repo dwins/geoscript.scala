@@ -1,5 +1,7 @@
 package org.geoscript
 
+import style.combinators._, feature._, geometry._, projection._
+
 import collection.JavaConverters._
 import org.{ geotools => gt }
 import gt.geometry.jts.ReferencedEnvelope
@@ -10,14 +12,63 @@ import java.awt.RenderingHints,
 package render {
   trait Stylable[T] {
     def applyStyle(t: T, s: style.Style): Layer
+    def defaultStyle(t: T): Layer
   }
   
   object Stylable {
-    def stylable[T](f: (T, style.Style) => Layer): Stylable[T] =
-      new Stylable[T] { def applyStyle(t: T, s: style.Style): Layer = f(t, s) }
+    private val defaultSchema =
+      Schema("empty", Seq(
+        bind[Geometry]("the_geom", projection.LatLon)))
+
+    def by[T, U : Stylable](f: T => U): Stylable[T] =
+      new Stylable[T] {
+        def applyStyle(t: T, s: style.Style): Layer =
+          implicitly[Stylable[U]].applyStyle(f(t), s)
+
+        def defaultStyle(t: T): Layer =
+          implicitly[Stylable[U]].defaultStyle(f(t))
+      }
 
     implicit val vectorDataIsStylable: Stylable[layer.Layer] =
-      stylable { (l, s) => new gt.map.FeatureLayer(l, s.underlying, l.name) }
+      new Stylable[layer.Layer] {
+        def applyStyle(l: layer.Layer, s: style.Style): Layer = 
+          new gt.map.FeatureLayer(l, s.underlying, l.name)
+
+        def defaultStyle(l: layer.Layer): Layer = {
+          val Point = classOf[Point]
+          val MultiPoint = classOf[MultiPoint]
+          val LineString = classOf[LineString]
+          val MultiLineString = classOf[MultiLineString]
+          val sty = 
+            l.schema.geometry.binding match {
+              case Point | MultiPoint => Symbol("square")
+              case LineString | MultiLineString => Stroke("black")
+              case _ => Fill("grey") and Stroke("black")
+            }
+          new gt.map.FeatureLayer(l, sty.underlying, l.name)
+        }
+      }
+
+    implicit val seqOfFeaturesIsStylable: Stylable[Seq[Feature]] =
+      Stylable.by { fs: Seq[Feature] => 
+        val schema = fs.headOption
+          .map (_.getFeatureType) 
+          .getOrElse(defaultSchema)
+
+        val store = new org.geotools.data.memory.MemoryDataStore(fs.toArray)
+        store.layerNamed(store.names.head)
+      }
+
+    implicit val singleFeatureIsStylable: Stylable[Feature] =
+      Stylable.by { (f: Feature) => Seq(f) }
+
+    implicit val geometryIsStylable: Stylable[Geometry] =
+      Stylable.by { (g: Geometry) => defaultSchema.feature(Seq(g)) }
+
+    implicit val seqOfGeometriesIsStylable: Stylable[Seq[Geometry]] =
+      Stylable.by { (_: Seq[Geometry]).map { g =>
+        defaultSchema.feature(Seq(g))
+      } }
   }
 
   trait Canvas[T] { self =>
@@ -71,6 +122,8 @@ package render {
 
   object Content {
     def empty = new Content
+    def apply[T : Stylable](t: T): Content =
+      empty.withData(t)
     def apply[T : Stylable](t: T, s: style.Style): Content =
       empty.withData(t, s)
   }
@@ -84,6 +137,9 @@ package render {
     }
     def withData[T : Stylable](data: T, s: style.Style): Content =
       withLayer(applyStyle(data, s))
+
+    def withData[T : Stylable](data: T): Content =
+      withLayer(implicitly[Stylable[T]].defaultStyle(data))
   }
 }
 
@@ -100,13 +156,9 @@ package object render {
 
   def draw[Out](
     content: Content,
-    // layers: Seq[Layer],
     bounds: ReferencedEnvelope,
     canvas: Canvas[Out] = new ImageCanvas
   ): Out = {
-    // val content = new gt.map.MapContent
-    // layers.foreach { content.addLayer }
-    // 
     val hints = renderHints(KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON)
 
     canvas.render { (graphics, screenArea) =>
@@ -115,6 +167,31 @@ package object render {
       renderer.setMapContent(content)
       renderer.paint(graphics, tupleAsRectangle(screenArea), bounds)
     }
+  }
+
+  def drawFull[Out](
+    content: Content,
+    canvas: Canvas[Out] = new ImageCanvas
+  ): Out = {
+    def mode[A](xs: Seq[A]): Option[A] =
+      if (xs.isEmpty) None
+      else            Some(xs.groupBy(identity).maxBy(_._2.size)._1)
+
+    val boundsList     = content.layers.asScala.map(_.getBounds)
+    val projectionList = boundsList.map(_.getCoordinateReferenceSystem)
+
+    val projection = mode(projectionList).getOrElse(LatLon)
+
+    val expand = (a: Referenced[Envelope], b: Referenced[Envelope]) => 
+      Referenced.envelope(for (aEnv <- a; bEnv <- b) yield aEnv || bEnv)
+
+    val bounds = (boundsList reduceLeftOption (expand(_, _)))
+
+    val finalBounds = bounds
+      .map(Referenced.envelope(_))
+      .getOrElse(new ReferencedEnvelope(EmptyEnvelope, LatLon))
+
+    draw(content, finalBounds, canvas)
   }
     
   def file(f: String) = new java.io.File(f)

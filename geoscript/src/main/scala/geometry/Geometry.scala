@@ -39,6 +39,17 @@ class RichEnvelope(e: Envelope) {
   def maxX = e.getMaxX
   def minY = e.getMinY
   def minX = e.getMinX
+
+  def && (that: Envelope): Envelope = e intersection that
+
+  def || (that: Envelope): Envelope =
+    if (e.isNull)         that
+    else if (that.isNull) e
+    else {
+      val res = new jts.Envelope(e)
+      res.expandToInclude(that)
+      res
+    }
 }
 
 class RichPoint(point: Point) extends RichGeometry(point) {

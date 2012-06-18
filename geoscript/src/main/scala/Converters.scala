@@ -13,6 +13,8 @@ package object geoscript {
 
   implicit def enrichEnvelope(e: Envelope) = new RichEnvelope(e)
 
+  implicit def enrichTransform(t: Transform) = new RichTransform(t)
+
   implicit def enrichField(f: Field) = new RichField(f)
 
   implicit def enrichFeature(f: Feature) = new RichFeature(f)

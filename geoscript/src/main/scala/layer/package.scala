@@ -47,6 +47,7 @@ package layer {
 
     def ++= (features: Iterable[feature.Feature]) {
       layer.getFeatures().addAll(features.asJavaCollection) 
+      withAll { fs => fs.foreach(println) }
     }
 
     def ++= (features: Iterator[feature.Feature]) {

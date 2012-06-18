@@ -1,23 +1,32 @@
 package org.geoscript
 package geometry
 
-import com.vividsolutions.jts.geom.util.AffineTransformation
-
-class Transform(tx: AffineTransformation) {
-  def apply[G <: Geometry](g: G): G = {
-    val res = g.clone().asInstanceOf[G]
-    res.apply(tx)
-    res
-  }
-
-  def translate(dx: Double, dy: Double): Transform =
-    new Transform(new AffineTransformation(tx).translate(dx, dy))
-
-  def shear(shx: Double, shy: Double): Transform =
-    new Transform(new AffineTransformation(tx).shear(shx, shy))
-
-  def scale(sx: Double, sy: Double): Transform =
-    new Transform(new AffineTransformation(tx).scale(sx, sy))
+import com.vividsolutions.jts.geom.util.{
+  AffineTransformation, NoninvertibleTransformationException
 }
 
-object Transform extends Transform(new AffineTransformation)
+class RichTransform(tx: Transform) {
+  def translated(dx: Double, dy: Double): Transform =
+    new AffineTransformation(tx).translate(dx, dy)
+
+  def sheared(x: Double, y: Double): Transform =
+    new AffineTransformation(tx).shear(x, y)
+
+  def scaled(x: Double, y: Double): Transform =
+    new AffineTransformation(tx).scale(x, y)
+
+  def rotated(theta: Double, aboutX: Double = 0, aboutY: Double = 0): Transform =
+    new AffineTransformation(tx).rotate(theta, aboutX, aboutY)
+
+  def reflected(x0: Double, y0: Double, x1: Double, y1: Double): Transform =
+    new AffineTransformation(tx).reflect(x0, y0, x1, y1)
+
+  def inverse: Option[Transform] =
+    try {
+      Some(tx.getInverse)
+    } catch {
+      case (_: NoninvertibleTransformationException) => None
+    }
+
+  def apply[G <: Geometry](g: G): G = tx.transform(g).asInstanceOf[G]
+}

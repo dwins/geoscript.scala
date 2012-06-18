@@ -51,7 +51,12 @@ object BasicGeometry extends App {
   // operations: derived geometries
   line.buffer(1)
 
-  // (de)serialization
-  // geometry.WKT.write(point)
-  // geometry.GeoJSON.write(point)
+  // serialization
+  import org.geoscript.serialize.{ Sink, Source }
+  geometry.WKT.write(point, Sink.string)
+  geometry.GeoJSON.write(point, Sink.string)
+
+  // deserialization
+  geometry.WKT.read(Source.string("POINT (30 10)"))
+  geometry.GeoJSON.read(Source.string("POINT (30 10)"))
 }

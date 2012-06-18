@@ -14,6 +14,7 @@ package object geometry {
   
   type Coordinate = jts.Coordinate
   type Envelope = jts.Envelope
+  type Transform = jts.util.AffineTransformation
 
   val EmptyEnvelope = new jts.Envelope
 
@@ -94,4 +95,10 @@ package object geometry {
     else
       factory.createGeometryCollection(geoms.toArray)
   }
+
+  def simplify(g: Geometry, tolerance: Double): Geometry =
+    com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier
+      .simplify(g, tolerance)
+
+  def Transform = new jts.util.AffineTransformation
 }
