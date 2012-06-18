@@ -100,5 +100,59 @@ package object geometry {
     com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier
       .simplify(g, tolerance)
 
+  def delaunay(g: Geometry): Delaunay = {
+    val triangulator = new com.vividsolutions.jts.triangulate.DelaunayTriangulationBuilder
+    triangulator.setSites(g)
+    new Delaunay {
+      lazy val edges = triangulator.getEdges(factory)
+      lazy val triangles = triangulator.getTriangles(factory)
+    }
+  }
+
+  def delaunayTol(g: Geometry, tolerance: Double): Delaunay = {
+    val triangulator = new com.vividsolutions.jts.triangulate.DelaunayTriangulationBuilder
+    triangulator.setSites(g)
+    triangulator.setTolerance(tolerance)
+    new Delaunay {
+      lazy val edges = triangulator.getEdges(factory)
+      lazy val triangles = triangulator.getTriangles(factory)
+    }
+  }
+
+  def voronoi(g: Geometry): Geometry = {
+    val voronoi = new com.vividsolutions.jts.triangulate.VoronoiDiagramBuilder
+    voronoi.setSites(g)
+    voronoi.getDiagram(factory)
+  }
+
+  def voronoiEnv(g: Geometry, e: Envelope): Geometry = {
+    val voronoi = new com.vividsolutions.jts.triangulate.VoronoiDiagramBuilder
+    voronoi.setSites(g)
+    voronoi.setClipEnvelope(e)
+    voronoi.getDiagram(factory)
+  }
+
+  def voronoiEnvTol(g: Geometry, e: Envelope, tolerance: Double): Geometry = {
+    val voronoi = new com.vividsolutions.jts.triangulate.VoronoiDiagramBuilder
+    voronoi.setSites(g)
+    voronoi.setClipEnvelope(e)
+    voronoi.setTolerance(tolerance)
+    voronoi.getDiagram(factory)
+  }
+
+  def voronoiTol(g: Geometry, tolerance: Double): Geometry = {
+    val voronoi = new com.vividsolutions.jts.triangulate.VoronoiDiagramBuilder
+    voronoi.setSites(g)
+    voronoi.setTolerance(tolerance)
+    voronoi.getDiagram(factory)
+  }
+
   def Transform = new jts.util.AffineTransformation
+}
+
+package geometry {
+  sealed trait Delaunay {
+    def edges: Geometry
+    def triangles: Geometry
+  }
 }
