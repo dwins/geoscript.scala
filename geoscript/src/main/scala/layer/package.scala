@@ -2,12 +2,24 @@ package org.geoscript
 
 import scala.collection.JavaConverters._
 
+import feature.{ Feature, Field, Schema }
 import filter.Filter
 import workspace.Workspace
 
 package object layer {
   type Layer = org.geotools.data.simple.SimpleFeatureStore
   type Query = org.geotools.data.Query
+
+  def Layer(s: feature.Schema): Layer = sys.error("Undefined")
+
+  def Layer(name: String, fs: Iterable[feature.Feature]): Layer = {
+    def undefined = sys.error("Undefined")
+    implicit def f(f: Feature): { def schema: Schema } = undefined
+    implicit def widen(f0: Seq[Field], f1: Seq[Field]): Seq[Field] = undefined
+    val attributes = fs.map(_.schema.fields).foldLeft(Seq.empty[feature.Field])(widen)
+    val schema: Schema = Schema(name, attributes)
+    sys.error("undefined")
+  }
 }
 
 package layer {

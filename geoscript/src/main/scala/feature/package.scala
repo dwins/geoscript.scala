@@ -35,6 +35,8 @@ package object feature {
       builder.set(idx, value)
     builder.buildFeature(null)
   }
+
+  def widen(a: Seq[Field], b: Seq[Field]): Seq[Field] = sys.error("Unimplemented")
 }
 
 package feature {
