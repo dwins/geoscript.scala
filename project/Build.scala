@@ -47,11 +47,9 @@ object GeoScript extends Build {
   lazy val examples = 
     Project("examples", file("examples"), settings = common) dependsOn(library)
   lazy val library =
-    Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css, dummy)
+    Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css)
   lazy val support =
     Project("support", file("support"), settings = common)
-  lazy val dummy = 
-    Project("dummy", file("dummy"), settings = meta ++ defaultSettings)
 
   lazy val sphinx = 
     TaskKey[java.io.File]("sphinx", "runs sphinx documentation generator")
