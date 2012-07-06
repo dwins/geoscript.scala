@@ -8,7 +8,7 @@ object GeoScript extends Build {
     Seq[Setting[_]](
       organization := "org.geoscript",
       version := "0.7.4",
-      gtVersion := "8.0-M4",
+      gtVersion := "8.0-RC1",
       scalaVersion := "2.9.1", 
       scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked")
     )
