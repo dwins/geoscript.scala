@@ -25,8 +25,20 @@ package object feature {
     builder.buildDescriptor(name, builder.buildGeometryType())
   }
 
-  def fromAttributes(attributes: (String, Any)*): Feature =
-   sys.error("Unimplemented")
+  private def field(name: String, binding: Class[_]): Field = {
+    val builder = new org.geotools.feature.AttributeTypeBuilder
+    builder.setName(name)
+    builder.setBinding(binding)
+    builder.buildDescriptor(name, builder.buildType)
+  }
+
+  def fromAttributes(attributes: (String, Any)*): Feature = {
+    val fields = attributes.map { case (n, v) => field(n, v.getClass) }
+    val schema = Schema("internal", fields)
+    val builder = new org.geotools.feature.simple.SimpleFeatureBuilder(schema)
+    for ((key, value) <- attributes) builder.set(key, value)
+    builder.buildFeature(null)
+  }
 
   def feature(schema: Schema, attributes: Seq[Any]): Feature = {
     import org.geotools.feature.simple.SimpleFeatureBuilder
@@ -58,16 +70,17 @@ package feature {
     def geometry = schema.getGeometryDescriptor
     def get(name: String): Field = schema.getDescriptor(name)
     def get(index: Int): Field = schema.getDescriptor(index)
-    def withName(name: String): Schema = sys.error("Unimplemented")
+    def withName(name: String): Schema = Schema(name, fields)
     def feature(attributes: Seq[Any]): Feature =
       org.geoscript.feature.feature(schema, attributes)
   }
 
   class RichFeature(feature: Feature) {
-    def id: String = sys.error("unimplemented")
-    def get[A](index: Int): A = sys.error("Unimplemented")
-    def get[A](key: String): A = sys.error("Unimplemented")
-    def geometry: org.geoscript.geometry.Geometry = sys.error("Unimplemented")
+    def id: String = feature.getID
+    def get[A](index: Int): A = feature.getAttribute(index).asInstanceOf[A]
+    def get[A](key: String): A = feature.getAttribute(key).asInstanceOf[A]
+    def geometry: org.geoscript.geometry.Geometry =
+      feature.getDefaultGeometry.asInstanceOf[org.geoscript.geometry.Geometry]
   }
 
   class RichField(field: Field) {
