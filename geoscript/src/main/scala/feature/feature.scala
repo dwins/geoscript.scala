@@ -87,6 +87,11 @@ package feature {
   }
 
   class RichGeoField(field: GeoField) {
-    def withProjection(proj: projection.Projection): GeoField = sys.error("Unimplemented")
+    def withProjection(proj: projection.Projection): GeoField = {
+      val builder = new org.geotools.feature.AttributeTypeBuilder
+      builder.init(field)
+      builder.setCRS(proj)
+      builder.buildDescriptor(field.getName, builder.buildGeometryType())
+    }
   }
 }
