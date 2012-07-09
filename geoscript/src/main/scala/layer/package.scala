@@ -10,13 +10,50 @@ package object layer {
   type Layer = org.geotools.data.simple.SimpleFeatureStore
   type Query = org.geotools.data.Query
 
-  def Layer(s: feature.Schema): Layer = sys.error("Undefined")
+  def Layer(name: String, fields: Seq[Field]): Layer = {
+    Layer(Schema(name, fields))
+  }
 
-  def Layer(name: String, fs: Iterable[feature.Feature]): Layer = {
-    def undefined = sys.error("Undefined")
-    implicit def f(f: Feature): { def schema: Schema } = undefined
-    implicit def widen(f0: Seq[Field], f1: Seq[Field]): Seq[Field] = undefined
-    val attributes = fs.map(_.schema.fields).foldLeft(Seq.empty[feature.Field])(widen)
+  def Layer(s: feature.Schema): Layer = {
+    val workspace = new org.geotools.data.memory.MemoryDataStore
+    workspace.createSchema(s)
+    workspace.getFeatureSource(s.name).asInstanceOf[Layer]
+  }
+
+  def Layer(name: String, fs: Traversable[feature.Feature]): Layer = {
+    implicit def featureHasSchema(f: Feature): { def schema: Schema } =
+      new {
+        def schema = f.getFeatureType
+      }
+
+    implicit def widen(f0: Seq[Field], f1: Seq[Field]): Seq[Field] = {
+      val names0 = (f0 map (_.name))
+      val names1 = (f1 map (_.name))
+      val names = names0 ++ (names1.filterNot(names0.contains))
+      val byName0 = (f0 map (x => (x.name, x))).toMap
+      val byName1 = (f1 map (x => (x.name, x))).toMap
+
+      names.map { n => 
+        ((byName0 get n), (byName1 get n)) match {
+          case (None,    None) =>
+            sys.error("Unexpected state... name " + n + "not found in either schema in widen method")
+          case (Some(a), None) =>
+            a
+          case (None,    Some(b)) =>
+            b
+          case (Some(a), Some(b)) =>
+            if (a != b)
+              sys.error("Incompatible field types: " + a + ", " + b)
+            else
+              a
+        }
+      }
+    }
+    val attributes =
+      (fs foldLeft Seq.empty[Field]) { 
+        (fs: Seq[Field], f: Feature) => 
+          widen(fs, f.schema.fields)
+      }
     val schema: Schema = Schema(name, attributes)
     sys.error("undefined")
   }
@@ -58,8 +95,16 @@ package layer {
     def += (fs: feature.Feature*) = this ++= fs
 
     def ++= (features: Iterable[feature.Feature]) {
-      layer.getFeatures().addAll(features.asJavaCollection) 
-      withAll { fs => fs.foreach(println) }
+      val tx = new org.geotools.data.DefaultTransaction
+      layer.setTransaction(tx)
+      try {
+        val featureColl = org.geotools.feature.FeatureCollections.newCollection()
+        featureColl.addAll(features.asJavaCollection)
+        layer.addFeatures(featureColl)
+        tx.commit()
+      } catch {
+        case ex => tx.rollback(); throw ex
+      }
     }
 
     def ++= (features: Iterator[feature.Feature]) {
