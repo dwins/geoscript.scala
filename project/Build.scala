@@ -19,12 +19,6 @@ object GeoScript extends Build {
       resolvers ++= Seq(
         "opengeo" at "http://repo.opengeo.org/",
         "osgeo" at "http://download.osgeo.org/webdav/geotools/"
-      ),
-      ivyXML <<= gtVersion ( v =>
-        <dependencies>
-          <exclude org="xml-apis" name="xml-apis-xerces"/>
-          <exclude org="xml-apis" name="xml-apis"/>
-        </dependencies>
       )
     ) ++ meta ++ defaultSettings
 
