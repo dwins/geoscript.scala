@@ -298,7 +298,7 @@ object CssOps {
     def unapply(value: Value): Option[String] = value match {
       case Function("rgb", Seq(Literal(r), Literal(g), Literal(b))) =>
         val channels = Seq(r, g, b)
-        val hex = "#%2x%2x%2x"
+        val hex = "#%02x%02x%02x"
         def validInt(x: String) =
           try { x.toInt; true } catch { case _ => false }
 
