@@ -1,81 +1,77 @@
 package org.geoscript.geocss
 
 import scala.util.parsing.input.CharSequenceReader
-import org.specs2._
+
+import org.scalatest.FunSuite
+import org.scalatest.matchers.{ Matcher, MatchResult, ShouldMatchers }
 
 /**
  * Tests for specific low-level productions in the CSS grammar
  */
-class GrammarTest extends Specification 
-with matcher.ParserMatchers
-with matcher.DataTables
-{
-  val parsers = CssParser
-  def is = 
-    "parsing property names" ^ 
-      {
-        category(
-          "Known bad",
-          List("123", "-123"),
-          CssParser.propname must failOn(_: String)
-        )
-      } ^ {
-        category(
-          "Known good",
-          List("abc", "abc-123", "-gt-magic"),
-          CssParser.propname must succeedOn(_: String)
-        )
-      } ^ end ^
-    "parsing numbers" ^
-      {
-        category(
-          "Known good",
-          List("123", "1.23", ".123", "123.", "-123", "-.123"),
-          CssParser.number must succeedOn(_: String)
-        )
-      } ^ {
-        category(
-          "Known bad", 
-          List(".-123", "1.2.3", "1..23", "1-23", "one, dash, twenty-three"),
-          CssParser.number must failOn(_: String)
-        )
-     } ^ end ^
-   "parsing percentages" ^ 
-     category(
-       "Known good",
-       List("12%", "1.2%", "-12%", "-.12%"),
-       CssParser.percentage must succeedOn(_: String)
-     ) ^
-     category(
-       "Known bad",
-       List(".-12%", "12", "%"),
-       CssParser.percentage must failOn(_: String)
-     ) ^ end ^
-   "parsing urls" ^ 
-     category(
-       "Known good",
-       List("url(http://example.com/foo.png)"),
-       CssParser.url must succeedOn(_: String)
-     ) ^ end ^
-   "parsing CSS functions" ^
-     category(
-       "Known good",
-       List(
-         "foo()",
-         "url('http://example.com/icon.png')",
-         """foo("http://example.com/icon.png")""",
-         "rgb(50, 150, 250)",
-         "rgb(50,150,250)"
-       ),
-       CssParser.function must succeedOn(_: String)
-     )
+class GrammarTest extends FunSuite with ShouldMatchers {
+  import CssParser._
 
-  def category[A, B](
-    name: String,
-    examples: Seq[A],
-    test: A => matcher.MatchResult[B]
-  ) =
-    examples.foldLeft(name: specification.Fragments) {
-      (fragments, v) => fragments ^ v.toString ! test(v)
-    } ^ bt
+  def failOn(text: String): Matcher[CssParser.Parser[_]] = not(succeedOn(text))
+
+  def succeedOn(text: String): Matcher[CssParser.Parser[_]] =
+    new Matcher[CssParser.Parser[_]] {
+      def apply(p: CssParser.Parser[_]): MatchResult =
+        new MatchResult(
+          CssParser.parseAll(p, text).successful,
+          "Parser %s did not accept %s" format(p, text),
+          "Parser %s accepted %s" format(p, text)
+        )
+    }
+
+  test("property names") {
+    propname should failOn("123")
+    propname should failOn("-123")
+    propname should succeedOn("abc")
+    propname should succeedOn("abc-123")
+    propname should succeedOn("-gt-magic")
+  }
+
+  test("numbers") {
+    number should succeedOn("123")
+    number should succeedOn("1.23")
+    number should succeedOn(".123")
+    number should succeedOn("123.")
+    number should succeedOn("-123")
+    number should succeedOn("-.123")
+
+    number should failOn(".-123")
+    number should failOn("1.2.3")
+    number should failOn("1..23")
+    number should failOn("1-23")
+    number should failOn("one, dash, twenty-three")
+  }
+
+  test("percentages") {
+    percentage should succeedOn("12%")
+    percentage should succeedOn("1.2%")
+    percentage should succeedOn("-12%")
+    percentage should succeedOn("-.12%")
+
+    percentage should failOn(".-12%")
+    percentage should failOn("12")
+    percentage should failOn("%")
+  }
+
+  test("urls") {
+    url should succeedOn ("url(http://example.com/foo.png)")
+
+    url should failOn("foo()")
+    url should failOn("url('http://example.com/icon.png')")
+    url should failOn("""foo("http://example.com/icon.png")""")
+    url should failOn("rgb(50) 150, 250)")
+    url should failOn("rgb(50,150,250)")
+  }
+
+  test("functions") {
+    function should succeedOn("foo()")
+    function should succeedOn("url('http://example.com/icon.png')")
+    function should succeedOn("""foo("http://example.com/icon.png")""")
+    function should succeedOn("rgb(50, 150, 250)")
+    function should succeedOn("rgb(50,150,250)")
+  }
 }
