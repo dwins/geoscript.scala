@@ -1,8 +1,9 @@
 package org.geoscript.support.logic
 
-import org.scalacheck._, Arbitrary._, Prop._
+import org.scalacheck._, Arbitrary._, Prop.propBoolean
+import org.scalatest._, prop._
 
-object KnowledgeSpecification extends Properties("Knowledge") {
+class KnowledgeSpecification extends PropSpec with Checkers {
   import Knowledge.sat
   import symbolic._
   import Generators._
@@ -65,48 +66,57 @@ object KnowledgeSpecification extends Properties("Knowledge") {
     helper(s, 0)
   }
 
-  property("Reduction never increases sentence size") = 
-    forAll { (s: Sentence) => size(reduce(s)) <= size(s) }
+  property("Reduction never increases sentence size") { 
+    check { (s: Sentence) => size(reduce(s)) <= size(s) }
+  }
 
-  property("Reduction never introduces terms") =
-    forAll { (s: Sentence) => atomsIn(reduce(s)) subsetOf atomsIn(s) }
+  property("Reduction never introduces terms") {
+    check { (s: Sentence) => atomsIn(reduce(s)) subsetOf atomsIn(s) }
+  }
 
-  property("Reduction never alters the truth table") =
-    forAll { (s: Sentence) => 
+  property("Reduction never alters the truth table") {
+    check { (s: Sentence) => 
       val atoms = atomsIn(s)
       truthTable(s)(atoms) == truthTable(reduce(s))(atoms)
     }
+  }
 
-  property("Conjunction with negation") =
-    forAll { (s: Sentence) => reduce(And(s, Not(s))) == False }
+  property("Conjunction with negation") {
+    check { (s: Sentence) => reduce(And(s, Not(s))) == False }
+  }
 
-  property("Disjunction with negation") =
-    forAll { (s: Sentence) => reduce(Or(s, Not(s))) == True }
+  property("Disjunction with negation") {
+    check { (s: Sentence) => reduce(Or(s, Not(s))) == True }
+  }
 
-  property("Conjunction with self") =
-    forAll { (s: Sentence) =>
+  property("Conjunction with self") {
+    check { (s: Sentence) =>
       truthTable(reduce(And(s, s)))(atomsIn(s)) == truthTable(s)(atomsIn(s))
     }
+  }
 
-  property("Disjunction with self") =
-    forAll { (s: Sentence) => 
+  property("Disjunction with self") {
+    check { (s: Sentence) => 
       truthTable(reduce(Or(s, s)))(atomsIn(s)) == truthTable(s)(atomsIn(s))
     }
+  }
 
-  property("Satisfiability") =
-    forAll { (s: Sentence) =>
+  property("Satisfiability") {
+    check { (s: Sentence) =>
       sat(s).forall { assignment =>
         val kb = assignment.foldLeft(oblivion) { _ given _ }
         kb.reduce(s) == True
       }
     }
+  }
 
   // TODO: Rewrite this to construct implied sentences instead of hoping to
   //       receive them randomly
-  // property("Implication is transitive") =
-    forAll { (p: Sentence, q: Sentence, r: Sentence) => 
+  ignore("Implication is transitive") {
+    check { (p: Sentence, q: Sentence, r: Sentence) => 
       ((reduce(p) != False && reduce(q) != False) &&
       given(p).reduce(q) == True &&
       given(q).reduce(r) == True) ==> (given(p).reduce(r) == True)
     }
+  }
 } 
