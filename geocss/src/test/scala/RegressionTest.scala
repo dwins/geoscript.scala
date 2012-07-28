@@ -1,5 +1,7 @@
 package org.geoscript.geocss
 
+import org.geoscript.geocss.testing._
+
 import collection.JavaConversions._
 
 import org.geotools.{ styling => gt }
@@ -26,9 +28,6 @@ class Regressions extends FunSuite with ShouldMatchers {
           name,
           "<none>")
     }
-
-  def containAll[A](x: A, xs: A*): Matcher[Traversable[A]] = 
-    (xs foldLeft (contain(x))) { (x, y) => x and contain(y) }
 
   test("Overlapping scales should produce a single FeatureTypeStyle") {
     val stylesheet = CssParser.parse(in("/scales.css"))
