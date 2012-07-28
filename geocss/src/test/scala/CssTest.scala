@@ -1,16 +1,12 @@
 package org.geoscript.geocss
 
-import scala.util.parsing.input.StreamReader
-import org.specs2._
 import org.{ geotools => gt }
+import org.scalatest.FunSuite, org.scalatest.matchers.ShouldMatchers
 
 /**
  * Generic tests to be applied in bulk to many styles
  */
-class SmokeTest extends Specification { def is =
-    basicExamples ^ end ^
-    transformExamples ^ end
-
+class SmokeTest extends FunSuite with ShouldMatchers { 
   val testFiles = Seq(
     "/test-basic.css"    -> 2,
     "/states.css"        -> 4,
@@ -23,44 +19,39 @@ class SmokeTest extends Specification { def is =
     "/default_point.css" -> 2,
     "/hospital.css"      -> 3)
 
-  val basicExamples: specification.Fragments = 
-    testFiles.foldLeft("Apply parser to some known-good inputs": specification.Fragments) {
-      (fragments, example) => 
-        val (path, expectedRules) = example
-        fragments ^ path ! tryParsing(path, expectedRules)
-    }
-
-  val transformExamples: specification.Fragments =
-    testFiles.foldLeft("Full transformation should always produce non-empty output": specification.Fragments) {
-      (fragments, example) =>
-        val (path, _) = example
-        fragments ^ path ! tryTransforming(path)
-    }
-
   def tryParsing(path: String, expectedRuleCount: Int) = {
-    val source = Option(getClass.getResourceAsStream(path))
-    val rules =
-      for (stream <- source) yield CssParser.parse(stream)
-    rules must beSome.which { res =>
-      res.successful == true && res.get.size == expectedRuleCount
-    }
+    val source = getClass().getResourceAsStream(path)
+    source should not be null
+    val rules = CssParser.parse(source)
+    rules should be ('successful)
+    rules.get.size should equal (expectedRuleCount)
   }
 
   def tryTransforming(path: String) = {
-    val source = Option(getClass.getResourceAsStream(path))
-    val rules = for (stream <- source) yield CssParser.parse(stream)
-    rules must beSome.which { res =>
-      res.successful == true && sldBytes(res.get).nonEmpty
-    }
+    val source = getClass.getResourceAsStream(path)
+    source should not be null
+    val rules = CssParser.parse(source)
+    rules should be ('successful)
+    sldBytes(rules.get) should be ('nonEmpty)
   }
 
-  def sldBytes(rules: Seq[Rule]) = {
+  def sldBytes(rules: Seq[Rule]): Seq[Byte] = {
     val Translator = new Translator
     val sld = Translator.css2sld(rules)
     val tx = new gt.styling.SLDTransformer
     val bytes = new java.io.ByteArrayOutputStream
     tx.transform(sld, bytes)
     bytes.toByteArray
+  }
+
+  test("Apply parser to sample stylesheets") {
+    for ((path, expectedRuleCount) <- testFiles) 
+      tryParsing(path, expectedRuleCount)
+  }
+
+  test("Generate SLD for sample stylesheets") {
+    for ((path, _) <- testFiles) 
+      tryTransforming(path)
   }
 }
 
