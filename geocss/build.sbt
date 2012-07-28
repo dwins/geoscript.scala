@@ -8,7 +8,6 @@ libraryDependencies <++= gtVersion { v =>
 }
 
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2" % "1.7.1" % "test",
   "org.scalatest" %% "scalatest" % "1.8" % "test")
 
 initialCommands += """
