@@ -37,13 +37,11 @@ object GeoScript extends Build {
   lazy val root =
     Project("root", file(".")) aggregate(css, /*docs,*/ examples, library)
   lazy val css = 
-    Project("css", file("geocss"), settings = common) dependsOn(support)
+    Project("css", file("geocss"), settings = common)
   lazy val examples = 
     Project("examples", file("examples"), settings = common) dependsOn(library)
   lazy val library =
     Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css)
-  lazy val support =
-    Project("support", file("support"), settings = common)
 
   lazy val sphinx = 
     TaskKey[java.io.File]("sphinx", "runs sphinx documentation generator")

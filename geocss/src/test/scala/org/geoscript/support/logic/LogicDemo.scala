@@ -1,5 +1,7 @@
+package org.geoscript.support.logic
+
 object LogicDemo extends App {
-  import org.geoscript.support.logic._, symbolic._
+  import symbolic._
 
   val kb = Knowledge.Oblivion[Sentence].given('A)
 
