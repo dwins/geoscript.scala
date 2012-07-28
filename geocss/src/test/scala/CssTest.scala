@@ -67,52 +67,16 @@ class SmokeTest extends Specification { def is =
 /**
  * Tests of specific handling of the CSS AST
  */
-class CssTest extends Specification { 
+class CssTest extends org.scalatest.FunSuite
+with org.scalatest.matchers.ShouldMatchers {
   import CssOps.{ Specificity, expand }
 
-  def is =
-    "Specificity comparison" ^
-      "id > filter" ! {
-        Specificity(id) must be_> (Specificity(cql))
-      } ^
-      "filter > (no selector)" ! {
-        Specificity(cql) must be_> (Specificity(any))
-      } ^ 
-      "id > (no selector)" ! {
-        Specificity(id) must be_> (Specificity(any))
-      } ^ end ^
-    "Property expansion" ^
-      "have length 1 when 'key' property has length 1" ! {
-        expand(propLists, "opacity") must haveSize(1)
-      } ^ 
-      "have length 3 when 'key' property has length 3" ! {
-        expand(propLists, "width") must haveSize(3)
-      } ^ 
-      "have length 0 when 'key' property is undefined" ! {
-        expand(propLists, "fill") must haveSize(0)
-      } ^ end ^
-    "Detailed check" ^ 
-      "have length 2 when 'key' property has length 2" ! {
-        expand(propLists, "stroke") must haveSize(2)
-      } ^
-      "expected values for first expansion" ! {
-        expand(propLists, "stroke")(0) must havePairs(
-          "stroke"  -> List(Literal("red")),
-          "opacity" -> List(Literal("0.70")),
-          "width"   -> List(Literal("10"))
-        )
-      } ^
-      "expected values for second expansion" ! {
-        expand(propLists, "stroke")(1) must havePairs(
-          "stroke"  -> List(Literal("green")),
-          "opacity" -> List(Literal("0.70")),
-          "width"   -> List(Literal("8"))
-        ) 
-      } ^ end
+  def expr(x: String) = 
+    Selector.asSelector(gt.filter.text.ecql.ECQL.toFilter(x))
 
-  lazy val any = Accept
-  lazy val id = Id("states.9")
-  lazy val cql = expr("STATE_NAME LIKE '%ia'")
+  val any = Accept
+  val id = Id("states.9")
+  val cql = expr("STATE_NAME LIKE '%ia'")
 
   val propLists = List(
     Property("stroke", List(List(Literal("red")), List(Literal("green")))),
@@ -120,6 +84,29 @@ class CssTest extends Specification {
     Property("width", List(List(Literal("10")), List(Literal("8")), List(Literal("6"))))
   )
 
-  import gt.filter.text.ecql.ECQL.toFilter
-  lazy val expr = (toFilter(_: String)) andThen (Selector.asSelector)
+  // def is =
+  test("Specificity") {
+    Specificity(id)  should be > (Specificity(cql))
+    Specificity(cql) should be > (Specificity(any))
+    Specificity(id)  should be > (Specificity(any))
+  }
+
+  test("Property expansion (sizes)") {
+    expand(propLists, "opacity") should have size(1)
+    expand(propLists, "width") should have size(3)
+    expand(propLists, "fill") should have size(0)
+    expand(propLists, "stroke") should have size(2)
+  }
+
+  test("Property expansion (values)") {
+    val expanded = expand(propLists, "stroke")
+    expanded(0) should equal (Map(
+      ("stroke" -> List(Literal("red"))),
+      ("opacity" -> List(Literal("0.70"))),
+      ("width" -> List(Literal("10")))))
+    expanded(1) should equal (Map(
+      ("stroke"  -> List(Literal("green"))),
+      ("opacity" -> List(Literal("0.70"))),
+      ("width"   -> List(Literal("8")))))
+  }
 }
