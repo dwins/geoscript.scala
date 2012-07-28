@@ -1,8 +1,10 @@
 package org.geoscript.support.interval
 
-import org.scalacheck._, Arbitrary.arbitrary, Prop._
+import org.scalacheck.{Arbitrary, Gen}
+import Arbitrary.arbitrary
+import org.scalatest._, prop._
 
-object IntervalCheck extends Properties("Intervals") {
+class IntervalCheck extends PropSpec with Checkers {
   import Interval.intersection
   val joinLeft = Cap.join[String](_ < _) _
 
@@ -32,23 +34,28 @@ object IntervalCheck extends Properties("Intervals") {
       Gen.oneOf(lefts, rights, finite, Interval.Empty[String], Interval.Full[String])
     }
 
-  property("join(x,y) always produces either x or y") =
-    forAll { (x: Cap[String], y: Cap[String]) => 
+  property("join(x,y) always produces either x or y") {
+    check { (x: Cap[String], y: Cap[String]) => 
       val joined = joinLeft(x, y)
       joined == x || joined == y
     }
+  }
   
-  property("Intersection with an empty interval produces an empty interval") =
-    forAll { (x: Interval[String]) =>
+  property("Intersection with an empty interval produces an empty interval") {
+    check { (x: Interval[String]) =>
       intersection(x, Interval.Empty) == Interval.Empty 
     }
+  }
 
-  property("Intersection with full") =
-    forAll { (x: Interval[String]) => intersection(x, Interval.Full[String]) == x }
+  property("Intersection with full") {
+    check { (x: Interval[String]) => intersection(x, Interval.Full[String]) == x }
+  }
 
-  property("Intersection with self") =
-    forAll { (x: Interval[String]) => intersection(x, x) == x }
+  property("Intersection with self") {
+    check { (x: Interval[String]) => intersection(x, x) == x }
+  }
 
-  property("Intersection is commutative") =
-    forAll { (x: Interval[String], y: Interval[String]) => intersection(x, y) == intersection(y, x) }
+  property("Intersection is commutative") {
+    check { (x: Interval[String], y: Interval[String]) => intersection(x, y) == intersection(y, x) }
+  }
 }
