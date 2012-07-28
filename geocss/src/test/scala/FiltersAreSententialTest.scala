@@ -2,27 +2,26 @@ package org.geoscript.geocss.filter
 
 import org.geoscript.support.interval.Interval
 import org.opengis.filter.Filter
-import org.geotools.filter.text.ecql.ECQL.{ toFilter => cql }
-import org.specs2._
+import org.geotools.filter.text.ecql.ECQL.toFilter
 
-class FiltersAreSententialTest extends Specification {
+import org.scalatest.FunSuite, org.scalatest.matchers.ShouldMatchers
+
+class FiltersAreSententialTest extends FunSuite with ShouldMatchers {
   import FiltersAreSentential._
 
-  def is =
-      "Constraints" ^
-      "Null" ! {
-        constraint(cql("A IS NULL")) must_== IsNull("A")
-      } ^
-      "Not Null" ! {
-        constraint(cql("A IS NOT NULL")) must_== In("A", Interval.Full)
-      } ^
-      "Not equals" ! {
-        constraint(cql("A <> 1")) must_== IsNot("A", Value("1"))
-      } ^
-      // "Disproves" ! {
-      //   disprovenBy(Set(cql("A IS NULL")), cql("A <> 1")) must_== true
-      // } ^
-      "Disproves again" ! {
-        disprovenBy(Set(cql("A <> 1")), cql("A IS NULL")) must_== true
-      }
+  test("Null") {
+    constraint(toFilter("A IS NULL")) should equal(IsNull("A"))
+  }
+
+  test("Not Null") {
+    constraint(toFilter("A IS NOT NULL")) should equal(In("A", Interval.Full))
+  }
+
+  test("Not Equals") {
+    constraint(toFilter("A <> 1")) should equal(IsNot("A", Value("1")))
+  }
+
+  test("Disproves") {
+    disprovenBy(Set(toFilter("A <> 1")), toFilter("A IS NULL")) should equal(true)
+  }
 }
