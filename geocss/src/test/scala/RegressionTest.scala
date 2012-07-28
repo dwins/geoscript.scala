@@ -5,184 +5,138 @@ import collection.JavaConversions._
 import org.geotools.{ styling => gt }
 import org.opengis.{ filter => ogc }
 
-import org.specs2._
+import org.scalatest.FunSuite
+import org.scalatest.matchers.{
+  ShouldMatchers, HavePropertyMatcher, HavePropertyMatchResult, Matcher }
+
 /**
  * Tests for specific issues (mostly bugs that came up during testing)
  */
-class Regressions extends Specification {
+class Regressions extends FunSuite with ShouldMatchers {
   val Translator = new Translator
+
   def in(s: String) = getClass.getResourceAsStream(s)
 
-  def is =
-    "Overlapping scales should produce a single FeatureTypeStyle" ! {
-      val stylesheet = CssParser.parse(in("/scales.css")).get
-      val sld = Translator.css2sld(stylesheet)
-      sld must (
-        haveFeatureTypeStyleCount(1) and
-        haveRuleCount(2)
-      )
-    } ^
-    "Rules with conflicting filters cancel out" ! {
-      val styleSheet = CssParser.parse(in("/exclusive.css")).get
-      val sld = Translator.css2sld(styleSheet)
-      sld must (
-        haveFeatureTypeStyleCount(1)
-       //  and
-       // haveRuleCount(9)
-      )
-    } ^
-    "overlapping scales should not hide filters" ! {
-      val styleSheet = CssParser.parse(in("/motorvag.css")).get
-      val sld = Translator.css2sld(styleSheet)
-      sld must (
-        haveFeatureTypeStyleCount(1) and
-        haveRuleCount(2) and
-        not(haveRuleWithFilter(ogc.Filter.INCLUDE))
-      )
-    } ^
-    "Ratios should be expressible as decimals or percentages" ! {
-      // TODO: Move this to the parser tests.
-      val styleSheet = CssParser.parse(in("/percentage.css")).get
-      val rule = styleSheet(0).asInstanceOf[Rule]
-      rule must (
-        haveProperty("fill-opacity").withValues(List(List(Literal("50%")))) and
-        haveProperty("stroke-opacity").withValues(List(List(Literal("0.50"))))
-      )
-    } ^
-    "Colors should be accepted by the parser" ! {
-      val rules: Seq[Rule]= CssParser.parse(in("/states.css")).get
-      val colorValue = rules(1).properties(0).values(0)
-      rules(1) must (
-        haveProperty("fill").withValues(List(List(Literal("#4DFF4D"))))
-      )
-    } ^
-    "Using multiple typenames should produce multiple FeatureTypeStyles" ! {
-      val styleSheet = CssParser.parse(in("/typenames.css")).get
-      val sld = Translator.css2sld(styleSheet)
-      val names = 
-        for (ft <- sld.featureTypeStyles) yield
-          ft.featureTypeNames.headOption map { _.getLocalPart }
-      names must haveTheSameElementsAs(Seq(None, Some("states"), Some("cities")))
-    } ^
-    "The geometry expression should appear in the generated SLD" ! {
-      val styleSheet = CssParser.parse(in("/states.css")).get
-      val style = Translator.css2sld(styleSheet)
-      val symbolizerGeometries = (s: gt.Style) =>
-        for {
-          ftStyle <- s.featureTypeStyles
-          rule <- ftStyle.rules
-          symbolizer <- rule.symbolizers
-        } yield symbolizer.getGeometry
-
-      style must(
-        not(beNull[Any]) and
-        beAnInstanceOf[ogc.expression.PropertyName]
-      ).forall ^^ symbolizerGeometries
-    } ^
-    "The parser should distinguish expressions from literals" ! {
-      val styleSheet = CssParser.parse(in("/states.css")).get
-      val rules = styleSheet 
-
-      rules.head must 
-        haveProperty("stroke-width").withValues(List(List(Literal("3"))))
-    } ^
-    "Hatched strokes should be passed through" ! {
-      val styleSheet = CssParser.parse(in("/railroad.css")).get
-      val style = Translator.css2sld(styleSheet)
-
-      val allFilters = allRules andThen (_ map (_.getFilter))
-      val firstSymbolizer = (_: gt.Rule).symbolizers.head
-      val symbolizerForTheOrFilter = 
-        allRules andThen (
-          _.find(_.getFilter.isInstanceOf[ogc.Not])
-           .map(firstSymbolizer)
-           .get
-        )
-      val lineSymbolizerForTheOrFilter =
-        symbolizerForTheOrFilter andThen (_.asInstanceOf[gt.LineSymbolizer])
-
-      style must (
-        (haveSize[Seq[gt.FeatureTypeStyle]](1) ^^ featureTypeStyles) and
-        (haveSize[Seq[gt.Rule]](2) ^^ allRules) and
-        (beAnInstanceOf[ogc.PropertyIsEqualTo].atLeastOnce ^^ allFilters) and
-        (beAnInstanceOf[gt.LineSymbolizer] ^^ symbolizerForTheOrFilter) and
-        (haveGraphicStroke("hatch") ^^ lineSymbolizerForTheOrFilter)
-      )
-    } ^
-    "Conflicting scale limits should be placed in separate rules" ! {
-      val stylesheet = CssParser.parse(in("/complex-scales.css")).get
-      val sld = Translator.css2sld(stylesheet)
-      sld must (
-        (haveSize[Seq[gt.FeatureTypeStyle]](1) ^^ featureTypeStyles) and
-        (haveSize[Seq[gt.Rule]](2) ^^ allRules)
-      )
+  def property(name: String, values: List[List[Value]]): HavePropertyMatcher[Rule, String] =
+    new HavePropertyMatcher[Rule, String] {
+      def apply(r: Rule): HavePropertyMatchResult[String] = 
+        new HavePropertyMatchResult(
+          r.properties.exists(p => p.name == name && p.values == values),
+          "property named",
+          name,
+          "<none>")
     }
 
-  val featureTypeStyles : gt.Style => Seq[gt.FeatureTypeStyle] = 
-    _.featureTypeStyles.toList
+  def containAll[A](x: A, xs: A*): Matcher[Traversable[A]] = 
+    (xs foldLeft (contain(x))) { (x, y) => x and contain(y) }
 
-  val allRules = (_: gt.Style).featureTypeStyles.flatMap(_.rules)
+  test("Overlapping scales should produce a single FeatureTypeStyle") {
+    val stylesheet = CssParser.parse(in("/scales.css"))
+    stylesheet should be ('successful)
+    val sld = Translator.css2sld(stylesheet.get)
+    sld.featureTypeStyles should have size(1)
+    sld.featureTypeStyles.map(_.rules.size).sum should be (2)
+  }
 
-  def haveFeatureTypeStyleCount(n: Int): matcher.Matcher[gt.Style] =
-    haveSize[Seq[gt.FeatureTypeStyle]](n) ^^ (
-      (_: gt.Style).featureTypeStyles.toSeq
-    )
+  test("Rules with conflicting filters cancel out") {
+    val stylesheet = CssParser.parse(in("/exclusive.css"))
+    stylesheet should be ('successful)
+    val sld = Translator.css2sld(stylesheet.get)
+    sld.featureTypeStyles should have size(1)
+    sld.featureTypeStyles.map(_.rules.size).sum should be (9)
+  }
 
-  def haveRuleCount(n: Int): matcher.Matcher[gt.Style] =
-    haveSize[Seq[gt.Rule]](n) ^^ (
-      (_: gt.Style).featureTypeStyles.flatMap(_.rules)
-    )
+  test("Overlapping scales should not hide filters") {
+    val stylesheet = CssParser.parse(in("/motorvag.css"))
+    stylesheet should be ('successful)
+    val sld = Translator.css2sld(stylesheet.get)
+    sld.featureTypeStyles should have size(1)
+    val rules = sld.featureTypeStyles.flatMap(_.rules)
+    rules should have size(2)
+    val filters = rules.map(_.getFilter)
+    filters should not(contain(ogc.Filter.INCLUDE: ogc.Filter))
+  }
 
-  def haveRuleWithFilter(f: ogc.Filter): matcher.Matcher[gt.Style] =
-    new matcher.Matcher[gt.Style] {
-      override def apply[S <: gt.Style](exp: matcher.Expectable[S])
-      : matcher.MatchResult[S] = {
-        result(
-          exp.value.featureTypeStyles.exists { 
-            ft => ft.rules.exists(_.getFilter == f)
-          },
-          "%s has rule with filter %s" format(exp.description, f),
-          "%s has no rules with filter %s" format (exp.description, f),
-          exp
-        )
-      }
-    }
+  test("Ratios should be expressible as decimals or percentages") {
+    val stylesheet = CssParser.parse(in("/percentage.css"))
+    stylesheet should be ('successful)
+    val rule = stylesheet.get.head
+    rule should have(property("fill-opacity", List(List(Literal("50%")))))
+    rule should have(property("stroke-opacity", List(List(Literal("0.50")))))
+  }
 
-  def haveGraphicStroke(markName: String): matcher.Matcher[gt.LineSymbolizer] = {
-    val graphicalSymbols = (sym: gt.LineSymbolizer) =>
+  test("Colors should be accepted by the parser") {
+    val stylesheet = CssParser.parse(in("/states.css"))
+    stylesheet should be ('successful)
+    val rules = stylesheet.get
+    rules(1) should have(property("fill", List(List(Literal("#4DFF4D")))))
+  }
+
+  test("Using multiple typenames should produce multiple FeatureTypeStyles") {
+    val stylesheet = CssParser.parse(in("/typenames.css"))
+    stylesheet should be ('successful)
+    val sld = Translator.css2sld(stylesheet.get)
+    val names = for (ft <- sld.featureTypeStyles) yield
+                  for (name <- ft.featureTypeNames.headOption) yield name.getLocalPart
+    names should containAll(None, Some("states"), Some("cities"))
+  }
+
+  test("The geometry expression should appear in the generated SLD") {
+    val stylesheet = CssParser.parse(in("/states.css"))
+    stylesheet should be ('successful)
+    val sld = Translator.css2sld(stylesheet.get)
+    val symbolizerGeometries = 
       for {
-        stroke <- Option(sym.getStroke)
+        ftStyle <- sld.featureTypeStyles
+        rule <- ftStyle.rules
+        symbolizer <- rule.symbolizers
+      } yield symbolizer.getGeometry
+
+    for (g <- symbolizerGeometries) 
+      assert(g.isInstanceOf[ogc.expression.PropertyName])
+  }
+
+  test("The parser should distinguish expressions from literals") {
+    val stylesheet = CssParser.parse(in("/states.css"))
+    stylesheet should be ('successful)
+    val rules = stylesheet.get
+    rules.head should have(property("stroke-width", List(List(Literal("3")))))
+  }
+
+  test("Hatched strokes should be passed through") {
+    val stylesheet = CssParser.parse(in("/railroad.css"))
+    stylesheet should be ('successful)
+    val style = Translator.css2sld(stylesheet.get)
+
+    style.featureTypeStyles should have size(1)
+  
+    val allRules = style.featureTypeStyles.flatMap(_.rules)
+    allRules should have size(2)
+
+    val allFilters = allRules.map(_.getFilter)
+    assert(allFilters.find(_.isInstanceOf[ogc.PropertyIsEqualTo]).isDefined)
+
+    val ruleWithTheNotFilter = allRules.find(_.getFilter.isInstanceOf[ogc.Not])
+    assert(ruleWithTheNotFilter.isDefined)
+    assert(ruleWithTheNotFilter.get.symbolizers.head.isInstanceOf[gt.LineSymbolizer])
+
+    val lineSym = ruleWithTheNotFilter.get.symbolizers.head.asInstanceOf[gt.LineSymbolizer]
+    val graphicalSymbols =
+      for {
+        stroke <- Option(lineSym.getStroke)
         graphic <- Option(stroke.getGraphicStroke)
         symbols <- Option(graphic.graphicalSymbols)
         mark <- symbols.headOption.collect { case (m: gt.Mark) => m }
       } yield mark.getWellKnownName.evaluate(null)
-    beEqualTo(Some(markName)) ^^ graphicalSymbols
-  }
-  
-  case class haveProperty(name: String) extends matcher.Matcher[Rule] {
-    def withValues(vss: List[List[Value]]): matcher.Matcher[Rule] = 
-      new matcher.Matcher[Rule] {
-        override def apply[R <: Rule](exp: matcher.Expectable[R])
-        : matcher.MatchResult[R] = {
-          val found = 
-            exp.value.properties.exists(p => p.name == name && p.values == vss)
-          result(
-            found,
-            "%s has '%s' property with values %s" format(exp.description, name, vss),
-            "%s has no '%s' property with values %s" format (exp.description, name, vss),
-            exp
-          )
-        }
-      }
 
-    override def apply[R <: Rule](exp: matcher.Expectable[R])
-    : matcher.MatchResult[R] = {
-      result(
-        exp.value.properties.exists(_.name == name),
-        "%s has '%s' property" format(exp.description, name),
-        "%s has no '%s' property" format (exp.description, name),
-        exp
-      )
-    }
+    graphicalSymbols should be (Some("hatch"))
+  }
+
+  test("Conflicting scale limits should be placed in separate rules") {
+    val stylesheet = CssParser.parse(in("/complex-scales.css"))
+    stylesheet should be ('successful)
+    val sld = Translator.css2sld(stylesheet.get)
+    sld.featureTypeStyles should have size(1)
+    sld.featureTypeStyles.flatMap(_.rules) should have size(2)
   }
 }
