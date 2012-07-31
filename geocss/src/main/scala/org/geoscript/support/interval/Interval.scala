@@ -43,15 +43,15 @@ object Interval {
   : Interval[T] =
     (a, b) match {
       case (`empty`, _) | (_, `empty`) => Empty
-      case (a: NonEmpty[T], b: NonEmpty[T]) => 
+      case (NonEmpty(aMin, aMax), NonEmpty(bMin, bMax)) => 
         val min = 
-          (for (x <- a.min; y <- b.min) yield join(evidence.gt _)(x, y)) orElse
-          a.min orElse
-          b.min
+          (for (x <- aMin; y <- bMin) yield join(evidence.gt _)(x, y)) orElse
+          aMin orElse
+          bMin
         val max =
-          (for (x <- a.max; y <- b.max) yield join(evidence.lt _)(x, y)) orElse
-          a.max orElse
-          b.max
+          (for (x <- aMax; y <- bMax) yield join(evidence.lt _)(x, y)) orElse
+          aMax orElse
+          bMax
         val emptyOpt =
           for (mn <- min; mx <- max) yield
             (mn, mx) match {
