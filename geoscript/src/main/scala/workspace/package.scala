@@ -151,4 +151,8 @@ package workspace {
         workspace.dispose()
     }
   }
+
+  object Memory {
+    def apply(): Workspace = new org.geotools.data.memory.MemoryDataStore()
+  }
 }

@@ -104,6 +104,9 @@ package layer {
         tx.commit()
       } catch {
         case ex => tx.rollback(); throw ex
+      } finally {
+        tx.close()
+        layer.setTransaction(org.geotools.data.Transaction.AUTO_COMMIT)
       }
     }
 

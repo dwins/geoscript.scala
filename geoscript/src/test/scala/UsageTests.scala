@@ -1,112 +1,113 @@
 package org.geoscript
 
-import org.specs._
+import org.scalatest._, matchers._
 
-import geometry._
-import projection._
+import geometry._, projection._, feature._
 
-class UsageTests extends Specification {
-  "geometries" should { 
-    "work like on the geoscript homepage" in { 
+class UsageTests extends FunSuite with ShouldMatchers {
+    System.setProperty("org.geotools.referencing.forceXY", "true")
+
+    test("work like on the geoscript homepage") { 
       var p = point(-111, 45.7)
       var p2 = (projection.reproject(Projection("epsg:4326"), Projection("epsg:26912")))(p)
       var poly = p.buffer(100)
 
-      p2.x must beCloseTo(499999.0, 1)
-      p2.y must beCloseTo(5060716.0, 0.5)
-      poly.area must beCloseTo(31214.45, 0.01)
+      p2.x should be(closeTo(499999.0, 1))
+      p2.y should be(closeTo(5060716.0, 0.5))
+      poly.area should be(closeTo(31214.45, 0.01))
     }
 
-    "linestrings should be easy" in { 
+    test("linestrings should be easy") { 
       lineString(Seq(
         (10.0, 10.0), (20.0, 20.0), (30.0, 40.0)
-      )).length must beCloseTo(36.503, 0.001)
+      )).length should be(closeTo(36.503, 0.001))
 
       lineString(Seq((10, 10), (20.0, 20.0), (30, 40)))
-        .length must beCloseTo(36.503, 0.001)
+        .length should be(closeTo(36.503, 0.001))
     }
 
-    "polygon should be easy" in { 
+    test("polygon should be easy") { 
       polygon(
         Seq((10, 10), (10, 20), (20, 20), (20, 15), (10, 10))
-      ).area must_== 75
+      ).area should be(75)
     }
 
-    "multi point should be easy" in {
-      multiPoint(Seq((20, 20), (10.0, 10.0))).area must_== 0
+    test("multi point should be easy") {
+      multiPoint(Seq((20, 20), (10.0, 10.0))).area should be(0)
     } 
-  }  
 
-  "Layers" should {
     val states = getClass().getResource("/data/states.shp").toURI
     require(states.getScheme() == "file")
     val statesPath = new java.io.File(states)
 
-    "be able to read shapefiles" in {
+    test("be able to read shapefiles") {
       val shp = layer.Shapefile(statesPath)
-      shp.name must_== "states"
-      shp.count must_== 49
+      shp.name should be ("states")
+      shp.count should be (49)
 
-      shp.envelope.getMinX must beCloseTo (-124.731422, 1d)
-      shp.envelope.getMinY must beCloseTo (24.955967, 1d)
-      shp.envelope.getMaxX must beCloseTo (-66.969849, 1d)
-      shp.envelope.getMaxY must beCloseTo (49.371735, 1d)
-      // proj must_== "EPSG:4326"
+      shp.envelope.getMinX should be(closeTo(-124.731422, 1d))
+      shp.envelope.getMinY should be(closeTo(24.955967, 1d))
+      shp.envelope.getMaxX should be(closeTo(-66.969849, 1d))
+      shp.envelope.getMaxY should be(closeTo(49.371735, 1d))
+      // proj should be ("EPSG:4326")
     }
 
-    "support search" in {
+    test("support search") {
       val shp = layer.Shapefile(statesPath)
       shp.withAll { fs =>
        fs.find(_.id == "states.1")
-      } must beSome[feature.Feature]
+      } should be ('defined)
     }
 
-    "provide access to schema information" in {
+    test("provide access to schema information") {
       val shp = layer.Shapefile(statesPath)
-      shp.schema.name must_== "states"
+      shp.schema.name should be ("states")
       val field = shp.schema.get("STATE_NAME")
-      field.name must_== "STATE_NAME"
-      (field.binding: AnyRef) must_== classOf[java.lang.String]
+      field.name should be ("STATE_NAME")
+      (field.binding: AnyRef) should be (classOf[java.lang.String])
     }
 
-    "provide access to the containing workspace" in {
+    test("provide access to the containing workspace") {
       val shp = layer.Shapefile(statesPath)
-      shp.workspace must haveSuperClass[workspace.Workspace]
-    }
-  }
-
-  "Workspaces" should {
-    import workspace._, feature.{ Schema, bind }
-
-    "provide a listing of layers" in {
-      val names = withMemoryWorkspace { _.names }
-      names must beEmpty
+      shp.workspace should not be(null)
     }
 
-    "allow creating new layers" in {
-      withMemoryWorkspace { mem =>
-        mem.names must beEmpty
-        var dummy = mem.create(Schema("dummy", 
-          Seq(bind[String]("name"), bind[Geometry]("geom", Projection("EPSG:4326")))))
-
-        mem.names.length must_== 1
-
-        dummy += feature.fromAttributes(
-          "name" -> "San Francisco",
-          "geom" -> point(37.78, -122.42)
-        )
-
-        dummy += feature.fromAttributes(
-          "name" -> "New York",
-          "geom" -> point(40.47, -73.58)
-        )
-
-        dummy.count must_== 2
-        
-        dummy.withAll { fs =>
-          fs.find(_.get[String]("name") == "New York")
-        } must beSome[feature.Feature]
-      }
+    test("provide a listing of layers") {
+      val mem = workspace.Memory()
+      mem.names should be ('empty)
     }
-  }
+
+    test("allow creating new layers") {
+      val mem = workspace.Memory()
+      mem.names should be ('empty)
+      var dummy = mem.create(Schema("dummy", 
+        Seq(
+          bind[String]("name"),
+          bind[Geometry]("geom", Projection("EPSG:4326")))))
+      mem.names.length should be (1)
+
+      dummy += feature.fromAttributes(
+        "name" -> "San Francisco",
+        "geom" -> point(37.78, -122.42)
+      )
+
+      dummy += feature.fromAttributes(
+        "name" -> "New York",
+        "geom" -> point(40.47, -73.58)
+      )
+
+      dummy.count should be (2)
+      
+      dummy.withAll( features =>
+        features.find(_.get[String]("name") == "New York")) should be ('defined)
+    }
+
+  def closeTo(d: Double, eps: Double): BeMatcher[Double] =
+    new BeMatcher[Double] {
+      def apply(x: Double) = new MatchResult(
+        math.abs(d - x) <= eps,
+        "Value %f not within %f of expected value %f".format(x, eps, d),
+        "Value %f was within %f of expected value %f".format(x, eps, d)
+      )
+    }
 }
