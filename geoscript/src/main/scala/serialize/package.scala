@@ -1,103 +1,152 @@
-package org.geoscript
-package serialize
+package org.geoscript.serialize
 
-import java.io.{ File, InputStream, OutputStream }
+import java.io.File
 
 trait Reader[+T] {
-  def read(source: Source): T
+  def read[U : Readable](source: U): T =
+    implicitly[Readable[U]].read(source)(readFrom(_))
+  def readFrom(source: java.io.Reader): T
 }
 
 trait Writer[-T] {
-  def write[A](t: T, sink: Sink[A]): A
+  def format(t: T): String = write(t, ())(Writable.writeString)
+
+  def write[Spec, Out](t: T, spec: Spec)(implicit writable: Writable[Spec, Out]): Out =
+    implicitly[Writable[Spec, Out]].write(spec)(writeTo(_, t))
+
+  def writeTo(sink: java.io.Writer, t: T): Unit
 }
 
 trait Format[T] extends Reader[T] with Writer[T]
 
-trait Sink[T] {
-  def apply(op: OutputStream => Unit): T
+trait Readable[T] {
+  def read[U](t: T)(op: java.io.Reader => U): U
 }
 
-object Sink {
-  implicit def stream(out: OutputStream): Sink[Unit] =
-    new Sink[Unit] { 
-      def apply(op: OutputStream => Unit) = op(out)
-    }
-
-  implicit def file(name: String): Sink[File] =
-    file(new java.io.File(name))
-
-  implicit def file(file: File): Sink[File] =
-    new Sink[java.io.File] { 
-      def apply(op: OutputStream => Unit) = {
-        val output =
-          new java.io.BufferedOutputStream(new java.io.FileOutputStream(file))
-        stream(output)(op)
-        output.close()
-
-        file
-      }
-    }
-
-  def string: Sink[String] =
-    new Sink[String] { // TODO: Needs better text support
-      def apply(op: OutputStream => Unit) = 
-        buffer(op).view.map(_.toChar).mkString
-    }
-
-  def buffer: Sink[Array[Byte]] =
-    new Sink[Array[Byte]] {
-      def apply(op: OutputStream => Unit) = {
-        val output = new java.io.ByteArrayOutputStream
-        stream(output)(op)
-        output.close()
-        output.toByteArray
-      }
-    }
+trait Writable[Spec, Out] {
+  def write(spec: Spec)(op: java.io.Writer => Unit): Out
 }
 
-trait Source {
-  def apply[T](op: InputStream => T): T
+object Writable {
+  implicit object writeWriter extends Writable[java.io.Writer, Unit] {
+    def write(spec: java.io.Writer)(op: java.io.Writer => Unit): Unit = op(spec)
+  }
+
+  implicit object writeFile extends Writable[File, Unit] {
+    def write(spec: File)(op: java.io.Writer => Unit): Unit = {
+      val writer = new java.io.FileWriter(spec)
+      try 
+        op(writer)
+      finally
+        writer.close()
+    }
+  }
+
+  implicit object writeString extends Writable[Unit, String] {
+    def write(spec: Unit)(op: java.io.Writer => Unit): String = {
+      val writer = new java.io.StringWriter
+      try {
+        op(writer)
+        writer.toString
+      } finally {
+        writer.close()
+      }
+    }
+  }
 }
 
-object Source {
-  implicit def stream(in: InputStream): Source =
-    new Source { 
-      def apply[T](op: InputStream => T): T = op(in)
+object Readable {
+  implicit object readReader extends Readable[java.io.Reader] {
+    def read[T](in: java.io.Reader)(f: java.io.Reader => T): T = f(in)
+  }
+
+  implicit object readFile extends Readable[File] {
+    def read[T](file: File)(f: java.io.Reader => T): T = {
+      val in = new java.io.BufferedReader(new java.io.FileReader(file))
+      try
+        f(in)
+      finally
+        in.close()
     }
+  }
 
-  implicit def file(name: String): Source =
-    file(new java.io.File(name))
-
-  implicit def file(file: File): Source =
-    new Source { 
-      def apply[T](op: InputStream => T): T = {
-        val input =
-          new java.io.BufferedInputStream(new java.io.FileInputStream(file))
-        val res = stream(input)(op)
-        input.close()
-
-        res
-      }
+  implicit object readString extends Readable[String] {
+    def read[T](s: String)(f: java.io.Reader => T): T = {
+      val in = new java.io.StringReader(s)
+      try
+        f(in)
+      finally
+        in.close()
     }
+  }
+}
 
-  def string(data: String): Source =
-    new Source {
-      def apply[T](op: InputStream => T): T = {
-        val input = new java.io.ByteArrayInputStream(data.getBytes())
-        val res = stream(input)(op)
-        input.close()
-        res
-      }
+trait Decoder[+T] {
+  def decode[U : Decodable](source: U): T =
+    implicitly[Decodable[U]].decode(source)(decodeFrom(_))
+  def decodeFrom(source: java.io.InputStream): T
+}
+
+trait Encoder[-T] {
+  def buffer(t: T): Array[Byte] = encode(t, ())(Encodable.encodeBytes)
+
+  def format(t: T): String = new String(buffer(t))
+
+  def encode[Spec, Out](t: T, spec: Spec)(implicit encodable: Encodable[Spec, Out]): Out =
+    implicitly[Encodable[Spec, Out]].encode(spec)(encodeTo(_, t))
+
+  def encodeTo(sink: java.io.OutputStream, t: T): Unit
+}
+
+trait Codec[T] extends Encoder[T] with Decoder[T]
+
+trait Decodable[T] {
+  def decode[U](t: T)(op: java.io.InputStream => U): U
+}
+
+trait Encodable[Spec, Out] {
+  def encode(spec: Spec)(op: java.io.OutputStream => Unit): Out
+}
+
+object Encodable {
+  implicit object encodeOutputStream extends Encodable[java.io.OutputStream, Unit] {
+    def encode(spec: java.io.OutputStream)(op: java.io.OutputStream => Unit): Unit = op(spec)
+  }
+
+  implicit object encodeBytes extends Encodable[Unit, Array[Byte]] {
+    def encode(spec: Unit)(op: java.io.OutputStream => Unit): Array[Byte] = {
+      val buff = new java.io.ByteArrayOutputStream
+      try {
+        op(buff)
+        buff.toByteArray
+      } finally
+        buff.close()
     }
+  }
+}
 
-  def buffer(data: Array[Byte]): Source =
-    new Source {
-      def apply[T](op: InputStream => T): T = {
-        val input = new java.io.ByteArrayInputStream(data)
-        val res = stream(input)(op)
-        input.close()
+object Decodable {
+  implicit object decodeDecoder extends Decodable[java.io.InputStream] {
+    def decode[T](in: java.io.InputStream)(f: java.io.InputStream => T): T = f(in)
+  }
 
-        res
-      }
+  implicit object decodeFile extends Decodable[File] {
+    def decode[T](file: File)(f: java.io.InputStream => T): T = {
+      val in = new java.io.BufferedInputStream(new java.io.FileInputStream(file))
+      try
+        f(in)
+      finally
+        in.close()
     }
+  }
+
+  implicit object decodeString extends Decodable[Array[Byte]] {
+    def decode[T](bs: Array[Byte])(f: java.io.InputStream => T): T = {
+      val in = new java.io.ByteArrayInputStream(bs)
+      try
+        f(in)
+      finally
+        in.close()
+    }
+  }
 }

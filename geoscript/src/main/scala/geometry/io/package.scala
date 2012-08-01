@@ -6,58 +6,44 @@ object WKT extends Format[Geometry] {
   private val reader = new com.vividsolutions.jts.io.WKTReader()
   private val writer = new com.vividsolutions.jts.io.WKTWriter()
  
-  def read(source: Source): Geometry = 
-    source { in =>
-      val chars = new java.io.InputStreamReader(in)
-      val res = reader.read(chars)
-      chars.close()
+  def readFrom(in: java.io.Reader): Geometry = reader.read(in)
 
-      res
-    }
-
-  def write[T](geom: Geometry, sink: Sink[T]): T =
-    sink { out =>
-      val chars = new java.io.OutputStreamWriter(out)
-      writer.write(geom, chars)
-      chars.close()
-    }
+  def writeTo(out: java.io.Writer, geom: Geometry) { writer.write(geom, out) }
 }
 
-object WKB extends Format[Geometry] {
+object WKB extends Codec[Geometry] {
   private val reader = new com.vividsolutions.jts.io.WKBReader()
   private val writer = new com.vividsolutions.jts.io.WKBWriter()
  
-  def read(source: Source): Geometry = 
-    source { in =>
-      val s = new com.vividsolutions.jts.io.InputStreamInStream(in)
-      reader.read(s)
-    }
+  def decodeFrom(in: java.io.InputStream): Geometry =
+    reader.read(new com.vividsolutions.jts.io.InputStreamInStream(in))
 
-  def write[T](geom: Geometry, sink: Sink[T]): T =
-    sink { out =>
-      val s = new com.vividsolutions.jts.io.OutputStreamOutStream(out)
-      writer.write(geom, s)
-    }
+  def encodeTo(out: java.io.OutputStream, g: Geometry) {
+    writer.write(g, new com.vividsolutions.jts.io.OutputStreamOutStream(out))
+  }
 }
 
 import org.geotools.geojson.geom.GeometryJSON
 class GeoJSON(format: GeometryJSON) extends Format[Geometry] {
   def this(precision: Int) = this(new GeometryJSON(precision))
-  def read(source: Source): Geometry = source { format.read(_) }
-  def write[T](g: Geometry, sink: Sink[T]): T = sink { format.write(g, _) }
+
+  def readFrom(source: java.io.Reader) = format.read(source)
+
+  def writeTo(sink: java.io.Writer, g: Geometry): Unit =
+    format.write(g, sink)
 }
 
 object GeoJSON extends GeoJSON(new GeometryJSON)
 
-import org.geotools.xml.{ Parser, Encoder }
-import org.geotools.gml2
+object GML extends Encoder[Geometry] {
+  import org.geotools.xml.{ Parser, Encoder }
+  import org.geotools.gml2
 
-object GML extends Writer[Geometry] {
-  def write[T](g: Geometry, sink: Sink[T]): T = {
+  def encodeTo(sink: java.io.OutputStream, g: Geometry) {
     val configuration = new gml2.GMLConfiguration
     val encoder = new Encoder(configuration)
     val nsUri = configuration.getNamespaceURI
     val qname = new javax.xml.namespace.QName(nsUri, g.getGeometryType)
-    sink { encoder.encode(g, qname, _) }
+    encoder.encode(g, qname, sink)
   }
 }

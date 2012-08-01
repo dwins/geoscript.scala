@@ -52,11 +52,10 @@ object BasicGeometry extends App {
   line.buffer(1)
 
   // serialization
-  import org.geoscript.serialize.{ Sink, Source }
-  geometry.WKT.write(point, Sink.string)
-  geometry.GeoJSON.write(point, Sink.string)
+  geometry.WKT.format(point)
+  geometry.GeoJSON.format(point)
 
   // deserialization
-  geometry.WKT.read(Source.string("POINT (30 10)"))
-  geometry.GeoJSON.read(Source.string("POINT (30 10)"))
+  geometry.WKT.read("POINT (30 10)")
+  geometry.GeoJSON.read("POINT (30 10)")
 }
