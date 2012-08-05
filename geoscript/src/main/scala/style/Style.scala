@@ -4,7 +4,7 @@ package style.combinators
 import filter._
 import scala.collection.JavaConversions._
 
-sealed abstract trait Style extends style.Style {
+sealed abstract trait Style {
   def where(filter: Filter): Style
   def aboveScale(s: Double): Style
   def belowScale(s: Double): Style

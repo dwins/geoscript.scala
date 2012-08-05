@@ -1,63 +1,55 @@
-package org.geoscript.style
+package org.geoscript
 
 import org.geotools.{ styling => gt }
 import org.geotools.factory.CommonFactoryFinder.getStyleFactory
 
-trait Style {
-  def underlying: gt.Style
+package object style {
+  type Style = org.geotools.styling.Style
 }
 
-class WrappedSLD(raw: gt.Style) extends Style {
-  def underlying = raw
-}
-
-object SLD {
-  def fromFile(path: String): Style = {
-    val file = new java.io.File(path)
-    new WrappedSLD(
+package style {
+  object SLD {
+    def fromFile(path: String): gt.Style = {
+      val file = new java.io.File(path)
       new gt.SLDParser(getStyleFactory(null), file).readXML()(0)
-    )
-  }
+    }
 
-  def fromURL(url: String): Style = {
-    val resolved = new java.net.URL(new java.io.File(".").toURI.toURL, url)
-    new WrappedSLD(
+    def fromURL(url: String): gt.Style = {
+      val resolved = new java.net.URL(new java.io.File(".").toURI.toURL, url)
       new gt.SLDParser(getStyleFactory(null), url).readXML()(0)
-    )
-  }
+    }
 
-  def fromString(sld: String): Style = {
-    val reader = new java.io.StringReader(sld)
-    new WrappedSLD(
+    def fromString(sld: String): gt.Style = {
+      val reader = new java.io.StringReader(sld)
       new gt.SLDParser(getStyleFactory(null), reader).readXML()(0)
-    )
+    }
+
+    def fromXML(sld: xml.Node): gt.Style = {
+      val pprinter = new xml.PrettyPrinter(0, 0)
+      fromString(pprinter.format(sld))
+    }
   }
 
-  def fromXML(sld: xml.Node): Style = {
-    val pprinter = new xml.PrettyPrinter(0, 0)
-    fromString(pprinter.format(sld))
-  }
-}
+  object CSS {
+    import org.geoscript.geocss.CssParser.parse
+    val Translator = new org.geoscript.geocss.Translator
+    import Translator.css2sld
 
-object CSS {
-  import org.geoscript.geocss.CssParser.parse
-  val Translator = new org.geoscript.geocss.Translator
-  import Translator.css2sld
+    def fromFile(path: String): gt.Style = {
+      val reader = new java.io.FileReader(path)
+      val cssRules = parse(reader)
+      css2sld(cssRules.get)
+    }
 
-  def fromFile(path: String): Style = {
-    val reader = new java.io.FileReader(path)
-    val cssRules = parse(reader)
-    new WrappedSLD(css2sld(cssRules.get))
-  }
+    def fromURL(url: String): gt.Style = { 
+      val resolved = new java.net.URL(new java.io.File(".").toURI.toURL, url)
+      val cssRules = parse(resolved.openStream)
+      css2sld(cssRules.get)
+    }
 
-  def fromURL(url: String): Style = { 
-    val resolved = new java.net.URL(new java.io.File(".").toURI.toURL, url)
-    val cssRules = parse(resolved.openStream)
-    new WrappedSLD(css2sld(cssRules.get))
-  }
-
-  def fromString(css: String): Style = {
-    val cssRules = parse(css)
-    new WrappedSLD(css2sld(cssRules.get))
+    def fromString(css: String): gt.Style = {
+      val cssRules = parse(css)
+      css2sld(cssRules.get)
+    }
   }
 }

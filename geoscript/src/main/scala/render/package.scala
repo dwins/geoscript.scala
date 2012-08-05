@@ -32,7 +32,7 @@ package render {
     implicit val vectorDataIsStylable: Stylable[layer.Layer] =
       new Stylable[layer.Layer] {
         def applyStyle(l: layer.Layer, s: style.Style): Layer = 
-          new gt.map.FeatureLayer(l, s.underlying, l.name)
+          new gt.map.FeatureLayer(l, s, l.name)
 
         def defaultStyle(l: layer.Layer): Layer = {
           val Point = classOf[Point]
