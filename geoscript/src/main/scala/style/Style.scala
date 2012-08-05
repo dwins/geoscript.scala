@@ -1,7 +1,7 @@
-package org.geoscript
-package style.combinators
+package org.geoscript.style
+package combinators
 
-import filter._
+import org.geoscript.filter._
 import scala.collection.JavaConversions._
 
 sealed abstract trait Style {
@@ -136,7 +136,7 @@ case class CompositeStyle(styles: Seq[Style]) extends Style {
 }
 
 object Paint {
-  import geocss.CssOps.colors
+  import org.geoscript.geocss.CssOps.colors
 
   implicit def stringToPaint(colorName: String): Paint =
     if (colors contains colorName)
@@ -260,7 +260,7 @@ case class Label(
   val symbolizers = {
     val sym = factory.createTextSymbolizer()
     sym.setLabel(text)
-    sym.setGeometry(geometry)
+    sym.setGeometry(if (geometry == null) null else geometry)
     Seq(sym)
   }
   def zIndex = 0
