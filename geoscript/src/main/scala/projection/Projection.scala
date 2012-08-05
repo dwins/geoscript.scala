@@ -45,7 +45,25 @@ package object projection {
 }
 
 package projection {
+  import org.geoscript.serialize._
+
   class RichProjection(p: Projection) {
     def id = CRS.lookupIdentifier(p, true)
+  }
+
+  object WKT extends Format[Projection] {
+    def readFrom(in: java.io.Reader): Projection = {
+      val accum = new StringBuilder()
+      val buff = Array.ofDim[Char](4096)
+      var len = 0
+      while ({ len = in.read(buff) ; len >= 0 }) {
+        accum.appendAll(buff, 0, len)
+      }
+      CRS.parseWKT(accum.toString)
+    }
+
+    def writeTo(out: java.io.Writer, p: Projection): Unit = {
+      out.write(p.toWKT)
+    }
   }
 }
