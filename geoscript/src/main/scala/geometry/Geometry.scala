@@ -10,20 +10,48 @@ class RichGeometry(geometry: Geometry) {
   def area: Double = geometry.getArea()
 
   /**
+   * A symbolic alias for the union operation
+   */
+  def ||(that: Geometry): Geometry = geometry union that
+
+  /**
+   * A symbolic alias for the intersection operation
+   */
+  def &&(that: Geometry): Geometry = geometry intersection that
+
+  /**
    * A jts.Envelope that fully encloses this Geometry.
    */
-  def envelope: Envelope = geometry.getEnvelopeInternal() // in projection
+  def envelope: Envelope = geometry.getEnvelopeInternal()
 
   /**
    * A point that represents the "center of gravity" of this geometry's
    * enclosed area.  Note that this point is not necessarily on the geometry!
    */
-  def centroid: Point = geometry.getCentroid() // in projection
+  def centroid: Point = geometry.getCentroid()
 
   /**
    * All the coordinates that compose this Geometry as a sequence.
    */
   def coordinates: Seq[Coordinate] = geometry.getCoordinates().toSeq
+
+  /**
+   * prepare creates a PreparedGeometry instance, which requires more time to
+   * construct but has faster implementations of several operations including
+   * `contains`, `coveredBy`, `covers`, `crosses`, `disjoint`, 
+   * `intersects`, `overlaps`, `touches`, and `within`
+   *
+   * Typically, this would be used when one geometry is being compared against
+   * many others.
+   * 
+   * {{{
+   * (needle: Geometry, haystack: Geometry) => {
+   *   val p = needle.prepared
+   *   haystack.filter(p.contains(_))
+   * }
+   * }}}
+   */
+  def prepare = preparingFactory.create(geometry)
 
   /**
    * The length of the line segments that compose this geometry, in the same

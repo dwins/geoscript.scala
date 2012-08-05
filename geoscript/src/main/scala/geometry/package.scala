@@ -19,6 +19,7 @@ package object geometry {
   val EmptyEnvelope = new jts.Envelope
 
   val factory = new jts.GeometryFactory
+  protected[geometry] val preparingFactory = new jts.prep.PreparedGeometryFactory
 
   def union(a: Envelope, b: Envelope): Envelope =
     if (a.isNull) b

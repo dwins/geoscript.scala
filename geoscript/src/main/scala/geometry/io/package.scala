@@ -1,6 +1,7 @@
 package org.geoscript.geometry
 
 import org.geoscript.serialize._
+import org.geotools.geojson.geom.GeometryJSON
 
 object WKT extends Format[Geometry] {
   private val reader = new com.vividsolutions.jts.io.WKTReader()
@@ -23,7 +24,6 @@ object WKB extends Codec[Geometry] {
   }
 }
 
-import org.geotools.geojson.geom.GeometryJSON
 class GeoJSON(format: GeometryJSON) extends Format[Geometry] {
   def this(precision: Int) = this(new GeometryJSON(precision))
 

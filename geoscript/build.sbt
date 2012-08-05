@@ -8,6 +8,7 @@ libraryDependencies <++= gtVersion { v =>
     "org.geotools" % "gt-render" % v,
     "org.geotools" % "gt-xml" % v,
     "org.geotools" % "gt-geojson" % v,
+    "org.geotools" % "gt-charts" % v,
     "org.geotools.jdbc" % "gt-jdbc-postgis" % v,
     "org.geotools.jdbc" % "gt-jdbc-spatialite" % v
   )

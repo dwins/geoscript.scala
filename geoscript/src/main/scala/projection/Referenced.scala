@@ -8,8 +8,8 @@ trait Referenced[T] {
   def map[U](f: T => U): Referenced[U]
   def flatMap[U](f: T => Referenced[U]): Referenced[U]
   def native: Option[Projection]
-  def force(p: Projection): T
-  def forceNative: T = force(native.get)
+  def project(p: Projection): T
+  def forceNative: T = project(native.get)
 }
 
 object Referenced {
@@ -21,7 +21,7 @@ object Referenced {
   private class Ideal[T](value: T) extends Referenced[T] {
     def map[U](f: T => U): Referenced[U] = new Ideal(f(value))
     def flatMap[U](f: T => Referenced[U]): Referenced[U] = f(value)
-    def force(p: Projection): T = value
+    def project(p: Projection): T = value
     def native = None
   }
 
@@ -33,7 +33,7 @@ object Referenced {
     def flatMap[U](f: T => Referenced[U]): Referenced[U] =
       new FlatMapped(this, f)
 
-    def force(p: Projection): T =
+    def project(p: Projection): T =
       implicitly[Projectable[T]].project(proj, p)(value)
 
     def native = Some(proj)
@@ -46,7 +46,7 @@ object Referenced {
     def flatMap[V](g: U => Referenced[V]): Referenced[V] =
       new FlatMapped(base, f andThen g)
 
-    def force(p: Projection): U = f(base.force(p))
+    def project(p: Projection): U = f(base.project(p))
 
     def native = base.native
   }
@@ -58,8 +58,8 @@ object Referenced {
     def flatMap[V](g: U => Referenced[V]): Referenced[V] =
        new FlatMapped(this, g)
 
-    def force(p: Projection): U =
-      f(base.force(p)).force(p)
+    def project(p: Projection): U =
+      f(base.project(p)).project(p)
 
     def native = base.native
   }

@@ -16,7 +16,14 @@ package object projection {
   type Projection = CoordinateReferenceSystem
   type Transform = org.opengis.referencing.operation.MathTransform
 
+  lazy val LatLon = fromSrid("EPSG:4326").get
+  lazy val WebMercator = fromSrid("EPSG:3857").get
+
   private val catchLookup = catching(classOf[FactoryException])
+
+  def forceXYAxisOrder() {
+    System.setProperty("org.geotools.referencing.forceXY", "true")
+  }
 
   def fromWKT(s: String): Option[Projection] =
     catching(classOf[FactoryException]).opt { CRS.parseWKT(s) }
@@ -35,14 +42,6 @@ package object projection {
     CRS.findMathTransform(p, q)
 
   def Projection(s: String): Projection = (fromSrid(s) orElse fromWKT(s)).orNull
-
-  lazy val LatLon = fromSrid("EPSG:4326").get
-  lazy val WebMercator = fromSrid("EPSG:3857").get
-
-  def reference[T : Projectable](t: T, proj: Projection): Referenced[T] =
-    Referenced(t, proj)
-
-  def aspatial[T](t: T): Referenced[T] = Referenced(t)
 }
 
 package projection {

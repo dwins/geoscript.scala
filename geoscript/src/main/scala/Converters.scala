@@ -5,7 +5,7 @@ package object geoscript {
   import layer._
   import workspace._
   import render._
-  import projection.{ Projection, RichProjection }
+  import projection.{ Projection, RichProjection, Projectable, Referenced }
 
   implicit def enrichGeometry(g: Geometry): RichGeometry =
     new RichGeometry(g)
@@ -37,4 +37,11 @@ package object geoscript {
 
   implicit def enrichProjection(p: Projection): RichProjection = 
     new RichProjection(p)
+
+  class RichProjectable[P : Projectable](p: P) {
+    def in(proj: Projection): Referenced[P] = Referenced(p, proj)
+    def lift: Option[Referenced[P]] = implicitly[Projectable[P]].lift(p)
+  }
+
+  implicit def enrichProjectable[P : Projectable](p: P) = new RichProjectable(p)
 }

@@ -1,6 +1,6 @@
 package org.geoscript
 
-import style.combinators._, feature._, geometry._, projection._
+import style.combinators._, feature._, geometry._, projection._, serialize._
 
 import collection.JavaConverters._
 import org.{ geotools => gt }
@@ -80,8 +80,7 @@ package render {
     }
   }
 
-  class ImageCanvas extends Canvas[awt.image.BufferedImage] {
-    val size = (256, 256) // TODO: Make this a constructor argument
+  class ImageCanvas(size: (Int, Int) = (256, 256)) extends Canvas[awt.image.BufferedImage] {
     override def render(draw: Draw): awt.image.BufferedImage = {
       val (w, h) = size
       val img = new java.awt.image.BufferedImage(w, h, 
@@ -129,6 +128,41 @@ package render {
   }
 
   class RichContent(content: Content) {
+    /**
+      * Calculate a bounding box for this Content that will include all data 
+      * from all layers, in the projection used by the largest fraction of
+      * them.
+      */
+    def calculatedBounds: ReferencedEnvelope = {
+      def freqs[A](xs: Seq[A]): Map[A, Int] =
+        (Map.empty[A, Int] /: xs) { 
+          (accum, x) => accum + ((x, accum.getOrElse(x, 0) + 1))
+        }
+
+      def mode[A](xs: Seq[A]): Option[A] =
+        if (xs isEmpty)
+          None
+        else
+          Some(freqs(xs).toSeq.maxBy(_._2)._1)
+
+      val expand = (a: Referenced[Envelope], b: Referenced[Envelope]) =>
+        for (aEnv <- a; bEnv <- b) yield aEnv || bEnv
+
+      val projection = 
+        mode(content.layers.asScala.map(_.getBounds.getCoordinateReferenceSystem))
+          .getOrElse(LatLon)
+      val boundsList = content.layers.asScala.map(_.getBounds)
+      val bounds = boundsList
+        .map(x => x: Referenced[Envelope])
+        .reduceLeftOption { (refA, refB) =>
+           for { a <- refA; b <- refB } yield a || b }
+
+      bounds match {
+        case Some(bounds) => new ReferencedEnvelope(bounds.project(projection), projection)
+        case None => new ReferencedEnvelope(EmptyEnvelope, projection)
+      }
+    }
+
     def withLayer(l: Layer): Content = {
       val newContent = new Content
       newContent.layers.addAll(content.layers)
@@ -151,56 +185,100 @@ package object render {
   type StyleLayer = gt.map.Layer
   type DirectLayer = gt.map.DirectLayer
 
+  private def mkChart(geoms: Traversable[_ <: Geometry]) = {
+    import org.geotools.renderer.chart. { GeometryDataset, GeometryRenderer } 
+    import org.jfree.chart
+
+    val data = new GeometryDataset(geoms.toSeq: _*)
+    val renderer = new GeometryRenderer()
+    val xyplot = new chart.plot.XYPlot(data, data.getDomain(), data.getRange(), renderer)
+    new chart.JFreeChart(xyplot)
+  }
+
+  def plot(geoms: Traversable[_ <: Geometry]) {
+    val chart = mkChart(geoms)
+    val chartPanel = new org.jfree.chart.ChartPanel(chart)
+
+    val frame = new javax.swing.JFrame()
+    frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE)
+    frame.setContentPane(chartPanel)
+    frame.setSize(500, 500)
+    frame.setVisible(true)
+  }
+
+  def plotOn[Out]
+    (geoms: Traversable[_ <: Geometry],
+     canvas: Canvas[Out] = new ImageCanvas)
+  : Out = {
+    val chart = mkChart(geoms)
+    canvas.render { (graphics, screenArea) => 
+      chart.draw(graphics, tupleAsRectangle(screenArea))
+    }
+  }
+
   def applyStyle[T : Stylable](t: T, s: org.geoscript.style.Style): StyleLayer =
     implicitly[Stylable[T]].applyStyle(t, s)
 
+  type Frame = (Content, Dimension) => ReferencedEnvelope
+  val AutoStretch: Frame = (content, dimension) => content.calculatedBounds
+  def Stretch(re: Referenced[Envelope]): Frame = (_, _) => {
+    val prj = re.native.getOrElse(LatLon)
+    new ReferencedEnvelope(re project prj, prj)
+  }
+
   def draw[Out](
     content: Content,
-    bounds: ReferencedEnvelope,
+    frame: Frame = AutoStretch,
+    // bounds: Referenced[Envelope],
     canvas: Canvas[Out] = new ImageCanvas
   ): Out = {
     val hints = renderHints(KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON)
+    // val proj = bounds.native getOrElse projection.LatLon
+    // val refEnv = new ReferencedEnvelope(bounds.project(proj), proj)
 
     canvas.render { (graphics, screenArea) =>
+      val refEnv = frame(content, screenArea)
       val renderer = new gt.renderer.lite.StreamingRenderer()
       renderer.setJava2DHints(hints)
       renderer.setMapContent(content)
-      renderer.paint(graphics, tupleAsRectangle(screenArea), bounds)
+      renderer.paint(graphics, tupleAsRectangle(screenArea), refEnv)
     }
   }
 
-  def drawFull[Out](
-    content: Content,
-    canvas: Canvas[Out] = new ImageCanvas
-  ): Out = {
-    def mode[A](xs: Seq[A]): Option[A] =
-      if (xs.isEmpty) None
-      else            Some(xs.groupBy(identity).maxBy(_._2.size)._1)
+  // def drawFull[Out](
+  //   content: Content,
+  //   canvas: Canvas[Out] = ImageCanvas
+  // ): Out = {
+  //   def mode[A](xs: Seq[A]): Option[A] =
+  //     if (xs.isEmpty) None
+  //     else            Some(xs.groupBy(identity).maxBy(_._2.size)._1)
 
-    val boundsList     = content.layers.asScala.map(_.getBounds)
-    val projectionList = boundsList.map(_.getCoordinateReferenceSystem)
+  //   val boundsList     = content.layers.asScala.map(_.getBounds)
+  //   val projectionList = boundsList.map(_.getCoordinateReferenceSystem)
 
-    val projection = mode(projectionList).getOrElse(LatLon)
+  //   val projection = mode(projectionList).getOrElse(LatLon)
 
-    val expand = (a: Referenced[Envelope], b: Referenced[Envelope]) => 
-      Referenced.envelope(for (aEnv <- a; bEnv <- b) yield aEnv || bEnv)
+  //   val expand = (a: Referenced[Envelope], b: Referenced[Envelope]) => 
+  //     Referenced.envelope(for (aEnv <- a; bEnv <- b) yield aEnv || bEnv)
 
-    val bounds = (boundsList reduceLeftOption (expand(_, _)))
+  //   val bounds = (boundsList reduceLeftOption (expand(_, _)))
 
-    val finalBounds = bounds
-      .map(Referenced.envelope(_))
-      .getOrElse(new ReferencedEnvelope(EmptyEnvelope, LatLon))
+  //   val finalBounds = bounds
+  //     .map(Referenced.envelope(_))
+  //     .getOrElse(new ReferencedEnvelope(EmptyEnvelope, LatLon))
 
-    draw(content, finalBounds, canvas)
-  }
+  //   draw(content, finalBounds, canvas)
+  // }
     
   def file(f: String) = new java.io.File(f)
 
-  def png(f: java.io.File): Canvas[java.io.File] = 
-    new ImageCanvas().map { i =>
-      javax.imageio.ImageIO.write(i, "png", f)
-      f
-    }
+  def png[Spec, Out]
+    (dest: Spec = (), size: (Int, Int) = (512, 512))
+    (implicit encodable: Encodable[Spec, Out])
+    : Canvas[Out]
+  = new ImageCanvas(size).map {
+     img => encodable.encode(dest) {
+       out => javax.imageio.ImageIO.write(img, "png", out) } }
 
   def png(f: String): Canvas[java.io.File] = png(file(f))
 
