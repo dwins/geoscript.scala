@@ -9,5 +9,5 @@ object Visualize extends App {
     Seq(Seq((20,30), (35,35), (30,20), (20,30))))
   val bounds = new ReferencedEnvelope(poly.getEnvelopeInternal, projection.LatLon)
   val window = new Window
-  draw(Content(poly), bounds, window)
+  draw(Content(poly), Stretch(bounds), window)
 }

@@ -179,11 +179,16 @@ package render {
 
 package object render {
   type Content = gt.map.MapContent
+  type Color = java.awt.Color
   type Draw = (awt.Graphics2D, Dimension) => Unit
   type Dimension = (Int, Int)
   type Layer = gt.map.Layer
   type StyleLayer = gt.map.Layer
   type DirectLayer = gt.map.DirectLayer
+
+  val White = java.awt.Color.WHITE
+  val Black = java.awt.Color.BLACK
+  val Transparent = new java.awt.Color(0, 0, 0, 0)
 
   private def mkChart(geoms: Traversable[_ <: Geometry]) = {
     import org.geotools.renderer.chart. { GeometryDataset, GeometryRenderer } 
@@ -273,7 +278,7 @@ package object render {
   def file(f: String) = new java.io.File(f)
 
   def png[Spec, Out]
-    (dest: Spec = (), size: (Int, Int) = (512, 512))
+    (dest: Spec = (), size: (Int, Int) = (512, 512), background: Color = Transparent)
     (implicit encodable: Encodable[Spec, Out])
     : Canvas[Out]
   = new ImageCanvas(size).map {
