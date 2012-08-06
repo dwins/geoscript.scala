@@ -37,6 +37,6 @@ object ColorRamp extends org.geoscript.feature.GeoCrunch {
         filter = "%s BETWEEN %f AND %f".format(propertyName, min, max)
       } yield
         Fill(hex(color)) where cql(filter)
-    rules reduce (_ and _)
+    (rules reduce (_ and _)).underlying
   }
 }

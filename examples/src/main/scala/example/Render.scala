@@ -1,7 +1,7 @@
 package org.geoscript.example 
 
 object Render extends App {
-  import org.geoscript._, render.{ Content, draw, png }
+  import org.geoscript._, render._
 
   def reference(e: org.geoscript.geometry.Envelope, p: projection.Projection) = 
     new org.geotools.geometry.jts.ReferencedEnvelope(e, p)
@@ -15,7 +15,7 @@ object Render extends App {
   val theme = style.CSS.fromFile(styleFile)
   val bounds = reference(states.envelope, projection.Projection("EPSG:4326"))
   val win = new org.geoscript.render.Window
-  draw(Content(states, theme), bounds, win)
+  draw(Content(states, theme), Stretch(bounds), win)
 
   val watcher = new actors.DaemonActor {
     val styleFile = new java.io.File("../geocss/src/test/resources/states.css")
@@ -26,7 +26,7 @@ object Render extends App {
       if (updated < lastModified) {
         try {
           val theme = style.CSS.fromFile("../geocss/src/test/resources/states.css")
-          draw(Content(states, theme), bounds, win)
+          draw(Content(states, theme), Stretch(bounds), win)
         } catch {
           case _ => ()
         }
