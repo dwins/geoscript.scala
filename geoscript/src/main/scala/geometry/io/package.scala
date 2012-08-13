@@ -35,7 +35,7 @@ class GeoJSON(format: GeometryJSON) extends Format[Geometry] {
 
 object GeoJSON extends GeoJSON(new GeometryJSON)
 
-object GML extends Encoder[Geometry] {
+object GML extends Codec[Geometry] {
   import org.geotools.xml.{ Parser, Encoder }
   import org.geotools.gml2
 
@@ -45,5 +45,11 @@ object GML extends Encoder[Geometry] {
     val nsUri = configuration.getNamespaceURI
     val qname = new javax.xml.namespace.QName(nsUri, g.getGeometryType)
     encoder.encode(g, qname, sink)
+  }
+
+  def decodeFrom(in: java.io.InputStream): Geometry = {
+    val configuration = new gml2.GMLConfiguration
+    val parser = new Parser(configuration, in)
+    parser.parse().asInstanceOf[Geometry]
   }
 }
