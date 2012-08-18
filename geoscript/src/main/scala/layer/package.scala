@@ -21,85 +21,52 @@ package object layer {
   }
 
   def Layer(name: String, fs: Traversable[feature.Feature]): Layer = {
-    implicit def featureHasSchema(f: Feature): { def schema: Schema } =
-      new {
-        def schema = f.getFeatureType
-      }
+    val schemata = (fs map (_.getFeatureType)).toSet
 
-    implicit def widen(f0: Seq[Field], f1: Seq[Field]): Seq[Field] = {
-      val names0 = (f0 map (_.name))
-      val names1 = (f1 map (_.name))
-      val names = names0 ++ (names1.filterNot(names0.contains))
-      val byName0 = (f0 map (x => (x.name, x))).toMap
-      val byName1 = (f1 map (x => (x.name, x))).toMap
+    // TODO: Maybe it would be cool to infer a more general schema from the layers
+    require(schemata.size == 1, "Can't mix schemas when creating a new layer")
 
-      names.map { n => 
-        ((byName0 get n), (byName1 get n)) match {
-          case (None,    None) =>
-            sys.error("Unexpected state... name " + n + "not found in either schema in widen method")
-          case (Some(a), None) =>
-            a
-          case (None,    Some(b)) =>
-            b
-          case (Some(a), Some(b)) =>
-            if (a != b)
-              sys.error("Incompatible field types: " + a + ", " + b)
-            else
-              a
-        }
-      }
-    }
-    val attributes =
-      (fs foldLeft Seq.empty[Field]) { 
-        (fs: Seq[Field], f: Feature) => 
-          widen(fs, f.schema.fields)
-      }
-    val schema: Schema = Schema(name, attributes)
-    sys.error("undefined")
+    val layer = Layer(schemata.head)
+    layer ++= fs
+    layer
   }
 }
 
 package layer {
-  class RichLayer(layer: Layer) {
+  class RichLayer(layer: Layer) extends Traversable[Feature] {
     def count: Int = layer.getCount(new Query)
     def envelope: geometry.Envelope = layer.getBounds
     def name: String = layer.getName.getLocalPart
     def schema: feature.Schema = layer.getSchema
-    def withAll[A](f: Iterator[feature.Feature] => A): A =
-      this.withCollection(layer.getFeatures())(f)
 
-    private def withCollection[A]
-      (collection: org.geotools.data.simple.SimpleFeatureCollection)
-      (f: Iterator[feature.Feature] => A)
-      : A
-    = {
-      val iter = collection.features()
-      val features = new Iterator[feature.Feature] {
-        def hasNext: Boolean = iter.hasNext
-        def next: feature.Feature = iter.next
+    def foreach[T](f: Feature => T) { foreachInCollection(layer.getFeatures)(f) }
+
+    def filtered(filt: Filter): Traversable[Feature] =
+      new Traversable[Feature] {
+        def foreach[T](func: Feature => T) {
+          foreachInCollection(layer.getFeatures(filt))(func)
+        }
       }
-      try
-        f(features)
-      finally 
-        iter.close()
-    }
 
-    def withFiltered[A]
-      (filter: Filter)
-      (f: Iterator[feature.Feature] => A)
-      : A
-    = this.withCollection(layer.getFeatures(filter))(f)
+    private def foreachInCollection
+      (fc: org.geotools.data.simple.SimpleFeatureCollection)
+      (f: Feature => _): Unit
+    = {
+      val iter = fc.features()
+      try while (iter.hasNext) f(iter.next)
+      finally iter.close()
+    }
 
     def workspace: Workspace = layer.getDataStore().asInstanceOf[Workspace]
 
     def += (fs: feature.Feature*) = this ++= fs
 
-    def ++= (features: Iterable[feature.Feature]) {
+    def ++= (features: Traversable[feature.Feature]) {
       val tx = new org.geotools.data.DefaultTransaction
       layer.setTransaction(tx)
       try {
         val featureColl = org.geotools.feature.FeatureCollections.newCollection()
-        featureColl.addAll(features.asJavaCollection)
+        featureColl.addAll(features.toSeq.asJavaCollection)
         layer.addFeatures(featureColl)
         tx.commit()
       } catch {
@@ -108,10 +75,6 @@ package layer {
         tx.close()
         layer.setTransaction(org.geotools.data.Transaction.AUTO_COMMIT)
       }
-    }
-
-    def ++= (features: Iterator[feature.Feature]) {
-      this ++= features.toIterable
     }
   }
 
@@ -122,7 +85,7 @@ package layer {
     def apply(path: String): Layer = apply(new java.io.File(path))
     def apply(path: java.io.File): Layer = {
       val ws = workspace.Directory(path.getParent())
-      ws.layerNamed(basename(path))
+      ws(basename(path))
     }
   }
 }

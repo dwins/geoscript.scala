@@ -57,6 +57,7 @@ package workspace {
     def database(
       dbtype: String,
       database: String,
+      user: String = null,
       host: String = null,
       port: Int = -1,
       maxOpenPreparedStatements: Int = 0,
@@ -71,6 +72,7 @@ package workspace {
       Map(
         DBTYPE.key -> Option(dbtype),
         DATABASE.key -> Option(database),
+        USER.key -> Option(user),
         HOST.key -> Option(host),
         PORT.key -> Some(port).filter(_ > 0),
         MAX_OPEN_PREPARED_STATEMENTS.key -> Some(maxOpenPreparedStatements).filter(_ > 0),
@@ -86,8 +88,9 @@ package workspace {
 
     def postgis(
       database: String,
-      host: String = null,
-      port: Int = -1,
+      host: String = "localhost",
+      user: String = "postgres",
+      port: Int = 5432,
       maxOpenPreparedStatements: Int = 0,
       minConnections: Int = 0,
       maxConnections: Int = 0,
@@ -100,8 +103,9 @@ package workspace {
       Map(
         DBTYPE.key -> Option("postgis"),
         DATABASE.key -> Option(database),
+        USER.key -> Option(user),
         HOST.key -> Option(host),
-        PORT.key -> Some(port).filter(_ > 0),
+        PORT.key -> Some(port),
         MAX_OPEN_PREPARED_STATEMENTS.key -> Some(maxOpenPreparedStatements).filter(_ > 0),
         MINCONN.key -> Some(minConnections).filter(_ > 0),
         MAXCONN.key -> Some(maxConnections).filter(_ > 0),
@@ -120,16 +124,24 @@ package workspace {
   }
 
   class RichWorkspace(ws: Workspace) {
+    def apply(name: String): Layer = (ws getFeatureSource name).asInstanceOf[Layer]
     def count = ws.getTypeNames.length
     def create(schema: feature.Schema): Layer = {
       ws.createSchema(schema)
-      layerNamed(schema.name)
+      (ws getFeatureSource schema.name).asInstanceOf[Layer]
     }
 
-    def layerNamed(name: String): Layer = 
-      ws.getFeatureSource(name).asInstanceOf[Layer]
+    def get(name: String): Option[Layer] =
+      if (names contains name)
+        Some((ws getFeatureSource name).asInstanceOf[Layer])
+      else
+        None
 
     def names: Seq[String] = ws.getTypeNames
+
+    def +=(layer: Layer): Unit = {
+      create(layer.schema) ++= layer
+    }
   }
 
   class RichConnector(connector: Connector) {

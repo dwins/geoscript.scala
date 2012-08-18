@@ -33,6 +33,9 @@ package object projection {
        CRS.decode(s)
     }
 
+  def setProjection[G : HasProjection](p: Projection)(g: G): G =
+    implicitly[HasProjection[G]].setProjection(p)(g)
+
   def reproject[G : Projectable]
     (p: Projection, q: Projection)
     (g: G)
@@ -48,7 +51,7 @@ package projection {
   import org.geoscript.serialize._
 
   class RichProjection(p: Projection) {
-    def id = CRS.lookupIdentifier(p, true)
+    def id: Option[String] = Option(CRS.lookupIdentifier(p, true))
   }
 
   object WKT extends Format[Projection] {

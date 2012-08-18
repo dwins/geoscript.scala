@@ -56,7 +56,7 @@ package render {
           .getOrElse(defaultSchema)
 
         val store = new org.geotools.data.memory.MemoryDataStore(fs.toArray)
-        store.layerNamed(store.names.head)
+        store(store.names.head)
       }
 
     implicit val singleFeatureIsStylable: Stylable[Feature] =

@@ -22,36 +22,21 @@ class RichGeometry(geometry: Geometry) {
   /**
    * A jts.Envelope that fully encloses this Geometry.
    */
-  def envelope: Envelope = geometry.getEnvelopeInternal()
+  def envelope: Envelope = geometry.getEnvelopeInternal() // in projection
 
   /**
    * A point that represents the "center of gravity" of this geometry's
    * enclosed area.  Note that this point is not necessarily on the geometry!
    */
-  def centroid: Point = geometry.getCentroid()
+  def centroid: Point = geometry.getCentroid() // in projection
 
   /**
    * All the coordinates that compose this Geometry as a sequence.
    */
   def coordinates: Seq[Coordinate] = geometry.getCoordinates().toSeq
 
-  /**
-   * prepare creates a PreparedGeometry instance, which requires more time to
-   * construct but has faster implementations of several operations including
-   * `contains`, `coveredBy`, `covers`, `crosses`, `disjoint`, 
-   * `intersects`, `overlaps`, `touches`, and `within`
-   *
-   * Typically, this would be used when one geometry is being compared against
-   * many others.
-   * 
-   * {{{
-   * (needle: Geometry, haystack: Geometry) => {
-   *   val p = needle.prepared
-   *   haystack.filter(p.contains(_))
-   * }
-   * }}}
-   */
-  def prepare = preparingFactory.create(geometry)
+  def simplify(tolerance: Double): Geometry =
+    com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier.simplify(geometry, tolerance)
 
   /**
    * The length of the line segments that compose this geometry, in the same

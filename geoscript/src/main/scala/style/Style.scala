@@ -81,9 +81,9 @@ abstract class SimpleStyle extends Style {
 
   def underlying = {
     val rule = styles.createRule()
-    for (f <- filter) rule.setFilter(f.underlying)
-    for (s <- minScale) rule.setMinScaleDenominator(s)
-    for (s <- maxScale) rule.setMaxScaleDenominator(s)
+    filter.foreach { rule.setFilter } 
+    minScale.foreach { rule.setMinScaleDenominator }
+    maxScale.foreach { rule.setMaxScaleDenominator }
     rule.symbolizers.addAll(symbolizers)
 
     val ftstyle = styles.createFeatureTypeStyle()

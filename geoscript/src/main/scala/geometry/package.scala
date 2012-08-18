@@ -156,4 +156,9 @@ package geometry {
     def edges: Geometry
     def triangles: Geometry
   }
+
+  object Envelope {
+    def unapply(e: Envelope): Option[(Double, Double, Double, Double)] =
+      Some((e.getMinX, e.getMinY, e.getMaxX, e.getMaxY))
+  }
 }

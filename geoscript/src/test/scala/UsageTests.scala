@@ -54,9 +54,7 @@ class UsageTests extends FunSuite with ShouldMatchers {
 
     test("support search") {
       val shp = layer.Shapefile(statesPath)
-      shp.withAll { fs =>
-       fs.find(_.id == "states.1")
-      } should be ('defined)
+      shp.find(_.id == "states.1") should be ('defined)
     }
 
     test("provide access to schema information") {
@@ -98,8 +96,7 @@ class UsageTests extends FunSuite with ShouldMatchers {
 
       dummy.count should be (2)
       
-      dummy.withAll( features =>
-        features.find(_.get[String]("name") == "New York")) should be ('defined)
+      dummy.find(_.get[String]("name") == "New York") should be ('defined)
     }
 
   def closeTo(d: Double, eps: Double): BeMatcher[Double] =

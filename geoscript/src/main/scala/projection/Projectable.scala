@@ -1,7 +1,7 @@
 package org.geoscript
 package projection
 
-import geometry._
+import feature._, geometry._
 import org.geotools.geometry.jts.{ JTS, ReferencedEnvelope }
 
 trait Projectable[T] {
