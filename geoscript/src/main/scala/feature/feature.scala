@@ -203,7 +203,7 @@ package feature {
       builder.set(name, t)
 
     def toSeq: Seq[Field] =
-      Seq(implicitly[Bindable[T]].withDefaultName)
+      Seq(implicitly[Bindable[T]].bind(name))
   }
 
   class CombinedAbsoluteFieldSet[T, U](
