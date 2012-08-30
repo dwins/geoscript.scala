@@ -66,7 +66,11 @@ package layer {
       layer.setTransaction(tx)
       try {
         val featureColl = org.geotools.feature.FeatureCollections.newCollection()
-        featureColl.addAll(features.toSeq.asJavaCollection)
+        val schema = layer.getSchema
+        val adjusted = 
+          for (f <- features.view)
+            yield schema(f.attributes)
+        featureColl.addAll(adjusted.toSeq.asJavaCollection)
         layer.addFeatures(featureColl)
         tx.commit()
       } catch {

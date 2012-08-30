@@ -56,7 +56,7 @@ package object feature extends org.geoscript.feature.LowPriorityImplicits {
   def next[A : Bindable]: PositionalFieldSet[A] =
     new DirectPositionalFieldSet
 
-  def pos[A : Bindable](index: Int): AbsoluteFieldSet[A] = new IndexedFieldSet(index)
+  def pos[A : Bindable](index: Int): FieldSet[A] = new IndexedFieldSet(index)
 
   def named[A : Bindable](name: String): AbsoluteFieldSet[A] = 
     new NamedFieldSet(name)
@@ -134,15 +134,8 @@ package feature {
   }
 
   trait FieldSet[T] {
-    def apply(t: T): Feature = {
-      val schema = Schema("builder", toSeq)
-      val builder = new org.geotools.feature.simple.SimpleFeatureBuilder(schema)
-      build(builder, t)
-      builder.buildFeature(null)
-    }
-    def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, t: T): Unit
     def unapply(ft: Feature): Option[T]
-    def toSeq: Seq[Field]
+    // def toSeq: Seq[Field]
   }
 
   sealed trait PositionalFieldSet[T] extends FieldSet[T] { self =>
@@ -153,10 +146,6 @@ package feature {
   private class DirectPositionalFieldSet[T : Bindable] extends PositionalFieldSet[T] {
     def extract(ft: Feature, idx: Int): (T, Int) =
       (ft.getAttribute(idx).asInstanceOf[T], idx + 1)
-
-    def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, t: T): Unit = {
-      builder.add(t)
-    }
 
     def toSeq: Seq[Field] =
       Seq(implicitly[Bindable[T]].withDefaultName)
@@ -172,28 +161,29 @@ package feature {
       val (u, nextIndex2) = exU.extract(ft, nextIndex)
       (new ~ (t, u), nextIndex2)
     }
-
-    def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, v: T ~ U): Unit = {
-      val (t ~ u) = v
-      exT.build(builder, t)
-      exU.build(builder, u)
-    }
-
-    def toSeq: Seq[Field] =
-      exT.toSeq ++ exU.toSeq
   }
 
-  sealed trait AbsoluteFieldSet[T] extends FieldSet[T] {
-    def unapply(xs: Feature): Some[T] = Some(extract(xs))
-    def extract(xs: Feature): T 
-  }
-
-  class IndexedFieldSet[T : Bindable](index: Int) extends AbsoluteFieldSet[T] {
+  class IndexedFieldSet[T : Bindable](index: Int) extends FieldSet[T] {
+    def unapply(ft: Feature) = Some(extract(ft))
     def extract(ft: Feature) = ft.getAttribute(index).asInstanceOf[T]
     def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, t: T): Unit =
       builder.set(index, t)
     def toSeq: Seq[Field] =
       Seq(implicitly[Bindable[T]].withDefaultName)
+  }
+
+  sealed trait AbsoluteFieldSet[T] extends FieldSet[T] {
+    def apply(t: T): Feature = {
+      val schema = Schema("builder", this)
+      val builder = new org.geotools.feature.simple.SimpleFeatureBuilder(schema)
+      build(builder, t)
+      builder.buildFeature(null)
+    }
+    def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, t: T): Unit
+    def extract(xs: Feature): T 
+    def unapply(xs: Feature): Some[T] = Some(extract(xs))
+
+    def toSeq: Seq[Field]
   }
 
   class NamedFieldSet[T : Bindable](name: String) extends AbsoluteFieldSet[T] {
@@ -222,11 +212,13 @@ package feature {
       exU.build(builder, u)
     }
 
-    def toSeq: Seq[Field] =
-      exT.toSeq ++ exU.toSeq
+    def toSeq: Seq[Field] = exT.toSeq ++ exU.toSeq
   }
   
   object Schema {
+    def apply(name: String, fields: AbsoluteFieldSet[_]): Schema =
+      apply(name, fields.toSeq)
+
     def apply(name: String, fields: Seq[Field]): Schema = {
       val builder = new org.geotools.feature.simple.SimpleFeatureTypeBuilder
       builder.setName(name)
@@ -241,6 +233,14 @@ package feature {
     def name: String = schema.getName.getLocalPart
     def fields: Seq[Field] =
       schema.getAttributeDescriptors.asScala
+
+    def apply(values: Seq[Any]): Feature = {
+      val builder = new org.geotools.feature.simple.SimpleFeatureBuilder(schema)
+      for ((v, i) <- values.zipWithIndex)
+        builder.set(i, v)
+      builder.buildFeature(null)
+    }
+
     def geometry = schema.getGeometryDescriptor
     def projection = schema.getGeometryDescriptor.getCoordinateReferenceSystem
     def get(name: String): Field = schema.getDescriptor(name)
@@ -261,6 +261,8 @@ package feature {
     def geometry: org.geoscript.geometry.Geometry =
       feature.getDefaultGeometry.asInstanceOf[org.geoscript.geometry.Geometry]
     def schema: Schema = feature.getFeatureType
+    def attributes: Seq[Any] =
+      feature.getAttributes.asScala.toSeq
     def asMap: Map[String, Any] =
       (feature.getProperties.asScala.map { p =>
         val name = p.getName.getLocalPart
