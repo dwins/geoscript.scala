@@ -21,7 +21,7 @@ object Projectable {
           None
 
       def project(from: Projection, to: Projection)(t: T): T =
-        JTS.transform(t, transform(from, to)).asInstanceOf[T]
+        JTS.transform(t, lookupTransform(from, to)).asInstanceOf[T]
     }
 
   implicit def envelopesAreProjectable: Projectable[Envelope] = 
@@ -29,6 +29,6 @@ object Projectable {
       def extractProjection(e: Envelope): Option[Projection] = None
 
       def project(from: Projection, to: Projection)(e: Envelope) = 
-         JTS.transform(e, transform(from, to))
+         JTS.transform(e, lookupTransform(from, to))
     }
 }

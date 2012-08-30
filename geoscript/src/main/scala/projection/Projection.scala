@@ -33,15 +33,21 @@ package object projection {
        CRS.decode(s)
     }
 
-  def setProjection[G : HasProjection](p: Projection)(g: G): G =
-    implicitly[HasProjection[G]].setProjection(p)(g)
+  // NOTE: Some data types store projections but not coordinates (eg, Schema).
+  // For these, force and reproject are the same.
 
-  def reproject[G : Projectable]
-    (p: Projection, q: Projection)
-    (g: G)
-  : G = implicitly[Projectable[G]].project(p, q)(g)
+  // Update projection tracking information without modifying coordinates
+  def force[G : HasProjection](proj: Projection, g: G): G =
+    implicitly[HasProjection[G]].setProjection(proj)(g)
 
-  def transform(p: Projection, q: Projection): Transform =
+  // Reproject coordinate data and update projection tracking informationo
+  def reproject[G : HasProjection](proj: Projection, g: G): G =
+    implicitly[HasProjection[G]].transform(proj)(g)
+
+  def transform[G : Projectable](source: Projection, dest: Projection, g: G): G =
+    implicitly[Projectable[G]].project(source, dest)(g)
+
+  def lookupTransform(p: Projection, q: Projection): Transform =
     CRS.findMathTransform(p, q)
 
   def Projection(s: String): Projection = (fromSrid(s) orElse fromWKT(s)).orNull

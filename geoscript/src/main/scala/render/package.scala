@@ -17,8 +17,7 @@ package render {
   
   object Stylable {
     private val defaultSchema =
-      Schema("empty", Seq(
-        bind[Geometry]("the_geom", projection.LatLon)))
+      Schema("empty", "the_geom".binds[Geometry])
 
     def by[T, U : Stylable](f: T => U): Stylable[T] =
       new Stylable[T] {

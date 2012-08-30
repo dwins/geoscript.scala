@@ -11,23 +11,11 @@ package object feature extends org.geoscript.feature.LowPriorityImplicits {
   type GeoField = org.opengis.feature.`type`.GeometryDescriptor
   type Schema = org.opengis.feature.simple.SimpleFeatureType
 
-  def bind[T : Bindable](name: String): Field =
-    implicitly[Bindable[T]].bind(name)
-
-  def bind[T <: geometry.Geometry : Manifest]
-    (name: String, proj: projection.Projection): GeoField = {
-    val builder = new org.geotools.feature.AttributeTypeBuilder
-    builder.setName(name)
-    builder.setBinding(manifest[T].erasure)
-    builder.setCRS(proj)
-    builder.buildDescriptor(name, builder.buildGeometryType())
-  }
-
-  private def field(name: String, binding: Class[_]): Field = {
+  def field(name: String, binding: Class[_]): Field = {
     val builder = new org.geotools.feature.AttributeTypeBuilder
     builder.setName(name)
     builder.setBinding(binding)
-    builder.buildDescriptor(name, builder.buildType)
+    builder.buildDescriptor(name, builder.buildType())
   }
 
   def setSchemaName(name: String, schema: Schema): Schema = {
@@ -45,54 +33,14 @@ package object feature extends org.geoscript.feature.LowPriorityImplicits {
     builder.buildFeature(null)
   }
 
-  def feature(schema: Schema, attributes: Seq[Any]): Feature = {
-    import org.geotools.feature.simple.SimpleFeatureBuilder
-    val builder = new SimpleFeatureBuilder(schema)
-    for ((value, idx) <- attributes.zipWithIndex)
-      builder.set(idx, value)
-    builder.buildFeature(null)
-  }
-
-  def next[A : Bindable]: PositionalFieldSet[A] =
-    new DirectPositionalFieldSet
-
-  def pos[A : Bindable](index: Int): FieldSet[A] = new IndexedFieldSet(index)
-
   def named[A : Bindable](name: String): AbsoluteFieldSet[A] = 
     new NamedFieldSet(name)
 
-  implicit def bindingSugar(name: String) = new {
-    def binds[T : Bindable] = named[T](name)
-  }
-
-  implicit def combinesWithTilde[T](t: T) = new {
-    def ~[U,V](u: U)(implicit chain: TildeCombine[T,U,V]): V = chain(t, u)
-  }
-
-  implicit def combinesWithChain[A, B, T[_] : TildeChainable]
-  : TildeCombine[T[A], T[B], T[A ~ B]] = 
-    new TildeCombine[T[A], T[B], T[A ~ B]] {
-      def apply(a: T[A], b: T[B]): T[A ~ B] =
-        implicitly[TildeChainable[T]].chain(a,b)
+  implicit def bindingSugarForString(name: String) =
+    new {
+      def binds[T : Bindable] = named[T](name)
     }
 
-  implicit object positionalFieldSetsAreChainable 
-  extends TildeChainable[PositionalFieldSet]
-  {
-    def chain[A,B](
-      a: PositionalFieldSet[A],
-      b: PositionalFieldSet[B]
-    ): PositionalFieldSet[A ~ B] = new CombinedPositionalFieldSet(a, b)
-  }
-
-  implicit object absoluteFieldSetsAreChainable 
-  extends TildeChainable[AbsoluteFieldSet]
-  {
-    def chain[A,B](
-      a: AbsoluteFieldSet[A],
-      b: AbsoluteFieldSet[B]
-    ): AbsoluteFieldSet[A ~ B] = new CombinedAbsoluteFieldSet(a, b)
-  }
 
   implicit def asFeatureCollection(fs: Traversable[Feature]): FeatureCollection = {
     import scala.collection.JavaConversions._
@@ -105,7 +53,6 @@ package object feature extends org.geoscript.feature.LowPriorityImplicits {
         val builder = new org.geotools.feature.AttributeTypeBuilder
         builder.setName(name)
         builder.setBinding(manifest[G].erasure)
-        // builder.setCRS(proj)
         builder.buildDescriptor(name, builder.buildGeometryType())
       }
 
@@ -133,46 +80,7 @@ package feature {
     def chain[A,B](a: T[A], b: T[B]): T[A ~ B]
   }
 
-  trait FieldSet[T] {
-    def unapply(ft: Feature): Option[T]
-    // def toSeq: Seq[Field]
-  }
-
-  sealed trait PositionalFieldSet[T] extends FieldSet[T] { self =>
-    def unapply(xs: Feature): Some[T] = Some(extract(xs, 0)._1)
-    def extract(ft: Feature, idx: Int): (T, Int)
-  }
-
-  private class DirectPositionalFieldSet[T : Bindable] extends PositionalFieldSet[T] {
-    def extract(ft: Feature, idx: Int): (T, Int) =
-      (ft.getAttribute(idx).asInstanceOf[T], idx + 1)
-
-    def toSeq: Seq[Field] =
-      Seq(implicitly[Bindable[T]].withDefaultName)
-  }
-
-  private class CombinedPositionalFieldSet[T, U](
-    exT: PositionalFieldSet[T],
-    exU: PositionalFieldSet[U])
-  extends PositionalFieldSet[T ~ U]
-  {
-    override def extract(ft: Feature, idx: Int): (T ~ U, Int) = {
-      val (t, nextIndex) = exT.extract(ft, idx)
-      val (u, nextIndex2) = exU.extract(ft, nextIndex)
-      (new ~ (t, u), nextIndex2)
-    }
-  }
-
-  class IndexedFieldSet[T : Bindable](index: Int) extends FieldSet[T] {
-    def unapply(ft: Feature) = Some(extract(ft))
-    def extract(ft: Feature) = ft.getAttribute(index).asInstanceOf[T]
-    def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, t: T): Unit =
-      builder.set(index, t)
-    def toSeq: Seq[Field] =
-      Seq(implicitly[Bindable[T]].withDefaultName)
-  }
-
-  sealed trait AbsoluteFieldSet[T] extends FieldSet[T] {
+  sealed trait AbsoluteFieldSet[T] {
     def apply(t: T): Feature = {
       val schema = Schema("builder", this)
       val builder = new org.geotools.feature.simple.SimpleFeatureBuilder(schema)
@@ -183,7 +91,32 @@ package feature {
     def extract(xs: Feature): T 
     def unapply(xs: Feature): Some[T] = Some(extract(xs))
 
+    def ~[U](that: AbsoluteFieldSet[U]): AbsoluteFieldSet[T ~ U] =
+      new CombinedAbsoluteFieldSet[T, U](this, that)
+
     def toSeq: Seq[Field]
+  }
+
+  object AbsoluteFieldSet {
+    import projection._
+    implicit def geometryFieldsHaveProjection[G](implicit ev: G <:< Geometry): HasProjection[AbsoluteFieldSet[G]] =
+      new HasProjection[AbsoluteFieldSet[G]] {
+        def setProjection(p: Projection)(x: AbsoluteFieldSet[G]): AbsoluteFieldSet[G] = 
+          new AbsoluteFieldSet[G] {
+            def build(builder: org.geotools.feature.simple.SimpleFeatureBuilder, g: G) =
+              x.build(builder, g)
+
+            def extract(xs: Feature): G = x.extract(xs)
+
+            def toSeq: Seq[Field] = x.toSeq.map {
+              case (gf: GeoField) => force(p, gf)
+              case _ => sys.error("Trying to set projection on aspatial field")
+            }
+          }
+
+        def transform(p: Projection)(x: AbsoluteFieldSet[G]): AbsoluteFieldSet[G] =
+          setProjection(p)(x)
+      }
   }
 
   class NamedFieldSet[T : Bindable](name: String) extends AbsoluteFieldSet[T] {
@@ -246,8 +179,13 @@ package feature {
     def get(name: String): Field = schema.getDescriptor(name)
     def get(index: Int): Field = schema.getDescriptor(index)
     def withName(name: String): Schema = Schema(name, fields)
-    def feature(attributes: Seq[Any]): Feature =
-      org.geoscript.feature.feature(schema, attributes)
+    def feature(attributes: Seq[Any]): Feature = {
+      import org.geotools.feature.simple.SimpleFeatureBuilder
+      val builder = new SimpleFeatureBuilder(schema)
+      for ((value, idx) <- attributes.zipWithIndex)
+        builder.set(idx, value)
+      builder.buildFeature(null)
+    }
   }
 
   object Feature {

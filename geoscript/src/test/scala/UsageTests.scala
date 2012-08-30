@@ -9,7 +9,7 @@ class UsageTests extends FunSuite with ShouldMatchers {
 
     test("work like on the geoscript homepage") { 
       var p = point(-111, 45.7)
-      var p2 = (projection.reproject(Projection("epsg:4326"), Projection("epsg:26912")))(p)
+      var p2 = transform(Projection("epsg:4326"), Projection("epsg:26912"), p)
       var poly = p.buffer(100)
 
       p2.x should be(closeTo(499999.0, 1))
@@ -79,9 +79,7 @@ class UsageTests extends FunSuite with ShouldMatchers {
       val mem = workspace.Memory()
       mem.names should be ('empty)
       var dummy = mem.create(Schema("dummy", 
-        Seq(
-          bind[String]("name"),
-          bind[Geometry]("geom", Projection("EPSG:4326")))))
+          "name".binds[String] ~ (force(LatLon, "geom".binds[Geometry]))))
       mem.names.length should be (1)
 
       dummy += feature.fromAttributes(
