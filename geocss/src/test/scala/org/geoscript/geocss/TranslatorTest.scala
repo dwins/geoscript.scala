@@ -6,13 +6,12 @@ class TranslatorTest extends FunSuite with ShouldMatchers {
   val Translator = new Translator
   import Translator.color
   
-  def body(x: Translator.OGCExpression): String = {
+  def body(x: Translator.OGCExpression): String =
     x match {
       case x: org.opengis.filter.expression.Literal =>
         x.getValue.toString.toLowerCase
-      case _ => null
+      case _ => error("Expected a Literal but actually got " + x)
     }
-  }
 
   test("Short hexcodes and English names should work as colors") {
     body(color(Literal("#FFAA77"))) should equal("#ffaa77")

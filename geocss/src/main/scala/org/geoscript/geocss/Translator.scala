@@ -30,7 +30,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def this(url: String) = this(Some(new java.net.URL(url)))
 
   import CssOps.{ Color, Specificity, Symbol, URL, colors, expand }
-  val styles = org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
+  val styles = org.geotools.factory.CommonFactoryFinder.getStyleFactory()
   type OGCExpression = org.opengis.filter.expression.Expression
 
   val gtVendorOpts = Seq(
@@ -55,21 +55,24 @@ class Translator(val baseURL: Option[java.net.URL]) {
   private val defaultRGB = filters.literal(colors("grey"))
 
   def resolve(path: String): String =
-    new java.net.URL(baseURL.getOrElse(null), path).toString
+    baseURL match {
+      case None => new java.net.URL(path).toString
+      case Some(base) => new java.net.URL(base, path).toString
+    }
 
 // externalGraphic, well-known graphic , color
-  def fill(xs: Seq[Value]): (String, String, OGCExpression) = {
+  def fill(xs: Seq[Value]): (Option[String], Option[String], Option[OGCExpression]) = {
     (xs take 2) match {
       case Seq(URL(url), Color(color)) =>
-        (resolve(url), null, filters.literal(color))
+        (Some(resolve(url)), None, Some(filters.literal(color)))
       case Seq(URL(url)) =>
-        (resolve(url), null, null)
+        (Some(resolve(url)), None, None)
       case Seq(Symbol(sym)) =>
-        (null, sym, null)
+        (None, Some(sym), None)
       case Seq(Color(color))  =>
-        (null, null, filters.literal(color))
+        (None, None, Some(filters.literal(color)))
       case _ =>
-        (null, null, defaultRGB)
+        (None, None, Some(defaultRGB))
     }
   }
 
@@ -83,10 +86,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
       markProps.find(_.name == name).flatMap(_.values.headOption)
 
     val (url, wellKnownName, _) = fill(props(prefix))
-    val mimetype = p("mime") map keyword 
-    val size = p("size") map length
-    val rotation = p("rotation") map angle
-    val opacity = p("opacity") map scale getOrElse null
+    val mimetype = p("mime") flatMap keyword
+    val size = p("size") flatMap length
+    val rotation = p("rotation") flatMap angle
+    val opacity = p("opacity") flatMap scale
 
     val mark = buildMark(
       wellKnownName,
@@ -97,26 +100,26 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     val externalGraphic = buildExternalGraphic(url, mimetype)
 
-    if (mark != null || externalGraphic != null)
+    if (mark.isDefined || externalGraphic.isDefined)
       Some(styles.createGraphic(
-        externalGraphic,
-        mark,
+        externalGraphic.orNull,
+        mark.orNull,
         null,
-        opacity,
-        size getOrElse null,
-        rotation getOrElse null
+        opacity.orNull,
+        size.orNull,
+        rotation.orNull
       ))
     else
       None
   }
 
   def buildMark(
-    markName: String, 
+    markName: Option[String], 
     width: Option[OGCExpression], 
     rotation: OGCExpression,
     markProps: Seq[Property]
-  ): Array[gt.Mark] = {
-    if (markName != null) {
+  ): Option[Array[gt.Mark]] =
+    for (wellKnownName <- markName) yield {
       val strokeAndFill = (
         expand(markProps, "stroke").headOption.map(extractStroke(_, Nil)),
         expand(markProps, "fill").headOption.map(extractFill(_, Nil))
@@ -125,59 +128,48 @@ class Translator(val baseURL: Option[java.net.URL]) {
       val (stroke, fill) = strokeAndFill match {
         case (None, None) =>
           (styles.getDefaultStroke(), styles.getDefaultFill())
-        case (s, f) => (s.getOrElse(null), f.getOrElse(null))
+        case (s, f) => (s.orNull, f.orNull)
       }
 
       Array(styles.createMark(
-        filters.literal(markName),
+        filters.literal(wellKnownName),
         stroke,
         fill,
         filters.literal(16),
         filters.literal(0)
       ))
-    } else {
-      null
-    }
-  }
+    } 
 
-  def buildExternalGraphic(url: String, mimetype: Option[String]) = {
-    if (url != null) {
-      Array(styles.createExternalGraphic(url, mimetype.getOrElse("image/jpeg")))
-    } else null
-  }
+  def buildExternalGraphic(url: Option[String], mimetype: Option[String])
+  : Option[Array[gt.ExternalGraphic]] =
+    for { u <- url } 
+    yield Array(styles.createExternalGraphic(u, mimetype.getOrElse("image/jpeg")))
 
   def color(v: Value) = v match {
     case Color(c) => filters.literal(c)
     case _ => defaultRGB
   }
 
-  // GeoTools only knows about #RRGGBB, but CSS lets you use nice names as well...
-  def color(p: Property) = p.values.head.head match {
-    case Literal(body) => filters.literal(colors.getOrElse(body, body))
-    case _ => null
-  }
+  def angle(xs: Seq[Value]): Option[OGCExpression] =
+    xs match {
+      case Seq(Literal(body), _*) => Some(filters.literal(body.replaceFirst("deg$", "")))
+      case Seq(Expression(cql), _*) => Some(org.geotools.filter.text.ecql.ECQL.toExpression(cql))
+      case _ => None
+    }
 
-  def angle(xs: Seq[Value]) = xs.head match {
-    case l: Literal =>
-      filters.literal(l.body.replaceFirst("deg$", ""))
-    case Expression(cql) =>
-      org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    case _ => null
-  }
+  def length(xs: Seq[Value]): Option[OGCExpression] = 
+    xs match {
+      case Seq(Literal(body), _*) => Some(filters.literal(body.replaceFirst("px$", "")))
+      case Seq(Expression(cql), _*) => Some(org.geotools.filter.text.ecql.ECQL.toExpression(cql))
+      case _ => None
+    }
 
-  def length(xs: Seq[Value]): OGCExpression = xs.head match {
-    case Literal(body) =>
-      filters.literal(body.replaceFirst("px$", ""))
-    case Expression(cql) =>
-      org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    case _ => null
-  }
-
-  def expression(xs: Seq[Value]): OGCExpression = xs.head match {
-    case Literal(body) => filters.literal(body)
-    case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    case _ => null
-  }
+  def expression(xs: Seq[Value]): Option[OGCExpression] = 
+    xs match {
+      case Seq(Literal(body), _*) => Some(filters.literal(body))
+      case Seq(Expression(cql), _*) => Some(org.geotools.filter.text.ecql.ECQL.toExpression(cql))
+      case _ => None
+    }
 
   def concatenatedExpression(xs: Seq[Value]): OGCExpression =
     xs collect {
@@ -185,40 +177,55 @@ class Translator(val baseURL: Option[java.net.URL]) {
       case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
     } reduceLeft { filters.function("strConcat", _, _) }
 
-  def keyword(default: String, xs: Seq[Value]): String = xs.head match {
-    case Literal(body) => body
-    case _ => default
-  }
+  def keyword(xs: Seq[Value]): Option[String] = 
+    xs match {
+      case Seq(Literal(body), _*) => Some(body)
+      case _ => None
+    }
 
-  def keyword(xs: Seq[Value]): String = keyword(null:String, xs)
+  def getZIndex(xs: Seq[Value]): Option[Double] =
+    keyword(xs) flatMap { text =>
+      try Some(text.toDouble)
+      catch {
+        case (_: NumberFormatException) => None
+      }
+    }
 
   def scale(s: String): Float = {
     if (s.endsWith("%")) s.replaceFirst("%$","").toFloat / 100.0f
     else s.toFloat
   }
 
-  def scale(xs: Seq[Value]): OGCExpression = xs.head match {
-    case Literal(l) => filters.literal(scale(l))
-    case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    case _ => null
+  def scale(xs: Seq[Value]): Option[OGCExpression] = 
+    xs match {
+      case Seq(Literal(l), _*) => Some(filters.literal(scale(l)))
+      case Seq(Expression(cql), _*) => Some(org.geotools.filter.text.ecql.ECQL.toExpression(cql))
+      case _ => None
+    }
+
+  def anchor(xs: Seq[Value]): Option[gt.AnchorPoint] = {
+    object Offset {
+      def unapply(v: Value): Option[OGCExpression] =
+        Some(v) collect {
+          case Literal(l) => filters.literal(scale(l))
+          case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
+        }
+    }
+
+    xs match {
+      case Seq(Offset(x), Offset(y)) => Some(styles.createAnchorPoint(x, y))
+      case _ => None
+    }
   }
 
-  def anchor(xs: Seq[Value]): gt.AnchorPoint = xs map {
-    case Literal(l) => filters.literal(scale(l))
-    case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    case _ => null
-  } take 2 match {
-    case Seq(x, y) => styles.createAnchorPoint(x, y)
-    case _ => null
-  }
-
-  def displacement(xs: Seq[Value]): Seq[OGCExpression] = xs map {
-    case Literal(body) =>
-      filters.literal(body.replaceFirst("px$", ""))
-    case Expression(cql) =>
-      org.geotools.filter.text.ecql.ECQL.toExpression(cql)
-    case _ => null
-  }
+  def displacement(xs: Seq[Value]): Seq[Option[OGCExpression]] = 
+    xs map {
+      case Literal(body) =>
+        Some(filters.literal(body.replaceFirst("px$", "")))
+      case Expression(cql) =>
+        Some(org.geotools.filter.text.ecql.ECQL.toExpression(cql))
+      case _ => None
+    }
 
   def lengthArray(xs: Seq[Value]): Array[Float] = {
     xs.flatMap(_ match {
@@ -232,20 +239,20 @@ class Translator(val baseURL: Option[java.net.URL]) {
     org.geotools.filter.text.ecql.ECQL.toFilter(cql)
   }
 
-  implicit def valToExpression(v: Value): OGCExpression =
+  def valToExpression(v: Value): Option[OGCExpression] =
     v match {
       case Expression(cql) =>
-        org.geotools.filter.text.ecql.ECQL.toExpression(cql)
+        Some(org.geotools.filter.text.ecql.ECQL.toExpression(cql))
       case l: Literal =>
-        filters.literal(l.body)
-      case _ => null
+        Some(filters.literal(l.body))
+      case _ => None
     }
 
   def extractFill(props: Map[String, Seq[Value]], markProps: Seq[Property]) = {
     val (externalGraphicUrl, wellKnownMarkName, color) = fill(props("fill"))
-    val size = props.get("fill-size") map length
-    val rotation = props.get("fill-rotation") map angle
-    val opacity = props.get("fill-opacity") map scale getOrElse null
+    val size = props.get("fill-size") flatMap length
+    val rotation = props.get("fill-rotation") flatMap angle
+    val opacity = props.get("fill-opacity") flatMap scale
 
     val graphic = {
       val mark = buildMark(
@@ -256,34 +263,33 @@ class Translator(val baseURL: Option[java.net.URL]) {
       )
 
       val externalGraphic =
-        buildExternalGraphic(externalGraphicUrl, props.get("fill-mime").map(keyword))
+        buildExternalGraphic(externalGraphicUrl, props.get("fill-mime").flatMap(keyword))
 
-      if (mark != null || externalGraphic != null) {
+      if (mark.isDefined || externalGraphic.isDefined) {
         styles.createGraphic(
-          externalGraphic,
-          mark,
+          externalGraphic.orNull,
+          mark.orNull,
           null,
           null,
-          size.getOrElse(null),
-          rotation.getOrElse(null)
+          size.orNull,
+          rotation.orNull
         )
       } else null
     }
 
-    styles.createFill(color, null, opacity, graphic)
+    styles.createFill(color.orNull, null, opacity.orNull, graphic)
   }
 
   def extractStroke(props: Map[String, Seq[Value]], markProps: Seq[Property]) = {
     val (externalGraphicUrl, wellKnownMarkName, color) = fill(props("stroke"))
-    val dashArray = props.get("stroke-dasharray") map lengthArray getOrElse null
-    val dashOffset = props.get("stroke-dashoffset") map length getOrElse null
-    val linecap = props.get("stroke-linecap") map expression getOrElse null
-    val linejoin = props.get("stroke-linejoin") map expression getOrElse null
-    val miterLimit = props.get("stroke-miterlimit") getOrElse null
-    val opacity = props.get("stroke-opacity") map scale getOrElse null
-    val width = props.get("stroke-width") map length
-    val strokeRepeat = props.get("stroke-repeat") map keyword getOrElse "repeat"
-    val rotation = props.get("stroke-rotation") map angle getOrElse filters.literal(0)
+    val dashArray = props.get("stroke-dasharray") map lengthArray
+    val dashOffset = props.get("stroke-dashoffset") flatMap length
+    val linecap = props.get("stroke-linecap") flatMap expression
+    val linejoin = props.get("stroke-linejoin") flatMap expression
+    val opacity = props.get("stroke-opacity") flatMap scale
+    val width = props.get("stroke-width") flatMap length
+    val strokeRepeat = props.get("stroke-repeat") flatMap keyword getOrElse "repeat"
+    val rotation = props.get("stroke-rotation") flatMap angle getOrElse filters.literal(0)
 
     val graphic = {
       val mark = buildMark(
@@ -296,11 +302,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
       val externalGraphic =
         buildExternalGraphic(
         externalGraphicUrl,
-        props.get("stroke-mime").map(keyword)
+        props.get("stroke-mime").flatMap(keyword)
       )
 
-      if (mark != null || externalGraphic != null) {
-        styles.createGraphic(externalGraphic, mark, null, null, null, rotation)
+      if (mark.isDefined || externalGraphic.isDefined) {
+        styles.createGraphic(externalGraphic.orNull, mark.orNull, null, null, null, rotation)
       } else null
     }
 
@@ -308,13 +314,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val graphicFill = if (strokeRepeat == "stipple") graphic else null
 
     styles.createStroke(
-      color,
+      color.orNull,
       width.getOrElse(filters.literal(1)),
-      opacity,
-      linejoin,
-      linecap,
-      dashArray,
-      dashOffset,
+      opacity.orNull,
+      linejoin.orNull,
+      linecap.orNull,
+      dashArray.orNull,
+      dashOffset.orNull,
       graphicFill,
       graphicStroke
     )
@@ -335,21 +341,19 @@ class Translator(val baseURL: Option[java.net.URL]) {
        (Stream.from(1) map { orderedMarkRules("stroke", _) })
       ).map { case (props, markProps) =>
         val (_, _, stroke) = fill(props("stroke"))
-        val dashArray = props.get("stroke-dasharray") map lengthArray getOrElse null
-        val dashOffset = props.get("stroke-dashoffset") map length getOrElse null
-        val linecap = props.get("stroke-linecap") map expression getOrElse null
-        val linejoin = props.get("stroke-linejoin") map expression getOrElse null
-        val miterLimit = props.get("stroke-miterlimit") getOrElse null
-        val opacity = props.get("stroke-opacity") map scale getOrElse null
-        val width = props.get("stroke-width") map length
-        val strokeRepeat = props.get("stroke-repeat") map keyword getOrElse "repeat"
+        val dashArray = props.get("stroke-dasharray") map lengthArray
+        val dashOffset = props.get("stroke-dashoffset") flatMap length
+        val linecap = props.get("stroke-linecap") flatMap expression
+        val linejoin = props.get("stroke-linejoin") flatMap expression
+        val miterLimit = props.get("stroke-miterlimit")
+        val opacity = props.get("stroke-opacity") flatMap scale
+        val width = props.get("stroke-width") flatMap length
+        val strokeRepeat = props.get("stroke-repeat") flatMap keyword getOrElse "repeat"
         val rotation = props.get("stroke-rotation") map angle getOrElse filters.literal(0)
         val geom = 
-          props.get("stroke-geometry") orElse props.get("geometry") map expression getOrElse null
+          props.get("stroke-geometry") orElse props.get("geometry") flatMap expression
         val zIndex: Double = 
-          props.get("stroke-z-index") orElse props.get("z-index") map {
-            x => keyword("0", x).toDouble
-          } getOrElse(0d)
+          props.get("stroke-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
 
         val graphic = buildGraphic("stroke", props, markProps)
 
@@ -361,19 +365,19 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val sym = 
           styles.createLineSymbolizer(
             styles.createStroke(
-              stroke,
+              stroke.orNull,
               width.getOrElse(filters.literal(1)),
-              opacity,
-              linejoin,
-              linecap,
-              dashArray,
-              dashOffset,
-              graphicFill getOrElse(null),
-              graphicStroke getOrElse(null)
+              opacity.orNull,
+              linejoin.orNull,
+              linecap.orNull,
+              dashArray.orNull,
+              dashOffset.orNull,
+              graphicFill.orNull,
+              graphicStroke.orNull
             ),
             null
           )
-        sym.setGeometry(geom)
+        geom.foreach { sym.setGeometry }
         (zIndex, sym)
       }
 
@@ -384,27 +388,25 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val fillParams = fill(props("fill"))
         val size = props.get("fill-size") map length
         val rotation = props.get("fill-rotation") map angle
-        val opacity = props.get("fill-opacity") map scale getOrElse null
+        val opacity = props.get("fill-opacity") flatMap scale
         val geom =
-          props.get("fill-geometry") orElse props.get("geometry") map expression getOrElse null
+          props.get("fill-geometry") orElse props.get("geometry") flatMap expression
         val zIndex: Double = 
-          props.get("fill-z-index") orElse props.get("z-index") map {
-            x => keyword("0", x).toDouble
-          } getOrElse(0d)
+          props.get("fill-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
 
         val graphic = buildGraphic("fill", props, markProps) 
 
         val sym = styles.createPolygonSymbolizer(
           null,
           styles.createFill(
-            fillParams._3,
+            fillParams._3.orNull,
             null,
-            opacity,
-            graphic getOrElse(null)
+            opacity.orNull,
+            graphic.orNull
           ),
           null
         )
-        sym.setGeometry(geom)
+        geom.foreach { sym.setGeometry(_) }
         (zIndex, sym)
       }
 
@@ -413,17 +415,15 @@ class Translator(val baseURL: Option[java.net.URL]) {
        (Stream.from(1) map { orderedMarkRules("mark", _) })
       ).flatMap { case (props, markProps) => 
         val geom = (props.get("mark-geometry") orElse props.get("geometry"))
-          .map(expression).getOrElse(null)
+          .flatMap(expression)
         val zIndex: Double = 
-          props.get("mark-z-index") orElse props.get("z-index") map {
-            x => keyword(x).toDouble
-          } getOrElse(0d)
+          props.get("mark-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
 
         val graphic = buildGraphic("mark", props, markProps)
 
         for (g <- graphic) yield {
           val sym = styles.createPointSymbolizer(g, null)
-          sym.setGeometry(geom)
+          geom.foreach { sym.setGeometry(_) }
           (zIndex, sym)
         }
       }
@@ -434,24 +434,22 @@ class Translator(val baseURL: Option[java.net.URL]) {
       ).map { case (props, shieldProps) => 
         val fillParams = props.get("font-fill").map(fill)
         val fontFamily = props.get("font-family")
-        val fontOpacity = props.get("font-opacity").map(scale)
-        val anchorPoint = props.get("label-anchor").map(anchor)
+        val fontOpacity = props.get("font-opacity").flatMap(scale)
+        val anchorPoint = props.get("label-anchor").flatMap(anchor)
         val offset = props.get("label-offset").map(displacement)
-        val rotation = props.get("label-rotation").map(angle)
+        val rotation = props.get("label-rotation").flatMap(angle)
         val geom = (props.get("label-geometry") orElse props.get("geometry"))
-          .map(expression).getOrElse(null)
+          .flatMap(expression)
         val zIndex: Double = 
-          props.get("label-z-index") orElse props.get("z-index") map {
-            x => keyword("0", x).toDouble
-          } getOrElse(0d)
+          props.get("label-z-index") orElse props.get("z-index") flatMap(getZIndex) getOrElse 0d
 
-        val font = fontFamily.getOrElse(Nil).map { familyName => {
+        val font = fontFamily.getOrElse(Nil).flatMap(valToExpression).map { familyName => {
           val fontStyle =
-            props.get("font-style").map(expression).getOrElse(filters.literal("normal"))
+            props.get("font-style").flatMap(expression).getOrElse(filters.literal("normal"))
           val fontWeight =
-            props.get("font-weight").map(expression).getOrElse(filters.literal("normal"))
+            props.get("font-weight").flatMap(expression).getOrElse(filters.literal("normal"))
           val fontSize =
-            props.get("font-size").map(length).getOrElse(filters.literal("10"))
+            props.get("font-size").flatMap(length).getOrElse(filters.literal("10"))
           styles.createFont(familyName, fontStyle, fontWeight, fontSize)
         }}.toArray
 
@@ -463,27 +461,26 @@ class Translator(val baseURL: Option[java.net.URL]) {
             Nil // yeah we're not going to support well-known marks for font fills yet.
           )
           val externalGraphic =
-            buildExternalGraphic(fillParams._1, props.get("fill-mime").map(keyword))
-          if (mark != null || externalGraphic != null) {
+            buildExternalGraphic(fillParams._1, props.get("fill-mime").flatMap(keyword))
+          if (mark.isDefined || externalGraphic != null) {
             styles.createGraphic(
-              externalGraphic,
-              mark,
+              externalGraphic.orNull,
+              mark.orNull,
               null,
               null,
               null,
               null
             )
           } else null
-        }).getOrElse(null)
+        }).orNull
 
-        val haloRadius = props.get("halo-radius").map(length)
+        val haloRadius = props.get("halo-radius").flatMap(length)
 
         val halo = if (haloRadius.isDefined) {
-          val haloColor = props.get("halo-color")
-            .map(x => color(x.head)).getOrElse(null)
-          val haloOpacity = props.get("halo-opacity").map(scale).getOrElse(null)
+          val haloColor = props.get("halo-color").map(x => color(x.head))
+          val haloOpacity = props.get("halo-opacity").flatMap(scale)
           styles.createHalo(
-            styles.createFill(haloColor, haloOpacity),
+            styles.createFill(haloColor.orNull, haloOpacity.orNull),
             haloRadius.get
           )
         } else null
@@ -495,8 +492,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
             None
 
         val placement = offset match {
-          case Some(Seq(d)) => styles.createLinePlacement(d)
-          case Some(Seq(x, y)) =>
+          case Some(Seq(Some(d))) => styles.createLinePlacement(d)
+          case Some(Seq(Some(x), Some(y))) =>
             styles.createPointPlacement(
               anchorPoint.getOrElse(styles.getDefaultPointPlacement().getAnchorPoint()),
               styles.createDisplacement(x, y),
@@ -506,14 +503,14 @@ class Translator(val baseURL: Option[java.net.URL]) {
         }
 
         val sym = styles.createTextSymbolizer(
-          styles.createFill(fillParams.map(_._3).getOrElse(null), null, fontOpacity.getOrElse(null), fontFill),
+          styles.createFill(fillParams.flatMap(_._3).orNull, null, fontOpacity.getOrElse(null), fontFill),
           font,
           halo,
           concatenatedExpression(props("label")),
           placement,
           null  //the geometry, but only as a string. the setter accepts an expression so we use that instead
         )
-        sym.setGeometry(geom)
+        geom.foreach { sym.setGeometry(_) }
 
         // Looks like, depending on GeoTools configuration, this might not be
         // the sort of Symbolizer which supports graphics. Let's at least not
@@ -521,7 +518,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         // TODO: see if there's a nicer way to deal with this that
         shield.foreach { sym.asInstanceOf[TextSymbolizer2].setGraphic(_) }
 
-        for (priority <- props.get("-gt-label-priority") map expression) {
+        for (priority <- props.get("-gt-label-priority") flatMap expression) {
           sym.setPriority(priority)
         }
 
