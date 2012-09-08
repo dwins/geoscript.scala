@@ -608,7 +608,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
   def interpret(s: StyleSheet): Seq[(ZIndex, Rule, Seq[Symbolizer])] = 
     for {
-      r <- cascading2exclusive(s)
+      r <- s
       (z, syms) <- groupByZ(symbolize(r))
     } yield (z, r, syms)
 
