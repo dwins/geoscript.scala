@@ -295,7 +295,7 @@ object CssOps {
     val ShortHex = """#?([a-fA-F0-9]{3})""".r
     val LongHex = """#?([a-fA-F0-9]{6})""".r
 
-    def unapply(value: Value): Option[String] = value match {
+    def unapply(value: Value): Option[ogc.expression.Expression] = value match {
       case Function("rgb", Seq(Literal(r), Literal(g), Literal(b))) =>
         val channels = Seq(r, g, b)
         val hex = "#%02x%02x%02x"
@@ -308,20 +308,21 @@ object CssOps {
         def dbl(x: String) = round(x.toFloat * 255f)
 
         if (channels.forall(validInt)) {
-          Some(hex.format(r.toInt, g.toInt, b.toInt))
+          Some(filters.literal(hex.format(r.toInt, g.toInt, b.toInt)))
         } else if (channels.forall(validDouble)) {
-          Some(hex.format(dbl(r), dbl(g), dbl(b)))
+          Some(filters.literal(hex.format(dbl(r), dbl(g), dbl(b))))
         } else {
           None
         }
       case Literal(LongHex(hex)) =>
-        Some("#" + hex)
+        Some(filters.literal("#" + hex))
       case Literal(ShortHex(hex)) =>
-        Some(hex.map(x => "" + x + x).mkString("#", "", ""))
+        val chars = hex.flatMap(Seq.fill(2)(_)).mkString("#", "", "")
+        Some(filters.literal(chars))
       case Literal(name) =>
-        colors.get(name)
-      case _ =>
-        None
+        colors.get(name).map(filters.literal(_))
+      case v =>
+        valueToExpression(v)
     }
   }
 

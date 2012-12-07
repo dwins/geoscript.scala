@@ -14,6 +14,12 @@ package object geocss {
       case sel => Seq(sel)
     }
 
+  def valueToExpression(v: Value): Option[ogc.expression.Expression] =
+    Option(v) collect {
+      case Literal(body) => filters.literal(body)
+      case Expression(cql) => org.geotools.filter.text.ecql.ECQL.toExpression(cql)
+    }
+
   // should produce an OGC filter expressing the constraints in a selector
   // that can be expressed in OGC filters.
   def realize(sel: Selector): Option[ogc.Filter] =

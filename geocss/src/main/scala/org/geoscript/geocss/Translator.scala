@@ -64,13 +64,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
   def fill(xs: Seq[Value]): (Option[String], Option[String], Option[OGCExpression]) = {
     (xs take 2) match {
       case Seq(URL(url), Color(color)) =>
-        (Some(resolve(url)), None, Some(filters.literal(color)))
+        (Some(resolve(url)), None, Some(color))
       case Seq(URL(url)) =>
         (Some(resolve(url)), None, None)
       case Seq(Symbol(sym)) =>
         (None, Some(sym), None)
-      case Seq(Color(color))  =>
-        (None, None, Some(filters.literal(color)))
+      case Seq(Color(color)) =>
+        (None, None, Some(color))
       case _ =>
         (None, None, Some(defaultRGB))
     }
@@ -145,10 +145,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     for { u <- url } 
     yield Array(styles.createExternalGraphic(u, mimetype.getOrElse("image/jpeg")))
 
-  def color(v: Value) = v match {
-    case Color(c) => filters.literal(c)
-    case _ => defaultRGB
-  }
+  def color(v: Value) = Color.unapply(v).getOrElse(defaultRGB) 
 
   def angle(xs: Seq[Value]): Option[OGCExpression] =
     xs match {
