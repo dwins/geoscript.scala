@@ -11,6 +11,7 @@ import org.geotools.styling.{
   LineSymbolizer,
   PointSymbolizer,
   PolygonSymbolizer,
+  RasterSymbolizer,
   Symbolizer,
   TextSymbolizer,
   TextSymbolizer2,
@@ -229,6 +230,27 @@ class Translator(val baseURL: Option[java.net.URL]) {
       case Literal(body) => Some(body.toFloat)
       case _ => None
     }).toArray
+  }
+
+  def channelSelection(xs: Seq[Value]): gt.ChannelSelection = {
+    object Channel {
+      def unapply(v: Value): Option[gt.SelectedChannelType] = 
+        v match {
+          case Literal("auto") => None
+          case Literal(text) => 
+            Some(styles.createSelectedChannelType(
+              text, null: gt.ContrastEnhancement))
+          case _ => None
+        }
+    }
+
+    val channels = 
+      Some(xs) collect {
+        case Seq(Channel(grey)) => Array(grey)
+        case Seq(Channel(r), Channel(g), Channel(b)) => Array(r, g, b)
+      }
+
+    channels.map(styles.createChannelSelection).orNull // TODO: return Option[ChannelSelection] instead.
   }
 
   implicit def stringToFilter(literal: String): org.opengis.filter.Filter = {
@@ -532,7 +554,42 @@ class Translator(val baseURL: Option[java.net.URL]) {
         (zIndex, sym)
       }
 
-    Seq(polySyms, lineSyms, pointSyms, textSyms).flatten
+    val rasterSyms: Seq[(Double, RasterSymbolizer)] =
+      (expand(properties, "raster-channels").toStream zip
+       (Stream.from(1) map { orderedMarkRules("outline", _) })
+      ).map { case (props, outlineProps) =>
+        val geom = 
+          (props get "raster-geometry")
+            .orElse(props get "geometry")
+            .flatMap(expression)
+        val opacity = (null: OGCExpression)
+        val channels =
+          (props get "raster-channels") map channelSelection
+        val overlap = (null: OGCExpression)
+        val colorMap = (null: org.geotools.styling.ColorMap)
+        val contrastEnhancement = (null: org.geotools.styling.ContrastEnhancement)
+        val relief = (null: org.geotools.styling.ShadedRelief)
+        val outline = (null: Symbolizer)
+        val zIndex: Double = 
+          (props get "raster-z-index")
+            .orElse(props get "z-index")
+            .flatMap(getZIndex)
+            .getOrElse(0d)
+
+        val sym = styles.createRasterSymbolizer(
+          null, // This should be the geometry property, but it only accepts a string so we use setGeometry() after creation to pass an expression.
+          opacity,
+          channels.orNull,
+          overlap,
+          colorMap,
+          contrastEnhancement,
+          relief,
+          outline)
+        sym.setGeometry(geom.orNull)
+        (zIndex, sym)
+      }
+
+    Seq(polySyms, lineSyms, pointSyms, textSyms, rasterSyms).flatten
   }
 
   type StyleSheet = Seq[Rule]
