@@ -253,6 +253,44 @@ class Translator(val baseURL: Option[java.net.URL]) {
     channels.map(styles.createChannelSelection).orNull // TODO: return Option[ChannelSelection] instead.
   }
 
+  def colorMap(xs: Seq[Value]): Option[gt.ColorMap] = {
+    def mkColorMapEntry(c: OGCExpression, v: Double, o: Double) = {
+      val e = styles.createColorMapEntry
+      e.setColor(c)
+      e.setQuantity(filters.literal(v))
+      e.setOpacity(filters.literal(o))
+      e
+    }
+    def mkColorMap(entries: Seq[gt.ColorMapEntry]) = {
+      val m = styles.createColorMap
+      entries.foreach(m.addColorMapEntry)
+      m
+    }
+    object Double {
+      def unapply(s: String): Option[Double] =
+        try
+          Some(s.toDouble)
+        catch {
+          case (_: NumberFormatException) => None
+        }
+    }
+
+    def tryEntry(v: Value): Option[gt.ColorMapEntry] = 
+      Some(v) collect {
+        case Function("color-map-entry", Seq(Color(c), Literal(Double(v)))) =>
+          mkColorMapEntry(c, v, 1)
+        case Function("color-map-entry", Seq(Color(c), Literal(Double(v)), Literal(Double(o)))) =>
+          mkColorMapEntry(c, v, o)
+      }
+
+    def sequence[A](as: Seq[Option[A]]): Option[Seq[A]] =
+      (as foldRight (Some(Nil): Option[Seq[A]])) {
+        (aOpt, accum) => for (a <- aOpt; res <- accum) yield a +: res
+      }
+
+    sequence(xs map tryEntry).map(mkColorMap)
+  }
+
   implicit def stringToFilter(literal: String): org.opengis.filter.Filter = {
     val cql = literal.substring(1, literal.length - 1)
     org.geotools.filter.text.ecql.ECQL.toFilter(cql)
@@ -566,7 +604,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val channels =
           (props get "raster-channels") map channelSelection
         val overlap = (null: OGCExpression)
-        val colorMap = (null: org.geotools.styling.ColorMap)
+        val colorMapEntries =
+          (props get "raster-color-map") flatMap colorMap
         val contrastEnhancement = (null: org.geotools.styling.ContrastEnhancement)
         val relief = (null: org.geotools.styling.ShadedRelief)
         val outline = (null: Symbolizer)
@@ -581,7 +620,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           opacity,
           channels.orNull,
           overlap,
-          colorMap,
+          colorMapEntries.orNull,
           contrastEnhancement,
           relief,
           outline)
