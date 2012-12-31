@@ -11,11 +11,19 @@ package object feature extends org.geoscript.feature.LowPriorityImplicits {
   type GeoField = org.opengis.feature.`type`.GeometryDescriptor
   type Schema = org.opengis.feature.simple.SimpleFeatureType
 
-  def field(name: String, binding: Class[_]): Field = {
+  def Field(name: String, binding: Class[_]): Field = {
     val builder = new org.geotools.feature.AttributeTypeBuilder
     builder.setName(name)
     builder.setBinding(binding)
     builder.buildDescriptor(name, builder.buildType())
+  }
+
+  def GeoField(name: String, proj: projection.Projection, binding: Class[_]): GeoField = {
+    val builder = new org.geotools.feature.AttributeTypeBuilder
+    builder.setName(name)
+    builder.setBinding(binding)
+    builder.setCRS(proj)
+    builder.buildDescriptor(name, builder.buildGeometryType)
   }
 
   def setSchemaName(name: String, schema: Schema): Schema = {
@@ -26,7 +34,7 @@ package object feature extends org.geoscript.feature.LowPriorityImplicits {
   }
 
   def fromAttributes(attributes: (String, Any)*): Feature = {
-    val fields = attributes.map { case (n, v) => field(n, v.getClass) }
+    val fields = attributes.map { case (n, v) => Field(n, v.getClass) }
     val schema = Schema("internal", fields)
     val builder = new org.geotools.feature.simple.SimpleFeatureBuilder(schema)
     for ((key, value) <- attributes) builder.set(key, value)
@@ -214,6 +222,7 @@ package feature {
   }
 
   class RichGeoField(field: GeoField) {
+    def crs: projection.Projection = field.getType.getCoordinateReferenceSystem
     def withProjection(proj: projection.Projection): GeoField = {
       val builder = new org.geotools.feature.AttributeTypeBuilder
       builder.init(field)

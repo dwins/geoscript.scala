@@ -8,7 +8,7 @@ libraryDependencies <++= gtVersion { v =>
 }
 
 libraryDependencies ++= Seq(
-  "org.scala-tools.testing" %% "scalacheck" % "1.9" % "test",
+  "org.scala-tools.testing" % "scalacheck_2.9.1" % "1.9" % "test",
   "org.scalatest" %% "scalatest" % "1.8" % "test")
 
 initialCommands += """

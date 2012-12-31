@@ -49,7 +49,7 @@ object GML extends Codec[Geometry] {
 
   def decodeFrom(in: java.io.InputStream): Geometry = {
     val configuration = new gml2.GMLConfiguration
-    val parser = new Parser(configuration, in)
-    parser.parse().asInstanceOf[Geometry]
+    val parser = new Parser(configuration)
+    parser.parse(in).asInstanceOf[Geometry]
   }
 }

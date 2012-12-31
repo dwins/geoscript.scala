@@ -17,6 +17,9 @@ package object filter {
 
   def cqlExpression(text: String) // : Expression =
     = gt.filter.text.ecql.ECQL.toExpression(text)
+
+  def intersects(geom: Geometry): Filter =
+    factory.intersects(null, factory.literal(geom))
 }
 
 // trait Filter {

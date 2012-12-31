@@ -1,40 +1,34 @@
 package org.geoscript.example
 
 import org.geoscript._
+import org.geoscript.feature.{ Field, GeoField }
+
 
 object Intersections {
   def process(src: layer.Layer, dest: layer.Layer, joinField: String) {
     println("Processing %s".format(src.schema.name))
 
-    src.withAll { features =>
-      for (feat <- features) {
-        src.withFiltered(filter.Filter.intersects(feat.geometry)) {
-          intersections =>
-
-          dest ++= 
-            intersections.filter(_.id > feat.id).map { corner =>
-              feature.fromAttributes(
-                "geom" -> (feat.geometry intersection corner.geometry),
-                (joinField + "Left") -> feat.get[Any](joinField),
-                (joinField + "Right") -> corner.get[Any](joinField)
-              )
-            }
-        }
-      }
+    for (feat <- src) {
+      val intersecting = src.filtered(filter.intersects(feat.geometry))
+      val intersections =
+        for (corner <- intersecting if corner.id > feat.id) yield
+          feature.fromAttributes(
+            "geom" -> (feat.geometry intersection corner.geometry),
+            (joinField + "Left") -> feat.get[Any](joinField),
+            (joinField + "Right") -> feat.get[Any](joinField))
     }
 
     println("Found %d intersections".format(dest.count))
   }
 
-  import feature.{ Field, Schema, bind }
+  import feature.{ Field, Schema }
   def rewrite(schema: Schema, fieldName: String): Schema = 
     Schema(
       schema.name + "_intersections",
       Seq(
-        bind[geometry.Geometry]("geom",
-          schema.geometry.getCoordinateReferenceSystem),
-        bind[String](fieldName + "Left"),
-        bind[String](fieldName + "Right")))
+        GeoField("geom", schema.geometry.crs, classOf[geometry.Geometry]), // TODO: Just reuse the field instead of building a new one?
+        Field(fieldName + "Left", classOf[String]),
+        Field(fieldName + "Right", classOf[String])))
 
   def main(args: Array[String]) = {
     if (args.length == 0) {

@@ -7,24 +7,6 @@ This guide will help you get up and running with GeoScript Scala.
 Unlike some other GeoScript variants, the Scala variant does not ship a pre-packaged bundle with all dependencies in one download.
 Instead, we recommend using one of the build tools listed below for trying out GeoScript Scala; both provide an interactive interpreter along with the ability to compile and run sources.
 
-Project Template
-================
-
-A project template is available for download from Github.
-If you are a Git user, you can use the following command to clone the template locally::
-
-    $ git clone git://github.com/dwins/geoscript-project-template.git
-
-Alternatively, visit https://github.com/dwins/geoscript-project-template/ to download the template project in ZIP or TAR.GZ format.
-
-This template includes SBT, which will download GeoScript and its dependencies the first time it is run.
-After extracting the archive, use a terminal to change directories into the template project and use::
- 
-  ./sbt console
-
-to fetch GeoScript Scala and launch a Scala console.
-Read on for more information about using SBT.
-
 SBT
 ===
 

@@ -14,7 +14,5 @@ object Shp2Shp extends App {
     }
   )
   val dest = source.workspace.create(destSchema)
-  source.withAll { fs =>
-    dest ++= fs.toIterable
-  }
+  dest ++= source
 }
