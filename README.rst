@@ -30,3 +30,8 @@ Instead of the ``run`` command, you can use ``run-main`` instead.
 It allows you to specify the name of the program to run instead of selecting it interactively, which is more convenient for repeated runs.
 
 Using GeoScript.scala outside of sbt's console is still a work in progress.
+
+License information
+-------------------
+GeoScript.scala is availble under the MIT license.
+See the LICENSE file in this repository for details.
