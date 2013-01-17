@@ -40,7 +40,7 @@ object GeoScript extends Build {
   lazy val css = 
     Project("css", file("geocss"), settings = common)
   lazy val examples = 
-    Project("examples", file("examples"), settings = common) dependsOn(library)
+    Project("examples", file("examples"), settings = common :+ (publish := false)) dependsOn(library)
   lazy val library =
     Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css)
 
