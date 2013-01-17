@@ -7,10 +7,11 @@ object GeoScript extends Build {
   val meta =
     Seq[Setting[_]](
       organization := "org.geoscript",
-      version := "0.7.4",
-      gtVersion := "8.0-RC1",
+      version := "0.7.5",
+      gtVersion := "8.5",
       scalaVersion := "2.9.1", 
-      scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked")
+      scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked"),
+      publishTo := Some(Resolver.file("file", file("release")))
     )
 
   val common = 
@@ -35,7 +36,7 @@ object GeoScript extends Build {
     )
 
   lazy val root =
-    Project("root", file(".")) aggregate(css, /*docs,*/ examples, library)
+    Project("root", file("."), settings = common :+ (publish := false)) aggregate(css, /*docs,*/ examples, library)
   lazy val css = 
     Project("css", file("geocss"), settings = common)
   lazy val examples = 
