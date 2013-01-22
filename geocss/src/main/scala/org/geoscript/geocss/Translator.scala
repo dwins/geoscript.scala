@@ -253,7 +253,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     channels.map(styles.createChannelSelection).orNull // TODO: return Option[ChannelSelection] instead.
   }
 
-  def colorMap(xs: Seq[Value]): Option[gt.ColorMap] = {
+  def colorMap(rampType: Option[Int])(xs: Seq[Value]): Option[gt.ColorMap] = {
     def mkColorMapEntry(c: OGCExpression, v: Double, o: Double) = {
       val e = styles.createColorMapEntry
       e.setColor(c)
@@ -263,6 +263,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
     }
     def mkColorMap(entries: Seq[gt.ColorMapEntry]) = {
       val m = styles.createColorMap
+      rampType.foreach(m.setType)
       entries.foreach(m.addColorMapEntry)
       m
     }
@@ -290,6 +291,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     sequence(xs map tryEntry).map(mkColorMap)
   }
+
+  def mkColorMapType(xs: Seq[Value]): Option[Int] =
+    xs.headOption collect {
+      case Literal("ramp") => org.geotools.styling.ColorMap.TYPE_RAMP
+      case Literal("intervals") => org.geotools.styling.ColorMap.TYPE_INTERVALS
+      case Literal("values") => org.geotools.styling.ColorMap.TYPE_VALUES
+    }
 
   implicit def stringToFilter(literal: String): org.opengis.filter.Filter = {
     val cql = literal.substring(1, literal.length - 1)
@@ -604,8 +612,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val channels =
           (props get "raster-channels") map channelSelection
         val overlap = (null: OGCExpression)
+        val colorMapType = (props get "raster-color-map-type") flatMap mkColorMapType
         val colorMapEntries =
-          (props get "raster-color-map") flatMap colorMap
+          (props get "raster-color-map") flatMap colorMap(colorMapType)
         val contrastEnhancement = (null: org.geotools.styling.ContrastEnhancement)
         val relief = (null: org.geotools.styling.ShadedRelief)
         val outline = (null: Symbolizer)
