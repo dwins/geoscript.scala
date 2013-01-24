@@ -181,12 +181,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
       case _ => None
     }
 
-  def getZIndex(xs: Seq[Value]): Option[Double] =
-    keyword(xs) flatMap { text =>
-      try Some(text.toDouble)
-      catch {
-        case (_: NumberFormatException) => None
-      }
+  def getLiteralDouble(xs: Seq[Value]): Option[Double] =
+    Some(xs) collect {
+      case Seq(Literal(Double(z))) => z
     }
 
   def scale(s: String): Float = {
@@ -253,35 +250,35 @@ class Translator(val baseURL: Option[java.net.URL]) {
     channels.map(styles.createChannelSelection).orNull // TODO: return Option[ChannelSelection] instead.
   }
 
+  object Double {
+    def unapply(s: String): Option[Double] =
+      try
+        Some(s.toDouble)
+      catch {
+        case (_: NumberFormatException) => None
+      }
+  }
+
   def colorMap(rampType: Option[Int])(xs: Seq[Value]): Option[gt.ColorMap] = {
-    def mkColorMapEntry(c: OGCExpression, v: Double, o: Double) = {
+    def getColorMapEntry(c: OGCExpression, v: Double, o: Double) = {
       val e = styles.createColorMapEntry
       e.setColor(c)
       e.setQuantity(filters.literal(v))
       e.setOpacity(filters.literal(o))
       e
     }
-    def mkColorMap(entries: Seq[gt.ColorMapEntry]) = {
+    def getColorMap(entries: Seq[gt.ColorMapEntry]) = {
       val m = styles.createColorMap
       rampType.foreach(m.setType)
       entries.foreach(m.addColorMapEntry)
       m
     }
-    object Double {
-      def unapply(s: String): Option[Double] =
-        try
-          Some(s.toDouble)
-        catch {
-          case (_: NumberFormatException) => None
-        }
-    }
-
     def tryEntry(v: Value): Option[gt.ColorMapEntry] = 
       Some(v) collect {
         case Function("color-map-entry", Seq(Color(c), Literal(Double(v)))) =>
-          mkColorMapEntry(c, v, 1)
+          getColorMapEntry(c, v, 1)
         case Function("color-map-entry", Seq(Color(c), Literal(Double(v)), Literal(Double(o)))) =>
-          mkColorMapEntry(c, v, o)
+          getColorMapEntry(c, v, o)
       }
 
     def sequence[A](as: Seq[Option[A]]): Option[Seq[A]] =
@@ -289,10 +286,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
         (aOpt, accum) => for (a <- aOpt; res <- accum) yield a +: res
       }
 
-    sequence(xs map tryEntry).map(mkColorMap)
+    sequence(xs map tryEntry).map(getColorMap)
   }
 
-  def mkOverlapBehavior(xs: Seq[Value]): Option[org.opengis.style.OverlapBehavior] = {
+  def getOverlapBehavior(xs: Seq[Value]): Option[org.opengis.style.OverlapBehavior] = {
     import scala.util.control.Exception.catching
     xs.headOption flatMap {
       case Literal(name) => 
@@ -303,8 +300,14 @@ class Translator(val baseURL: Option[java.net.URL]) {
     }
   }
 
+  def getContrastMethod(xs: Seq[Value]): Option[org.opengis.style.ContrastMethod] =
+    xs.headOption collect {
+      case Literal("none") => org.opengis.style.ContrastMethod.NONE
+      case Literal("normalize") => org.opengis.style.ContrastMethod.NORMALIZE
+      case Literal("histogram") => org.opengis.style.ContrastMethod.HISTOGRAM
+    }
 
-  def mkColorMapType(xs: Seq[Value]): Option[Int] =
+  def getColorMapType(xs: Seq[Value]): Option[Int] =
     xs.headOption collect {
       case Literal("ramp") => org.geotools.styling.ColorMap.TYPE_RAMP
       case Literal("intervals") => org.geotools.styling.ColorMap.TYPE_INTERVALS
@@ -430,7 +433,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom = 
           props.get("stroke-geometry") orElse props.get("geometry") flatMap expression
         val zIndex: Double = 
-          props.get("stroke-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
+          props.get("stroke-z-index") orElse props.get("z-index") flatMap getLiteralDouble getOrElse(0d)
 
         val graphic = buildGraphic("stroke", props, markProps)
 
@@ -469,7 +472,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom =
           props.get("fill-geometry") orElse props.get("geometry") flatMap expression
         val zIndex: Double = 
-          props.get("fill-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
+          props.get("fill-z-index") orElse props.get("z-index") flatMap getLiteralDouble getOrElse(0d)
 
         val graphic = buildGraphic("fill", props, markProps) 
 
@@ -494,7 +497,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom = (props.get("mark-geometry") orElse props.get("geometry"))
           .flatMap(expression)
         val zIndex: Double = 
-          props.get("mark-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
+          props.get("mark-z-index") orElse props.get("z-index") flatMap getLiteralDouble getOrElse(0d)
 
         val graphic = buildGraphic("mark", props, markProps)
 
@@ -518,7 +521,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom = (props.get("label-geometry") orElse props.get("geometry"))
           .flatMap(expression)
         val zIndex: Double = 
-          props.get("label-z-index") orElse props.get("z-index") flatMap(getZIndex) getOrElse 0d
+          props.get("label-z-index") orElse props.get("z-index") flatMap(getLiteralDouble) getOrElse 0d
 
         val font = fontFamily.getOrElse(Nil).flatMap(valToExpression).map { familyName => {
           val fontStyle =
@@ -620,21 +623,29 @@ class Translator(val baseURL: Option[java.net.URL]) {
           (props get "raster-geometry")
             .orElse(props get "geometry")
             .flatMap(expression)
-        val opacity = (props get "raster-opacity") flatMap expression
+        val opacity =
+          (props get "raster-opacity") flatMap expression
         val channels =
           (props get "raster-channels") map channelSelection
-        val overlap = (props get "overlap-behavior") flatMap mkOverlapBehavior
-        val colorMapType = (props get "raster-color-map-type") flatMap mkColorMapType
+        val overlap = (props get "raster-overlap-behavior") flatMap getOverlapBehavior
+        val colorMapType = (props get "raster-color-map-type") flatMap getColorMapType
         val colorMapEntries =
           (props get "raster-color-map") flatMap colorMap(colorMapType)
-        val contrastEnhancement = (null: org.geotools.styling.ContrastEnhancement)
+        val contrastMethod =
+          (props get "raster-contrast-enhancement") flatMap getContrastMethod
+        val gamma = 
+          (props get "raster-gamma") flatMap getLiteralDouble
         val relief = (null: org.geotools.styling.ShadedRelief)
         val outline = (null: Symbolizer)
         val zIndex: Double = 
           (props get "raster-z-index")
             .orElse(props get "z-index")
-            .flatMap(getZIndex)
+            .flatMap(getLiteralDouble)
             .getOrElse(0d)
+
+        val contrastEnhancement = styles.createContrastEnhancement()
+        contrastMethod.foreach(contrastEnhancement.setMethod)
+        gamma.foreach(g => contrastEnhancement.setGammaValue(filters.literal(g)))
 
         val sym = styles.createRasterSymbolizer(
           null, // This should be the geometry property, but it only accepts a string so we use setGeometry() after creation to pass an expression.
