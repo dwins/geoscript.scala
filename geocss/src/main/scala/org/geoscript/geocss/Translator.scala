@@ -292,6 +292,18 @@ class Translator(val baseURL: Option[java.net.URL]) {
     sequence(xs map tryEntry).map(mkColorMap)
   }
 
+  def mkOverlapBehavior(xs: Seq[Value]): Option[org.opengis.style.OverlapBehavior] = {
+    import scala.util.control.Exception.catching
+    xs.headOption flatMap {
+      case Literal(name) => 
+        catching(classOf[IllegalArgumentException]).opt {
+          org.opengis.style.OverlapBehavior.valueOf(name)
+        }
+      case _ => None
+    }
+  }
+
+
   def mkColorMapType(xs: Seq[Value]): Option[Int] =
     xs.headOption collect {
       case Literal("ramp") => org.geotools.styling.ColorMap.TYPE_RAMP
@@ -608,10 +620,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
           (props get "raster-geometry")
             .orElse(props get "geometry")
             .flatMap(expression)
-        val opacity = (null: OGCExpression)
+        val opacity = (props get "raster-opacity") flatMap expression
         val channels =
           (props get "raster-channels") map channelSelection
-        val overlap = (null: OGCExpression)
+        val overlap = (props get "overlap-behavior") flatMap mkOverlapBehavior
         val colorMapType = (props get "raster-color-map-type") flatMap mkColorMapType
         val colorMapEntries =
           (props get "raster-color-map") flatMap colorMap(colorMapType)
@@ -626,9 +638,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
         val sym = styles.createRasterSymbolizer(
           null, // This should be the geometry property, but it only accepts a string so we use setGeometry() after creation to pass an expression.
-          opacity,
+          opacity.orNull,
           channels.orNull,
-          overlap,
+          overlap.map(filters.literal).orNull,
           colorMapEntries.orNull,
           contrastEnhancement,
           relief,
