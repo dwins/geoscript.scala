@@ -15,8 +15,8 @@ class SerializationSpec extends FunSuite with ShouldMatchers {
 
   test("round-trip linestrings") {
     val ls = LineString((100, 0), (101, 1))
-    io.GeoJSON.write(ls, Sink.string) should be
-      ("""{"type":"LineString","coordinates":[[100,0.0],[101,1]]}""")
+    io.GeoJSON.write(ls, Sink.string) should be (
+      """{"type":"LineString","coordinates":[[100,0.0],[101,1]]}""")
   }
 
   test("round-trip polygons") {

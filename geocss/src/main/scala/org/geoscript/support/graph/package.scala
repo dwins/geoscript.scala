@@ -62,7 +62,7 @@ package object graph {
       (results: Set[Set[V]], accum: Set[V], cliques: Seq[Set[V]])
       : Set[Set[V]]
     = {
-      if (cliques isEmpty)
+      if (cliques.isEmpty)
         results + accum
       else {
         val clique = cliques.head

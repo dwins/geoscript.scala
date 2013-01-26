@@ -32,7 +32,7 @@ class KnowledgeSpecification extends PropSpec with Checkers {
   = {
     require(atomsIn(s) subsetOf atoms)
 
-    val allFalse = (atoms map (_ -> false) toMap)
+    val allFalse = (atoms zip Stream.continually(false)).toMap
     val assignments = 
       for (subset <- atoms.subsets) yield
         allFalse ++ (subset map (_ -> true))

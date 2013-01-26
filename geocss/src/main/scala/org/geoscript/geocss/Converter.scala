@@ -65,7 +65,7 @@ object Converter {
     filenames.foreach { x =>
       val in = new File(x)
       val url = in.toURI.toURL
-      if (in exists) {
+      if (in.exists) {
         val styleSheet = CssParser.parse(new FileInputStream(in))
         val out = target(in, suffix)
         styleSheet match {

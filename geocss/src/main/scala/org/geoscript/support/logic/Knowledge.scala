@@ -53,7 +53,7 @@ object Knowledge {
   }
 
   private class Alternatives[S : Sentential](worlds: Seq[Knowledge[S]]) extends Impl[S] {
-    require(worlds forall(Absurdity !=),
+    require(worlds forall(Absurdity != _),
       "Alternatives should not be created with Absurdity as a possible world")
 
     def given(p: S): Knowledge[S] =
@@ -137,7 +137,7 @@ object Knowledge {
   }
 
   private def possibleWorlds[S : Sentential](ws: Seq[Knowledge[S]]): Knowledge[S] =
-    (ws filter(Absurdity !=)) match {
+    (ws filter(Absurdity != _)) match {
       case Seq() => Absurdity
       case Seq(w) => w
       case ws => new Alternatives(ws)

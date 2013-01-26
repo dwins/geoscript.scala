@@ -143,7 +143,7 @@ class RichEnvelope(envelope: jts.Envelope) {
       maxX = minX + cellWidth
       maxY = minY + cellHeight
     } yield Envelope(minX, minY, maxX, maxY)
-  } toIterable
+  }.toIterable
 
   def ** (that: Envelope): Envelope = {
     val clone = new Envelope(envelope)

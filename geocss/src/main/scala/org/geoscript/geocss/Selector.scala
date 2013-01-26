@@ -303,7 +303,7 @@ case class And(children: Seq[Selector]) extends Selector {
         if (operands contains Filter.EXCLUDE) {
           Filter.EXCLUDE
         } else {
-          operands.filter(Filter.INCLUDE !=) match {
+          operands.filter(Filter.INCLUDE != _) match {
             case Seq() => Filter.INCLUDE
             case Seq(f) => f
             case fs => filters.and(fs)
@@ -326,7 +326,7 @@ case class Or(children: Seq[Selector]) extends Selector {
         if (operands.exists {_ == Filter.INCLUDE}) {
           Filter.INCLUDE
         } else {
-          val parts = operands.partition(Filter.EXCLUDE==)
+          val parts = operands.partition(Filter.EXCLUDE == _)
           parts._2 match {
             case Seq() if (parts._1.isEmpty) => Filter.INCLUDE
             case Seq() => Filter.EXCLUDE

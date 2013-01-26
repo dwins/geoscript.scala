@@ -74,7 +74,7 @@ object Projection {
       try {
         CRS.decode(s)
       } catch {
-        case _ => CRS.parseWKT(s)
+        case (_: org.opengis.referencing.FactoryException) => CRS.parseWKT(s)
       }
     )
 

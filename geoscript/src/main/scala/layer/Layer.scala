@@ -88,7 +88,7 @@ trait Layer {
       }
       tx.commit()
     } catch {
-      case ex =>
+      case (ex: java.io.IOException) =>
         tx.rollback()
         throw ex
     } finally {
@@ -101,7 +101,7 @@ trait Layer {
 
   def --= (features: Traversable[Feature]) {
     exclude(Filter.or(
-      features.toSeq filter { null != } map { f =>  Filter.id(Seq(f.id)) }
+      features.toSeq filter { null !=  _ } map { f => Filter.id(Seq(f.id)) }
     ))
   }
 
@@ -122,7 +122,7 @@ trait Layer {
       case filter => store.getFeatureWriter(name, filter.underlying, tx)
     }
 
-    while (writer hasNext) {
+    while (writer.hasNext) {
       val existing = writer.next()
       replace(Feature(existing)).writeTo(existing)
       writer.write()

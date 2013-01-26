@@ -231,10 +231,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
     }).toArray
   }
 
-  implicit def stringToFilter(literal: String): org.opengis.filter.Filter = {
-    val cql = literal.substring(1, literal.length - 1)
-    org.geotools.filter.text.ecql.ECQL.toFilter(cql)
-  }
+  // implicit def stringToFilter(literal: String): org.opengis.filter.Filter = {
+  //   val cql = literal.substring(1, literal.length - 1)
+  //   org.geotools.filter.text.ecql.ECQL.toFilter(cql)
+  // }
 
   def valToExpression(v: Value): Option[OGCExpression] =
     v match {
@@ -658,7 +658,11 @@ class Translator(val baseURL: Option[java.net.URL]) {
   : Seq[(Double, Seq[(R, Seq[S])])]
   = {
     val zFlattened = zGroups map { case (z, r, s) => (z, (r, s)) }
-    (zFlattened groupBy(_._1) mapValues(_ map (_._2)) toSeq).sortBy(_._1)
+    zFlattened
+      .groupBy(_._1)
+      .mapValues(_ map (_._2))
+      .toSeq
+      .sortBy(_._1)
   }
 
 
@@ -739,14 +743,14 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val negate = (x: Rule) =>
       x.copy(selectors = Seq(Not(And(x.selectors))))
     val include = (in: Set[Rule]) =>
-      if (in isEmpty) ExclusiveRule else (xs.view filter(in) reduceLeft(merge))
+      if (in.isEmpty) ExclusiveRule else (xs.view filter(in) reduceLeft(merge))
     val exclude = (xs: Seq[Rule]) =>
       xs.map { r => Not(And(r.selectors)) }
 
     val rulesets = 
       for {
         combo <- combinations
-        remainder = xs filterNot(combo contains)
+        remainder = xs filterNot(combo contains _)
         included = include(combo)
         excluded = exclude(remainder)
         constrained = constrain(included, excluded)

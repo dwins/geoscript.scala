@@ -42,7 +42,6 @@ object Interval {
   def intersection[T](a: Interval[T], b: Interval[T])(implicit evidence: Ordering[T])
   : Interval[T] =
     (a, b) match {
-      case (`empty`, _) | (_, `empty`) => Empty
       case (NonEmpty(aMin, aMax), NonEmpty(bMin, bMax)) => 
         val min = 
           (for (x <- aMin; y <- bMin) yield join(evidence.gt _)(x, y)) orElse
@@ -63,6 +62,7 @@ object Interval {
           Empty
         else
           NonEmpty(min, max)
+      case _ => Empty
     }
 
   case class NonEmpty[T](min: Option[Cap[T]], max: Option[Cap[T]])(implicit evidence: Ordering[T]) extends Interval[T] {

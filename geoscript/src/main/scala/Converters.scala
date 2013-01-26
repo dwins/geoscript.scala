@@ -1,3 +1,4 @@
+import scala.language.implicitConversions
 package org { 
   package object geoscript {
     import geometry._

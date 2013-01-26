@@ -81,7 +81,7 @@ object Schema {
       def fields: Seq[Field] = { 
         var buffer = new collection.mutable.ArrayBuffer[Field]
         val descriptors = wrapped.getAttributeDescriptors().iterator()
-        while (descriptors hasNext) { buffer += Field(descriptors.next) }
+        while (descriptors.hasNext) { buffer += Field(descriptors.next) }
         buffer.toSeq
       }
 
@@ -304,7 +304,7 @@ class FeatureCollection(
   override def foreach[U](op: Feature => U) {
     val iter = wrapped.getFeatures().features()
     try
-      while (iter hasNext) op(Feature(iter.next))
+      while (iter.hasNext) op(Feature(iter.next))
     finally
       iter.close()
   }

@@ -36,12 +36,12 @@ class FilterTest extends FunSuite with ShouldMatchers with OptionValues {
 
   def intersection(f: Filter, g: Filter): Option[Filter] = {
     val and = FiltersAreSentential.and(f, g)
-    Option(reduce(and)).filter(and !=)
+    Option(reduce(and)).filter(and != _)
   }
 
   def union(f: Filter, g: Filter): Option[Filter] = {
     val or = FiltersAreSentential.or(f, g)
-    Some(reduce(or)).filter(or !=)
+    Some(reduce(or)).filter(or != _)
   }
 
   def constrain(f: Filter, g: Filter): Filter = {

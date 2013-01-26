@@ -55,7 +55,7 @@ object GeoHash {
   def decodeBounds(hash: String): geometry.Envelope = {
     val bits = hash.flatMap {(x: Char) => 
       val bitString = characters.indexOf(x).toBinaryString
-      ("00000".substring(0, 5 - bitString.length) + bitString).map('1' ==)
+      ("00000".substring(0, 5 - bitString.length) + bitString).map('1' == _)
     }
 
     val (lonBits, latBits) = separate(bits.toStream)
@@ -83,10 +83,10 @@ object GeoHash {
    * Untangle the elements of streams combined using alternate()
    */
   private def separate[A](combined: Stream[A]): (Stream[A], Stream[A]) =
-    if (combined isEmpty) {
+    if (combined.isEmpty) {
       (Stream.empty, Stream.empty) 
     } else {
-      val (xs, ys) = separate(combined tail)
+      val (xs, ys) = separate(combined.tail)
       (cons(combined.head, ys), xs)
     }
 
@@ -118,7 +118,7 @@ object GeoHash {
   {
     lazy val mid = (min + max) / 2
 
-    if (bits isEmpty)   (min, max)
+    if (bits.isEmpty)   (min, max)
     else if (bits.head) range(bits.tail, mid, max) 
     else                range(bits.tail, min, mid)
   }
