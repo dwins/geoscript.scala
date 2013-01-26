@@ -9,7 +9,7 @@ object GeoScript extends Build {
       organization := "org.geoscript",
       version := "0.7.6-SNAPSHOT",
       gtVersion := "8.5",
-      scalaVersion := "2.9.1", 
+      scalaVersion := "2.10.0", 
       scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked"),
       publishTo := Some(Resolver.file("file", file("release")))
     )

@@ -20,6 +20,6 @@ libraryDependencies <++= gtVersion { v =>
 libraryDependencies ++= 
   Seq(
     "javax.media" % "jai_core" % "1.1.3",
-    "org.scalatest" %% "scalatest" % "1.8" % "test",
+    "org.scalatest" %% "scalatest" % "1.9.1" % "test",
     "com.lowagie" % "itext" % "2.1.5"
   )
