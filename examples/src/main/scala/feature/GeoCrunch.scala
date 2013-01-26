@@ -23,23 +23,14 @@ trait GeoCrunch {
     shp.createNewDataStore(map)
   }
 
-  def create(params: Map[String, Serializable]): DataStore = {
-    var map = new java.util.HashMap[String, Object]
-    for ((key, value) <- params) map.put(key, value)
-    shp.createNewDataStore(map)
-  }
+  def create(params: Map[String, Serializable]): DataStore =
+    shp.createNewDataStore(params: Map[_, _]);
 
-  def connect(params: (String, Object)*): DataStore = {
-    var map = new java.util.HashMap[String,Object]
-    for ((key, value) <- params) map.put(key, value)
-    DataStoreFinder.getDataStore(map)
-  }
+  def connect(params: (String, Serializable)*): DataStore =
+    DataStoreFinder.getDataStore(params.toMap: Map[_, _])
 
-  def connect(params: Map[String,Serializable]): DataStore = {
-    var map = new java.util.HashMap[String,Object]
-    for ((key, value) <- params) map.put(key, value)
-    DataStoreFinder.getDataStore(map)
-  }
+  def connect(params: Map[String,Serializable]): DataStore =
+    DataStoreFinder.getDataStore(params: Map[_, _])
 
   def foreach[T <: ogc.feature.`type`.FeatureType, F <: ogc.feature.Feature](
     fc: gt.FeatureCollection[T,F]
