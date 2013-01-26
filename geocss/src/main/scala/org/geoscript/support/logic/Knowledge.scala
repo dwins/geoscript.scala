@@ -41,13 +41,13 @@ object Knowledge {
 
   private val absurdity: Knowledge[Any] = new Knowledge[Any] {
     def given(p: Any) =
-      sys.error("Tried to add givens to an already inconsistent set")
+      throw new AssertionError("Tried to add givens to an already inconsistent set")
 
     def satisfiabilityOf(p: Any) =
-      sys.error("Tried to determine satisfiability with inconsistent givens")
+      throw new AssertionError("Tried to determine satisfiability with inconsistent givens")
 
     override def reduce(p: Any) =
-      sys.error("Tried to reduce with inconsistent givens")
+      throw new AssertionError("Tried to reduce with inconsistent givens")
 
     override def toString = "Absurdity"
   }

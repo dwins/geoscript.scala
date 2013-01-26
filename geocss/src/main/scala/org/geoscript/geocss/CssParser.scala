@@ -24,8 +24,9 @@ object CssParser extends RegexParsers {
         try {
           ECQL.toExpression(exp); true
         } catch {
-          case _ => false
+          case (_: org.geotools.filter.text.cql2.CQLException) => false
         }
+
     }
 
   private val expressionSelectorPartial =

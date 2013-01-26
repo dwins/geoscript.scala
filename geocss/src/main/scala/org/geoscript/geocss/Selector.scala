@@ -47,7 +47,7 @@ object Selector {
           try {
             given(f).reduce(g) == ogc.Filter.INCLUDE
           } catch {
-            case _ => 
+            case (_: AssertionError) => 
               val tpl = "Tried to reduce with inconsistent givens: \n%s\n%s"
               sys.error(tpl format(f, g))
           }
@@ -75,7 +75,7 @@ object Selector {
           try {
             given(f).reduce(g) != ogc.Filter.EXCLUDE
           } catch {
-            case _ => 
+            case (_: AssertionError) => 
               val tpl = "Tried to reduce with inconsistent givens: \n%s\n%s"
               sys.error(tpl format(f, g))
           }

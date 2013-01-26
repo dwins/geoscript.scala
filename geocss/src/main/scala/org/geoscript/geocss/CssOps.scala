@@ -251,8 +251,6 @@ object CssOps {
     def apply(x: Selector): Specificity = x match {
       case (_: Typename) => Specificity(0, 0, 1)
       case (_: PseudoSelector) => Specificity(0, 1, 0)
-      case (_: ParameterizedPseudoClass) => Specificity(0, 0, 2)
-      case (_: PseudoClass) => Specificity(0, 0, 1)
       case (_: Id) => Specificity(1, 0, 0)
       case And(children) => (children map apply).fold(Zero) { _ + _ }
       case Or(children) => children.map(apply).max
@@ -295,15 +293,27 @@ object CssOps {
     val ShortHex = """#?([a-fA-F0-9]{3})""".r
     val LongHex = """#?([a-fA-F0-9]{6})""".r
 
+    import scala.util.control.Exception.catching
+
     def unapply(value: Value): Option[ogc.expression.Expression] = value match {
       case Function("rgb", Seq(Literal(r), Literal(g), Literal(b))) =>
         val channels = Seq(r, g, b)
         val hex = "#%02x%02x%02x"
         def validInt(x: String) =
-          try { x.toInt; true } catch { case _ => false }
+          try {
+            x.toInt
+            true
+          } catch {
+            case (_: NumberFormatException) => false
+          }
 
         def validDouble(x: String) =
-          try { x.toDouble; true } catch { case _ => false }
+          try {
+            x.toDouble
+            true
+          } catch {
+            case (_: NumberFormatException) => false
+          }
 
         def dbl(x: String) = round(x.toFloat * 255f)
 
