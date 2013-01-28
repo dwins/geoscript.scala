@@ -151,7 +151,7 @@ object Field {
     new GeoField {
       def name = wrapped.getLocalName
       override def gtBinding = wrapped.getType.getBinding
-      def projection = Projection(wrapped.getCoordinateReferenceSystem())
+      def projection = wrapped.getCoordinateReferenceSystem()
     }
 
   /**
