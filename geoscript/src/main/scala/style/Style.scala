@@ -182,7 +182,6 @@ case class Color(rgb: String) extends Paint {
       null,
       filter.literal(rgb),
       Option(opacity)
-        .map(_.underlying)
         .getOrElse(filter.literal(1))
     )
   }
@@ -270,9 +269,9 @@ case class Symbol(
   shape: Expression,
   fill: Fill = null,
   stroke: Stroke = null,
-  size: Expression = 16,
-  rotation: Expression = 0,
-  opacity: Expression = 1,
+  size: Expression = literal(16),
+  rotation: Expression = literal(0),
+  opacity: Expression = literal(1),
   zIndex: Double = 0
 ) extends SimpleStyle with Paint {
   val filter = None
@@ -358,9 +357,9 @@ case class Symbol(
 
 case class Graphic(
   url: String,
-  opacity: Expression = 1,
-  size: Expression = 16,
-  rotation: Expression = 0,
+  opacity: Expression = literal(1),
+  size: Expression = literal(16),
+  rotation: Expression = literal(0),
   zIndex: Double = 0
 ) extends SimpleStyle with Paint {
   private val factory =
