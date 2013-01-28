@@ -54,7 +54,7 @@ trait Layer {
    * Get a filtered feature collection.
    */
   def filter(pred: Filter): FeatureCollection = {
-    new FeatureCollection(source, new gt.data.Query(name, pred.underlying))
+    new FeatureCollection(source, new gt.data.Query(name, pred))
   }
 
   /**
@@ -108,18 +108,18 @@ trait Layer {
   def exclude(filter: Filter) { 
     store.getFeatureSource(name)
       .asInstanceOf[gt.data.FeatureStore[SimpleFeatureType, SimpleFeature]]
-      .removeFeatures(filter.underlying) 
+      .removeFeatures(filter) 
   }
 
   def update(replace: Feature => Feature) {
-    update(Filter.Include)(replace)
+    update(Include)(replace)
   }
 
   def update(filter: Filter)(replace: Feature => Feature) {
     val tx = new gt.data.DefaultTransaction
     val writer = filter match {
-      case Filter.Include => store.getFeatureWriter(name, tx)
-      case filter => store.getFeatureWriter(name, filter.underlying, tx)
+      case Include => store.getFeatureWriter(name, tx)
+      case filter => store.getFeatureWriter(name, filter, tx)
     }
 
     while (writer.hasNext) {
