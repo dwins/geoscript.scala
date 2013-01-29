@@ -35,7 +35,11 @@ trait Layer {
   /** 
    * Retrieve a GeoTools feature source for this layer.
    */
-  def source = store.getFeatureSource(name)
+  def source: 
+    org.geotools.data.FeatureSource[
+      org.opengis.feature.simple.SimpleFeatureType,
+      org.opengis.feature.simple.SimpleFeature]
+    = store.getFeatureSource(name)
 
   /** 
    * The Schema describing this layer's contents.

@@ -9,7 +9,7 @@ import scala.collection.JavaConversions._
 
 private class MapWidget extends swing.Component {
   var viewport = new ReferencedEnvelope(-180, -90, 180, 90, projection.Projection("EPSG:4326"))
-  var layers: Seq[SpatialRenderable] = Nil
+  var layers: Seq[MapLayer] = Nil
 
   override def paint(graphics: swing.Graphics2D) = {
     locally { import RenderingHints._
@@ -31,7 +31,7 @@ private class MapWidget extends swing.Component {
 object Viewer {
   private var window: Option[(swing.Window, MapWidget)] = None
 
-  def display(layers: Seq[SpatialRenderable]) {
+  def display(layers: Seq[MapLayer]) {
     window match {
       case Some((frame, map)) =>
         map.layers = layers
@@ -41,9 +41,6 @@ object Viewer {
           val frame = new swing.MainFrame()
           val mapViewer = new MapWidget()
           mapViewer.layers = layers
-          // layers.flatMap(_.definitionExtent).reduceOption(_ ** _).foreach {
-          //   mapViewer.viewport = _
-          // }
           frame.visible = true
           frame.contents = mapViewer
           frame.size = new swing.Dimension(500, 500)
