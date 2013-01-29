@@ -105,12 +105,12 @@ package render {
 package object render {
   implicit object LayerIsStylable extends Stylable[layer.Layer] {
     def applyStyle(t: layer.Layer, s: style.Style): MapLayer =
-      new org.geotools.map.FeatureLayer(t.source, s.underlying)
+      new org.geotools.map.FeatureLayer(t.source, s)
   }
 
   implicit object CoverageIsStylable extends Stylable[org.geotools.coverage.grid.GridCoverage2D] {
     def applyStyle(t: org.geotools.coverage.grid.GridCoverage2D, s: style.Style): MapLayer =
-      new org.geotools.map.GridCoverageLayer(t, s.underlying)
+      new org.geotools.map.GridCoverageLayer(t, s)
   }
 
   def PNG[T](sink: Sink[T], window: (Int, Int) = (500, 500)): Context[T] =

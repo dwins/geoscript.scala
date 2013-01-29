@@ -1,17 +1,7 @@
 package org.geoscript.geometry
 package io
 
-import org.geoscript.io.{ Sink, Source }
-
-trait Reader[T] {
-  def read(source: Source): T
-}
-
-trait Writer[T] {
-  def write[U](t: T, sink: Sink[U]): U
-}
-
-trait Format[T] extends Writer[T] with Reader[T] 
+import org.geoscript.io.{ Sink, Source, Reader, Writer, Format }
 
 object WKT extends Format[Geometry] {
   private val reader = new com.vividsolutions.jts.io.WKTReader()
