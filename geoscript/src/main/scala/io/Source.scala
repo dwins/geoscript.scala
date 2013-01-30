@@ -8,15 +8,15 @@ trait Source {
 }
 
 object Source {
-  implicit def stream(in: InputStream): Source =
+  def stream(in: InputStream): Source =
     new Source { 
       def apply[T](op: InputStream => T): T = op(in)
     }
 
-  implicit def file(name: String): Source =
+  def file(name: String): Source =
     file(new java.io.File(name))
 
-  implicit def file(file: File): Source =
+  def file(file: File): Source =
     new Source { 
       def apply[T](op: InputStream => T): T = {
         val input =

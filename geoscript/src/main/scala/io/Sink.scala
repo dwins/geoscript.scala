@@ -8,15 +8,15 @@ trait Sink[T] {
 }
 
 object Sink {
-  implicit def stream(out: OutputStream): Sink[Unit] =
+  def stream(out: OutputStream): Sink[Unit] =
     new Sink[Unit] { 
       def apply(op: OutputStream => Unit) = op(out)
     }
 
-  implicit def file(name: String): Sink[File] =
+  def file(name: String): Sink[File] =
     file(new java.io.File(name))
 
-  implicit def file(file: File): Sink[File] =
+  def file(file: File): Sink[File] =
     new Sink[java.io.File] { 
       def apply(op: OutputStream => Unit) = {
         val output =

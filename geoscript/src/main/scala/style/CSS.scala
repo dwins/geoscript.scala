@@ -1,7 +1,6 @@
 package org.geoscript
 
 import org.geotools.{ styling => gt }
-import org.geotools.factory.CommonFactoryFinder.getStyleFactory
 
 package style {
   object CSS {

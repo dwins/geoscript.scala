@@ -1,7 +1,7 @@
-package org.geoscript
-package style.combinators
+package org.geoscript.style
+package combinators
 
-import filter._
+import org.geoscript.filter.{ factory => _, _ }
 import scala.collection.JavaConversions._
 
 sealed abstract trait Style {
@@ -15,7 +15,7 @@ sealed abstract trait Style {
     }
     CompositeStyle(seq(this) ++ seq(that))
   }
-  def underlying: org.geotools.styling.Style
+  def build: org.geotools.styling.Style
 }
 
 sealed abstract trait Paint {
@@ -34,11 +34,6 @@ sealed abstract trait Paint {
   ): org.geotools.styling.Fill
 }
 
-object Style {
-  val Factory =
-    org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
-}
-
 object Stroke {
   sealed abstract trait Mode
   object Tile extends Mode
@@ -46,10 +41,6 @@ object Stroke {
 }
 
 abstract class SimpleStyle extends Style {
-  private val styles =
-    org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
-  private val filters =
-    org.geotools.factory.CommonFactoryFinder.getFilterFactory2(null)
 
   def filter: Option[Filter]
 
@@ -64,7 +55,7 @@ abstract class SimpleStyle extends Style {
   override def where(p: Filter): Style =
     new DerivedStyle(this) {
       override def filter = 
-        delegate.filter.map(filters.and(p, _): Filter).orElse(Some(p))
+        delegate.filter.map(org.geoscript.filter.and(p, _): Filter).orElse(Some(p))
     }
 
   override def aboveScale(s: Double): Style =
@@ -79,17 +70,17 @@ abstract class SimpleStyle extends Style {
         delegate.maxScale.map(math.min(_, s)).orElse(Some(s))
     }
 
-  def underlying = {
-    val rule = styles.createRule()
+  def build = {
+    val rule = factory.createRule()
     for (f <- filter) rule.setFilter(f)
     for (s <- minScale) rule.setMinScaleDenominator(s)
     for (s <- maxScale) rule.setMaxScaleDenominator(s)
     rule.symbolizers.addAll(symbolizers)
 
-    val ftstyle = styles.createFeatureTypeStyle()
+    val ftstyle = factory.createFeatureTypeStyle()
     ftstyle.rules.add(rule)
 
-    val style = styles.createStyle()
+    val style = factory.createStyle()
     style.featureTypeStyles.add(ftstyle)
     style
   }
@@ -119,13 +110,13 @@ case class CompositeStyle(styles: Seq[Style]) extends Style {
   override def where(p: Filter): Style =
     CompositeStyle(styles map (_ where p))
 
-  override def underlying = {
-    val style = Style.Factory.createStyle()
-    val ftStyle = Style.Factory.createFeatureTypeStyle()
+  override def build = {
+    val style = factory.createStyle()
+    val ftStyle = factory.createFeatureTypeStyle()
 
     for ((z, styles) <- this.flatten.groupBy(_.zIndex).toSeq.sortBy(_._1)) {
-      val ftStyle = Style.Factory.createFeatureTypeStyle()
-      for (s <- styles; fts <- s.underlying.featureTypeStyles)
+      val ftStyle = factory.createFeatureTypeStyle()
+      for (s <- styles; fts <- s.build.featureTypeStyles)
         ftStyle.rules.addAll(fts.rules)
       style.featureTypeStyles.add(ftStyle)
     }
@@ -136,18 +127,13 @@ case class CompositeStyle(styles: Seq[Style]) extends Style {
 }
 
 object Paint {
-  import geocss.CssOps.colors
+  import org.geoscript.geocss.CssOps.colors
 
-  implicit def stringToPaint(colorName: String): Paint =
-    if (colors contains colorName)
-      Color(colors(colorName))
-    else if (colorName matches "#[a-fA-F0-9]{6}") // TODO: regex for hex color codes
-      Color(colorName)
-    else
-      Color("#000000")
+  def named(name: String): Option[Paint] = 
+    colors.get(name).map(rgb => Color(literal(rgb)))
 }
 
-case class Color(rgb: String) extends Paint {
+case class Color(rgb: Expression) extends Paint {
   private val factory =
     org.geotools.factory.CommonFactoryFinder.getStyleFactory(null)
   private val filter =
@@ -239,7 +225,7 @@ case class Label(
   text: Expression,
   geometry: Expression = null,
   font: Font = Font("Arial"),
-  fontFill: Fill = Fill("#000000"),
+  fontFill: Fill = Fill(Color(literal("#000000"))),
   halo: Fill = null,
   rotation: Double = 0,
   anchor: (Double, Double) = (0, 0.5),
@@ -277,12 +263,11 @@ case class Symbol(
   val filter = None
   val maxScale = None
   val minScale = None
-  val symbolizers = 
-    Seq(
-      new org.geotools.styling.StyleBuilder(Style.Factory)
-        .createPointSymbolizer(graphic)
-    )
-
+  val symbolizers = {
+    val sym = factory.createPointSymbolizer()
+    sym.setGraphic(graphic)
+    Seq(sym)
+  }
 
   def asStroke(
     width: Expression,
@@ -293,7 +278,7 @@ case class Symbol(
     dashoffset: Expression,
     mode: Stroke.Mode
   ): org.geotools.styling.Stroke = {
-    Style.Factory.createStroke(
+    factory.createStroke(
       null,
       width,
       opacity,
@@ -309,7 +294,7 @@ case class Symbol(
   def asFill(
     opacity: Expression
   ): org.geotools.styling.Fill = {
-    Style.Factory.fill(
+    factory.fill(
       graphic,
       null,
       opacity
@@ -336,10 +321,10 @@ case class Symbol(
         this.fill.fill.asFill(this.fill.opacity)
       else
         null
-    Style.Factory.createGraphic(
+    factory.createGraphic(
       null,
       Array(
-        Style.Factory.createMark(
+        factory.createMark(
           shape,
           stroke,
           fill,
@@ -368,11 +353,11 @@ case class Graphic(
   val filter = None
   val maxScale = None
   val minScale = None
-  val symbolizers = 
-    Seq(
-      new org.geotools.styling.StyleBuilder(factory)
-        .createPointSymbolizer(graphic)
-    )
+  val symbolizers = {
+    val sym = factory.createPointSymbolizer()
+    sym.setGraphic(graphic)
+    Seq(sym)
+  }
 
   def asStroke(
     width: Expression,

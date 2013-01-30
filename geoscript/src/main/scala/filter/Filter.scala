@@ -9,8 +9,6 @@ import org.opengis.{filter => ogc}
 import org.geoscript.geometry.Geometry
 
 object Filter {
-  private val factory = gt.factory.CommonFactoryFinder.getFilterFactory2(null)
-
   def intersects(geometry: Geometry): Filter =
     factory.intersects(null, factory.literal(geometry))
 
