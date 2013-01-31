@@ -32,7 +32,7 @@ class TokenTest extends FunSuite with ShouldMatchers {
         g <- expr2.filterOpt
       } yield and(f, g)
 
-    expect(expected) {
+    expectResult(expected) {
       And(List(expr1, expr2)).filterOpt
     }
   }

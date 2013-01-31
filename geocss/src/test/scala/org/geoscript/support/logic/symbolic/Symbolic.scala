@@ -1,7 +1,9 @@
 package org.geoscript.support.logic
 
 package object symbolic {
-  implicit def symbolAsAtom(s: Symbol): Sentence = Atom(s)
+  implicit class AtomSugar(val s: Symbol) extends AnyVal {
+    def atom: Sentence = Atom(s)
+  }
 }
 
 package symbolic {
