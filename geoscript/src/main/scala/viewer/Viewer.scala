@@ -1,14 +1,17 @@
-package org.geoscript
-package viewer
+package org.geoscript.viewer
 
-import geometry._, layer._, math._, render._, style._
+import org.geoscript.geometry._
+import org.geoscript.layer._
+import org.geoscript.projection._
+import org.geoscript.render._
+import org.geoscript.style._
 
 import org.geotools.geometry.jts.{ LiteShape, ReferencedEnvelope }
 import java.awt.{ Graphics2D, RenderingHints }
 import scala.collection.JavaConversions._
 
 private class MapWidget extends swing.Component {
-  var viewport = new ReferencedEnvelope(-180, -90, 180, 90, projection.Projection("EPSG:4326"))
+  var viewport = new ReferencedEnvelope(-180, -90, 180, 90, LatLon)
   var layers: Seq[MapLayer] = Nil
 
   override def paint(graphics: swing.Graphics2D) = {

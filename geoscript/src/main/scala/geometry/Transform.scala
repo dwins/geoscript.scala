@@ -1,5 +1,4 @@
-package org.geoscript
-package geometry
+package org.geoscript.geometry
 
 import com.vividsolutions.jts.geom.util.AffineTransformation
 

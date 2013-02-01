@@ -5,9 +5,9 @@ import io._
 import org.{ geotools => gt }
 import com.vividsolutions.jts.{geom=>jts}
 import java.awt.{ Graphics2D, Rectangle, RenderingHints }
-import geometry.Envelope
 import gt.geometry.jts.ReferencedEnvelope
 import scala.collection.JavaConverters._
+import org.geoscript.geometry._
 
 package render {
   trait Context[T] {

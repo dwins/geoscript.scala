@@ -1,24 +1,22 @@
 package org.geoscript.example
 
-import com.vividsolutions.jts.geom.Geometry
-import org.geoscript._
-import feature.{ Feature, Field }
-import projection.lookupEPSG
+import org.geoscript.feature._
+import org.geoscript.geometry._
+import org.geoscript.geometry.builder._
+import org.geoscript.projection._
+import org.geoscript.workspace._
 
 object PostgisTest extends App { 
-  val conflict = workspace.Postgis("database" -> "conflict")
+  val conflict = Postgis("database" -> "conflict")
   val fields = conflict.layer("conflictsite").schema.fields
   
   for (field <- fields) println(field.name)
-  val workSpaceTest = workspace.Postgis() 
+  val workSpaceTest = Postgis() 
   
   val test = workSpaceTest.create("test",
     Field("name", classOf[String]),
     Field("geom", classOf[Geometry], lookupEPSG("EPSG:4326").get)
   )
 
-  test += Feature( 
-    "name" -> "test",
-    "geom" -> geometry.Point(43,74)
-  ) 
+  test += Feature("name" -> "test", "geom" -> Point(43,74)) 
 } 

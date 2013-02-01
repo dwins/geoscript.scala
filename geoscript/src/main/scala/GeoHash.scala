@@ -1,6 +1,9 @@
 package org.geoscript
 
-import Stream._
+import org.geoscript.geometry._
+import org.geoscript.geometry.builder._
+
+import scala.Stream._
 
 /**
  * GeoHash provides some methods for encoding and decoding point information
@@ -62,7 +65,7 @@ object GeoHash {
     val (minLon, maxLon) = range(lonBits, -180, 180)
     val (minLat, maxLat) = range(latBits,  -90,  90)
 
-    geometry.Envelope(minLon, maxLon, minLat, maxLat)
+    Envelope(minLon, maxLon, minLat, maxLat)
   }
 
   /**
