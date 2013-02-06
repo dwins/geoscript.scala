@@ -2,14 +2,16 @@ package org.geoscript
 
 import org.scalatest._, matchers._
 
-import geometry._
+import feature._, feature.schemaBuilder._
+import geometry._, geometry.builder._
 import projection._
 
 class UsageTests extends FunSuite with ShouldMatchers {
     test("work like on the geoscript homepage") { 
-      var p = Point(-111, 45.7)
-      var p2 = (Projection("epsg:4326") to Projection("epsg:26912"))(p)
-      var poly = p.buffer(100)
+      val NAD83 = lookupEPSG("EPSG:26912").get
+      val p = Point(-111, 45.7)
+      val p2 = (LatLon to NAD83)(p)
+      val poly = p.buffer(100)
 
       p2.x should be(closeTo(499999.0, 1))
       p2.y should be(closeTo(5060716.0, 0.5))
@@ -17,22 +19,22 @@ class UsageTests extends FunSuite with ShouldMatchers {
     }
 
     test("linestrings should be easy") { 
-      LineString(
+      LineString(Seq(
         (10.0, 10.0), (20.0, 20.0), (30.0, 40.0)
-      ).length should be(closeTo(36.503, 0.001))
+      )).length should be(closeTo(36.503, 0.001))
 
-      LineString((10, 10), (20.0, 20.0), (30, 40))
+      LineString(Seq((10, 10), (20.0, 20.0), (30, 40)))
         .length should be(closeTo(36.503, 0.001))
     }
 
     test("polygon should be easy") {
       Polygon(
-        LineString((10, 10), (10, 20), (20, 20), (20, 15), (10, 10))
+        Seq((10, 10), (10, 20), (20, 20), (20, 15), (10, 10))
       ).area should be (75)
     }
 
     test("multi point should be easy") {
-      MultiPoint((20, 20), (10.0, 10.0)).area should be (0)
+      MultiPoint(Seq((20, 20), (10.0, 10.0))).area should be (0)
     } 
 
     val states = getClass().getResource("/data/states.shp").toURI
@@ -61,7 +63,7 @@ class UsageTests extends FunSuite with ShouldMatchers {
       shp.schema.name should be ("states")
       val field = shp.schema.get("STATE_NAME")
       field.name should be ("STATE_NAME")
-      (field.gtBinding: AnyRef) should be (classOf[java.lang.String])
+      (field.binding: AnyRef) should be (classOf[java.lang.String])
     }
 
     test("provide access to the containing workspace") {
@@ -78,17 +80,17 @@ class UsageTests extends FunSuite with ShouldMatchers {
       val mem = workspace.Memory()
       mem.names should be ('empty)
       var dummy = mem.create("dummy", 
-        feature.Field("name", classOf[String]),
-        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], Projection("EPSG:4326"))
+        Field("name", classOf[String]),
+        GeoField("geom", classOf[Geometry], LatLon)
       )
       mem.names.length should be (1)
 
-      dummy += feature.Feature(
+      dummy += Feature(
         "name" -> "San Francisco",
         "geom" -> Point(37.78, -122.42)
       )
 
-      dummy += feature.Feature(
+      dummy += Feature(
         "name" -> "New York",
         "geom" -> Point(40.47, -73.58)
       )

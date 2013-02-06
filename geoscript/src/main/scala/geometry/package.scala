@@ -115,25 +115,26 @@ package object geometry {
 
 package geometry {
   class Builder(factory: com.vividsolutions.jts.geom.GeometryFactory) {
-    def coord(x: Double, y: Double): Coordinate = new Coordinate(x, y)
+    def Coordinate(x: Double, y: Double): Coordinate = new Coordinate(x, y)
+    def mkCoord(xy: (Double, Double)) = (Coordinate _).tupled(xy)
 
     def Envelope(minx: Double, maxx: Double, miny: Double, maxy: Double): Envelope =
       new com.vividsolutions.jts.geom.Envelope(minx, maxx, miny, maxy)
 
     def Point(x: Double, y: Double): Point =
-      factory.createPoint(coord(x,y))
-    def LineString(coords: Seq[Coordinate]): LineString = 
-      factory.createLineString(coords.toArray)
-    def Polygon(ring: Seq[Coordinate], holes: Seq[Seq[Coordinate]] = Nil): Polygon =
+      factory.createPoint(Coordinate(x,y))
+    def LineString(coords: Seq[(Double, Double)]): LineString = 
+      factory.createLineString(coords.map(mkCoord).toArray)
+    def Polygon(ring: Seq[(Double, Double)], holes: Seq[Seq[(Double, Double)]] = Nil): Polygon =
       factory.createPolygon(
-        factory.createLinearRing(ring.toArray),
-        holes.map(h => factory.createLinearRing(h.toArray)).toArray)
+        factory.createLinearRing(ring.map(mkCoord).toArray),
+        holes.map(h => factory.createLinearRing(h.map(mkCoord).toArray)).toArray)
 
-    def MultiPoint(coords: Seq[Coordinate]): MultiPoint =
-      factory.createMultiPoint(coords.toArray)
-    def MultiLineString(lines: Seq[Seq[Coordinate]]): MultiLineString =
+    def MultiPoint(coords: Seq[(Double, Double)]): MultiPoint =
+      factory.createMultiPoint(coords.map(mkCoord).toArray)
+    def MultiLineString(lines: Seq[Seq[(Double, Double)]]): MultiLineString =
       factory.createMultiLineString(lines.map(LineString).toArray)
-    def MultiPolygon(polys: Seq[(Seq[Coordinate], Seq[Seq[Coordinate]])]): MultiPolygon =
+    def MultiPolygon(polys: Seq[(Seq[(Double, Double)], Seq[Seq[(Double, Double)]])]): MultiPolygon =
       factory.createMultiPolygon(polys.map((Polygon _).tupled).toArray)
 
     def multi(points: Seq[Point]): MultiPoint =

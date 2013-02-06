@@ -44,22 +44,20 @@ trait Layer {
   /** 
    * The Schema describing this layer's contents.
    */
-  def schema: Schema = Schema(store.getSchema(name))
+  def schema: Schema = store.getSchema(name)
 
   /**
    * Get a feature collection that supports the typical Scala collection
    * operations.
    */
-  def features: FeatureCollection = {
-    new FeatureCollection(source, new gt.data.Query())
-  }
+  def features: FeatureCollection =
+    source.getFeatures(new gt.data.Query)
   
   /** 
    * Get a filtered feature collection.
    */
-  def filter(pred: Filter): FeatureCollection = {
-    new FeatureCollection(source, new gt.data.Query(name, pred))
-  }
+  def filter(pred: Filter): FeatureCollection =
+    source.getFeatures(new gt.data.Query(name, pred))
 
   /**
    * Get the number of features currently in the layer.
@@ -86,8 +84,7 @@ trait Layer {
 
     try {
       for (f <- features) {
-        val toBeWritten = writer.next()
-        f.writeTo(toBeWritten)
+        writer.next getAttributesFrom f
         writer.write()
       }
       tx.commit()
@@ -115,11 +112,11 @@ trait Layer {
       .removeFeatures(filter) 
   }
 
-  def update(replace: Feature => Feature) {
+  def update(replace: Feature => Unit) {
     update(Include)(replace)
   }
 
-  def update(filter: Filter)(replace: Feature => Feature) {
+  def update(filter: Filter)(replace: Feature => Unit) {
     val tx = new gt.data.DefaultTransaction
     val writer = filter match {
       case Include => store.getFeatureWriter(name, tx)
@@ -128,7 +125,7 @@ trait Layer {
 
     while (writer.hasNext) {
       val existing = writer.next()
-      replace(Feature(existing)).writeTo(existing)
+      replace(existing)
       writer.write()
     }
 

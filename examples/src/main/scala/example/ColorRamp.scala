@@ -1,15 +1,15 @@
 package org.geoscript.example
 
-import org.geoscript._
-import filter._
-import style.combinators._
-import org.geotools.filter.text.ecql.ECQL.{ toFilter => cql }
+import org.geoscript.feature._
+import org.geoscript.layer._
+import org.geoscript.style._
+import org.geoscript.style.builder._
 
 object ColorRamp extends org.geoscript.feature.GeoCrunch {
   def main(args: Array[String]) = {
     val Array(shapefile, property, sldfile) = args take 3
 
-    val shp = layer.Shapefile(shapefile)
+    val shp = Shapefile(shapefile)
     val style = colorRamp(shp, property)
 
     val xformer = new org.geotools.styling.SLDTransformer
@@ -24,7 +24,7 @@ object ColorRamp extends org.geoscript.feature.GeoCrunch {
     Color(literal(
       "#%02x02x02x".format(c.getRed, c.getGreen, c.getBlue)))
 
-  def colorRamp(data: layer.Layer, propertyName: String): style.Style = {
+  def colorRamp(data: Layer, propertyName: String): Style = {
     val propertyView = data.features.view.map(f => f.get[Double](propertyName))
     val min = propertyView.min
     val max = propertyView.max

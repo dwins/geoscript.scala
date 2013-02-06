@@ -1,9 +1,10 @@
 package org.geoscript.example
 
-import org.geoscript._
+import org.geoscript.layer._
+import org.geoscript.feature._
 
 object AllValid extends App {
-  val shp = layer.Shapefile(args.head)
+  val shp = Shapefile(args.head)
 
   val invalid = shp.features.filterNot(_.geometry.isValid).toSeq
   

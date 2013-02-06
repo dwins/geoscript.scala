@@ -26,9 +26,9 @@ class Workspace(
     fields foreach {
       case field: GeoField =>
         builder.crs(field.projection)
-        builder.add(field.name, field.gtBinding)
+        builder.add(field.name, field.binding)
       case field =>
-        builder.add(field.name, field.gtBinding)
+        builder.add(field.name, field.binding)
     }
     underlying.createSchema(builder.buildFeatureType())
     layer(name)

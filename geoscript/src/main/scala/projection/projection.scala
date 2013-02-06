@@ -76,6 +76,9 @@ package object projection {
    */
   def WebMercator = lookupEPSG("EPSG:3857").get
 
+  def reproject[T](t: T, p: Projection)(implicit ev: HasProjection[T]): T =
+    ev.reproject(t, p)
+
   implicit class RichProjection(val crs: Projection) extends AnyVal {
     /**
      * Create a Transform from this projection to another one, which
@@ -106,5 +109,11 @@ package object projection {
   implicit class RichTransform(val transform: Transform) extends AnyVal {
     def apply[G <: Geometry](geometry: G): G =
       JTS.transform(geometry, transform).asInstanceOf[G]
+  }
+}
+
+package projection {
+  trait HasProjection[T] {
+    def reproject(t: T, projection: Projection): T
   }
 }
