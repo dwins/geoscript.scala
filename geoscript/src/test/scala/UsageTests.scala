@@ -79,7 +79,7 @@ class UsageTests extends FunSuite with ShouldMatchers {
       mem.names should be ('empty)
       var dummy = mem.create("dummy", 
         feature.Field("name", classOf[String]),
-        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], "EPSG:4326")
+        feature.Field("geom", classOf[com.vividsolutions.jts.geom.Geometry], Projection("EPSG:4326"))
       )
       mem.names.length should be (1)
 

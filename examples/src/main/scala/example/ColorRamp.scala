@@ -1,6 +1,7 @@
 package org.geoscript.example
 
 import org.geoscript._
+import filter._
 import style.combinators._
 import org.geotools.filter.text.ecql.ECQL.{ toFilter => cql }
 
@@ -19,8 +20,9 @@ object ColorRamp extends org.geoscript.feature.GeoCrunch {
     sldStream.close()
   }
 
-  def hex(c: java.awt.Color) = 
-    "#%02x02x02x".format(c.getRed, c.getGreen, c.getBlue)
+  def hex(c: java.awt.Color): Paint = 
+    Color(literal(
+      "#%02x02x02x".format(c.getRed, c.getGreen, c.getBlue)))
 
   def colorRamp(data: layer.Layer, propertyName: String): style.Style = {
     val propertyView = data.features.view.map(f => f.get[Double](propertyName))
@@ -37,6 +39,6 @@ object ColorRamp extends org.geoscript.feature.GeoCrunch {
         filter = "%s BETWEEN %f AND %f".format(propertyName, min, max)
       } yield
         Fill(hex(color)) where cql(filter)
-    rules reduce (_ and _)
+    rules.reduce(_ and _).build
   }
 }

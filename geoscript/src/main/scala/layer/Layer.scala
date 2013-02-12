@@ -35,7 +35,11 @@ trait Layer {
   /** 
    * Retrieve a GeoTools feature source for this layer.
    */
-  def source = store.getFeatureSource(name)
+  def source: 
+    org.geotools.data.FeatureSource[
+      org.opengis.feature.simple.SimpleFeatureType,
+      org.opengis.feature.simple.SimpleFeature]
+    = store.getFeatureSource(name)
 
   /** 
    * The Schema describing this layer's contents.
@@ -54,7 +58,7 @@ trait Layer {
    * Get a filtered feature collection.
    */
   def filter(pred: Filter): FeatureCollection = {
-    new FeatureCollection(source, new gt.data.Query(name, pred.underlying))
+    new FeatureCollection(source, new gt.data.Query(name, pred))
   }
 
   /**
@@ -88,7 +92,7 @@ trait Layer {
       }
       tx.commit()
     } catch {
-      case ex =>
+      case (ex: java.io.IOException) =>
         tx.rollback()
         throw ex
     } finally {
@@ -101,28 +105,28 @@ trait Layer {
 
   def --= (features: Traversable[Feature]) {
     exclude(Filter.or(
-      features.toSeq filter { null != } map { f =>  Filter.id(Seq(f.id)) }
+      features.toSeq filter { null !=  _ } map { f => Filter.id(Seq(f.id)) }
     ))
   }
 
   def exclude(filter: Filter) { 
     store.getFeatureSource(name)
       .asInstanceOf[gt.data.FeatureStore[SimpleFeatureType, SimpleFeature]]
-      .removeFeatures(filter.underlying) 
+      .removeFeatures(filter) 
   }
 
   def update(replace: Feature => Feature) {
-    update(Filter.Include)(replace)
+    update(Include)(replace)
   }
 
   def update(filter: Filter)(replace: Feature => Feature) {
     val tx = new gt.data.DefaultTransaction
     val writer = filter match {
-      case Filter.Include => store.getFeatureWriter(name, tx)
-      case filter => store.getFeatureWriter(name, filter.underlying, tx)
+      case Include => store.getFeatureWriter(name, tx)
+      case filter => store.getFeatureWriter(name, filter, tx)
     }
 
-    while (writer hasNext) {
+    while (writer.hasNext) {
       val existing = writer.next()
       replace(Feature(existing)).writeTo(existing)
       writer.write()

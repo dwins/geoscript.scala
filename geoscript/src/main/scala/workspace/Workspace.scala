@@ -25,7 +25,7 @@ class Workspace(
     builder.setName(name)
     fields foreach {
       case field: GeoField =>
-        builder.crs(field.projection.crs)
+        builder.crs(field.projection)
         builder.add(field.name, field.gtBinding)
       case field =>
         builder.add(field.name, field.gtBinding)

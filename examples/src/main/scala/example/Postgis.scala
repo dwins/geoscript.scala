@@ -3,6 +3,7 @@ package org.geoscript.example
 import com.vividsolutions.jts.geom.Geometry
 import org.geoscript._
 import feature.{ Feature, Field }
+import projection.lookupEPSG
 
 object PostgisTest extends App { 
   val conflict = workspace.Postgis("database" -> "conflict")
@@ -13,7 +14,7 @@ object PostgisTest extends App {
   
   val test = workSpaceTest.create("test",
     Field("name", classOf[String]),
-    Field("geom", classOf[Geometry], "EPSG:4326")
+    Field("geom", classOf[Geometry], lookupEPSG("EPSG:4326").get)
   )
 
   test += Feature( 

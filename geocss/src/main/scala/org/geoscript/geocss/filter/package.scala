@@ -356,7 +356,7 @@ package object filter {
           ps match {
             case Seq(h, ts @ _*) =>
               val (consolidatable, nonconsolidatable) =
-                ts partition(f(h, _) isDefined)
+                ts partition(f(h, _).isDefined)
               val consolidated = 
                 (consolidatable foldLeft h) {
                   f(_, _).getOrElse(sys.error("Consolidatable not transitive after all!"))

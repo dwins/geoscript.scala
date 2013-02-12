@@ -10,7 +10,7 @@ class TranslatorTest extends FunSuite with ShouldMatchers {
     x match {
       case x: org.opengis.filter.expression.Literal =>
         x.getValue.toString.toLowerCase
-      case _ => error("Expected a Literal but actually got " + x)
+      case _ => sys.error("Expected a Literal but actually got " + x)
     }
 
   test("Short hexcodes and English names should work as colors") {

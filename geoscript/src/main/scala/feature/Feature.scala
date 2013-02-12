@@ -81,7 +81,7 @@ object Schema {
       def fields: Seq[Field] = { 
         var buffer = new collection.mutable.ArrayBuffer[Field]
         val descriptors = wrapped.getAttributeDescriptors().iterator()
-        while (descriptors hasNext) { buffer += Field(descriptors.next) }
+        while (descriptors.hasNext) { buffer += Field(descriptors.next) }
         buffer.toSeq
       }
 
@@ -151,7 +151,7 @@ object Field {
     new GeoField {
       def name = wrapped.getLocalName
       override def gtBinding = wrapped.getType.getBinding
-      def projection = Projection(wrapped.getCoordinateReferenceSystem())
+      def projection = wrapped.getCoordinateReferenceSystem()
     }
 
   /**
@@ -304,7 +304,7 @@ class FeatureCollection(
   override def foreach[U](op: Feature => U) {
     val iter = wrapped.getFeatures().features()
     try
-      while (iter hasNext) op(Feature(iter.next))
+      while (iter.hasNext) op(Feature(iter.next))
     finally
       iter.close()
   }

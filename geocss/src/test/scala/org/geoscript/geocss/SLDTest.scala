@@ -184,7 +184,7 @@ class SLDTest extends FunSuite with ShouldMatchers {
     vendor("forceLeftToRight") should be(Some("true"))
     vendor("spaceAround") should be(Some("0"))
 
-    (vendorOptions \\ "Priority" \ "PropertyName" text) should equal ("priority")
+    (vendorOptions \\ "Priority" \ "PropertyName").text should equal ("priority")
   }
 
 
@@ -284,7 +284,7 @@ class SLDTest extends FunSuite with ShouldMatchers {
     val fills = overrides \\ "Mark" \ "Fill"
     fills should have size(2)
     (fills \ "CssParameter" 
-      filter (n => (n \ "@name" text) == "fill") 
+      filter (n => (n \ "@name").text == "fill") 
       map (_.text)
     ).distinct should have size(2)
   }
@@ -303,7 +303,7 @@ class SLDTest extends FunSuite with ShouldMatchers {
     symbolizer \\ "Graphic" should have size(1)
     (symbolizer \\ "Fill" \ "CssParameter").text should equal("#008000")
     (symbolizer \\ "Stroke" \ "CssParameter").text should equal("#32cd32")
-    val vendorOpts = (symbolizer \\ "VendorOption") map (_ \ "@name" text)
+    val vendorOpts = (symbolizer \\ "VendorOption") map (n => (n \ "@name").text)
     vendorOpts should contain("graphic-margin")
     vendorOpts should contain("graphic-resize")
   }

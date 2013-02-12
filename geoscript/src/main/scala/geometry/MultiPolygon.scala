@@ -12,10 +12,10 @@ import org.geoscript.projection.Projection
  */
 object MultiPolygon {
   def apply(polygons: Iterable[Polygon]): MultiPolygon = 
-    factory.createMultiPolygon(polygons toArray)
+    factory.createMultiPolygon(polygons.toArray)
 
   def apply(polygons: Polygon*): MultiPolygon = 
-    factory.createMultiPolygon(polygons toArray)
+    factory.createMultiPolygon(polygons.toArray)
 }
 
 // /**

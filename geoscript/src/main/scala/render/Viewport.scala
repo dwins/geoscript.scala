@@ -2,12 +2,12 @@ package org.geoscript
 
 import io._
 
-import collection.JavaConversions._
 import org.{ geotools => gt }
 import com.vividsolutions.jts.{geom=>jts}
 import java.awt.{ Graphics2D, Rectangle, RenderingHints }
 import geometry.Envelope
 import gt.geometry.jts.ReferencedEnvelope
+import scala.collection.JavaConverters._
 
 package render {
   trait Context[T] {
@@ -51,48 +51,8 @@ package render {
     }
   }
 
-  trait SpatialRenderable extends (ReferencedEnvelope => Renderable) {
-    def definitionExtent: Option[Envelope]
-  }
-
-  object SpatialRenderable {
-    implicit def fromGeometry(g: geometry.Geometry) =
-      new SpatialRenderable {
-        def definitionExtent: Option[Envelope] = Some(g.envelope)
-        def apply(bounds: ReferencedEnvelope) =
-          Renderable { (graphics, window) =>
-            import geometry.Transform
-            val tx = Transform
-              .translate(-bounds.getMinX, -bounds.getMinY)
-              .scale(window.width / bounds.width.toDouble, window.height / bounds.height.toDouble)
-              .translate(0, -window.height)
-              .scale(1, -1)
-            graphics.draw(new org.geotools.geometry.jts.LiteShape(tx(g), null, false))
-          }
-      }
-
-    implicit def fromStyledLayer(t: (layer.Layer, style.Style)) =
-      new SpatialRenderable {
-        val (layer, style) = t
-        def definitionExtent: Option[Envelope] = Some(layer.envelope)
-        def apply(bounds: ReferencedEnvelope): Renderable = 
-          Renderable { (graphics, window) =>
-            val renderer = new org.geotools.renderer.lite.StreamingRenderer()
-            locally { import RenderingHints._
-              renderer.setJava2DHints(new RenderingHints(Map(
-                KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
-                KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON
-              )))
-            }
-            val content = new org.geotools.map.MapContent
-            content.layers.add(
-              new org.geotools.map.FeatureLayer(layer.source, style.underlying)
-            )
-            renderer.setMapContent(content)
-            renderer.paint(graphics, window, bounds)
-            content.dispose()
-          }
-      }
+  trait Stylable[T] {
+    def applyStyle(t: T, style: org.geoscript.style.Style): MapLayer
   }
 
   object Viewport {
@@ -143,6 +103,16 @@ package render {
 }
 
 package object render {
+  implicit object LayerIsStylable extends Stylable[layer.Layer] {
+    def applyStyle(t: layer.Layer, s: style.Style): MapLayer =
+      new org.geotools.map.FeatureLayer(t.source, s)
+  }
+
+  implicit object CoverageIsStylable extends Stylable[org.geotools.coverage.grid.GridCoverage2D] {
+    def applyStyle(t: org.geotools.coverage.grid.GridCoverage2D, s: style.Style): MapLayer =
+      new org.geotools.map.GridCoverageLayer(t, s)
+  }
+
   def PNG[T](sink: Sink[T], window: (Int, Int) = (500, 500)): Context[T] =
     new Context[T] { 
       def apply(draw: (Graphics2D, Rectangle) => Unit): T = {
@@ -221,7 +191,30 @@ package object render {
       }
     }
 
+  def emptyMapContent = new MapContent
 
-  def render(bounds: ReferencedEnvelope, layers: Seq[SpatialRenderable]): Renderable =
-    Renderable.chain(layers.map(_ apply bounds))
+  def render(bounds: ReferencedEnvelope, content: Seq[MapLayer]): Renderable = {
+    import RenderingHints._
+    Renderable { (graphics, window) =>
+      val mapContent = emptyMapContent
+      mapContent.layers.addAll(content.asJava)
+      try {
+        val renderer = new org.geotools.renderer.lite.StreamingRenderer
+        val hintMap: Map[Key, _] = Map(
+          KEY_ANTIALIASING -> VALUE_ANTIALIAS_ON,
+          KEY_TEXT_ANTIALIASING -> VALUE_TEXT_ANTIALIAS_ON)
+        renderer.setJava2DHints(new RenderingHints(mapAsJavaMapConverter(hintMap).asJava))
+        renderer.setMapContent(mapContent)
+        renderer.paint(graphics, window, bounds)
+      } finally {
+        mapContent.dispose()
+      }
+    }
+  }
+
+  def MapLayer[T : Stylable](t: T, style: org.geoscript.style.Style): MapLayer =
+    implicitly[Stylable[T]].applyStyle(t, style)
+
+  type MapContent = org.geotools.map.MapContent
+  type MapLayer = org.geotools.map.Layer
 }

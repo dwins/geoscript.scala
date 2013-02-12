@@ -7,10 +7,10 @@ object GeoScript extends Build {
   val meta =
     Seq[Setting[_]](
       organization := "org.geoscript",
-      version := "0.7.6-SNAPSHOT",
+      version := "0.8.0-SNAPSHOT",
       gtVersion := "8.5",
-      scalaVersion := "2.9.1", 
-      scalacOptions ++= Seq("-deprecation", "-Xlint", "-unchecked"),
+      scalaVersion := "2.10.0", 
+      scalacOptions ++= Seq("-feature", "-deprecation", "-Xlint", "-unchecked"),
       publishTo := Some(Resolver.file("file", file("release")))
     )
 
@@ -36,11 +36,11 @@ object GeoScript extends Build {
     )
 
   lazy val root =
-    Project("root", file("."), settings = common :+ (publish := false)) aggregate(css, /*docs,*/ examples, library)
+    Project("root", file("."), settings = common ++ Seq(fork := false, publish := false)) aggregate(css, /*docs,*/ examples, library)
   lazy val css = 
     Project("css", file("geocss"), settings = common)
   lazy val examples = 
-    Project("examples", file("examples"), settings = common :+ (publish := false)) dependsOn(library)
+    Project("examples", file("examples"), settings = common ++ Seq(fork := false, publish := false)) dependsOn(library)
   lazy val library =
     Project("library", file("geoscript"), settings = sphinxSettings ++ common) dependsOn(css)
 
