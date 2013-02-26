@@ -84,7 +84,7 @@ trait Layer {
 
     try {
       for (f <- features) {
-        writer.next getAttributesFrom f
+        writer.next.attributes = f.attributes
         writer.write()
       }
       tx.commit()

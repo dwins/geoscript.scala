@@ -1,39 +1,96 @@
 package org.geoscript //.feature
 
 import org.geoscript.projection._
+import scala.collection.JavaConverters._
 
 package object feature {
+  /**
+   * A Feature is a single entry in a geospatial dataset.  For example, a
+   * Feature might represent a single row in a relational database. Fields of a
+   * feature are not known at compile time but a runtime representation of the
+   * schema is available.
+   */
   type Feature = org.opengis.feature.simple.SimpleFeature
+
+  /**
+   * A FeatureCollection represents a (possiby lazy) collection of Features, all
+   * of which have the same schema..
+   */
   type FeatureCollection = org.geotools.feature.FeatureCollection[Schema, Feature]
+
+  /**
+   * A Schema is a runtime representation of the constraints on values that a
+   * Feature may have, including but not limited to the name, types, and order
+   * of the fields that appear in the Feature.
+   */
   type Schema = org.opengis.feature.simple.SimpleFeatureType
+
+  /**
+   * A Field is a runtime representation of the acceptable values for a field in
+   * a feature.
+   * @note Geometric fields should use [[org.geoscript.feature.GeoField]]
+   * instead, which can preserve projection information.
+   */
   type Field = org.opengis.feature.`type`.AttributeDescriptor
+
+  /**
+   * A GeoField is a runtime representation of the acceptable values for a
+   * field, including the projection information.
+   */
   type GeoField = org.opengis.feature.`type`.GeometryDescriptor
 
-  val schemaFactory = org.geotools.factory.CommonFactoryFinder.getFeatureTypeFactory(null)
+  /**
+   * A schema factory with default configuration.
+   * @see [[org.geoscript.feature.SchemaBuilder]]
+   */
+  val schemaFactory: org.opengis.feature.`type`.FeatureTypeFactory =
+    org.geotools.factory.CommonFactoryFinder.getFeatureTypeFactory(null)
+
+  /**
+   * A feature factory with default configuration.
+   * @see [[org.geoscript.feature.builder]]
+   */
+  val featureFactory: org.opengis.feature.FeatureFactory =
+    org.geotools.factory.CommonFactoryFinder.getFeatureFactory(null)
+
+  /**
+   * An object with convenience methods for manipulating schemas.  This includes 
+   * extractors for performing pattern matching against a schema.
+   */
   val schemaBuilder = new SchemaBuilder(schemaFactory)
 
-  def Feature(fields: (String, Any)*): Feature = ???
-
   implicit class RichSchema(val schema: Schema) extends AnyVal {
-    def name: String = ???
-    def fields: Seq[Field] = ???
-    def get(name: String): Field = ???
+    def name: String = schema.getName.getLocalPart
+    def fields: Seq[Field] = schema.getAttributeDescriptors.asScala
+    def field(name: String): Field = schema.getDescriptor(name)
+    def geometryField: GeoField  = schema.getGeometryDescriptor
   }
 
   implicit class RichField(val field: Field) extends AnyVal {
-    def name: String = ???
-    def binding: Class[_] = ???
+    def name: String = field.getName.getLocalPart
+    def binding: Class[_] = field.getType.getBinding
   }
 
   implicit class RichGeoField(val field: GeoField) extends AnyVal{
-    def projection: org.geoscript.projection.Projection = ???
+    def projection: org.geoscript.projection.Projection = 
+      field.getType.getCoordinateReferenceSystem
   }
 
   implicit class RichFeature(val feature: Feature) extends AnyVal {
-    def id: String = ???
-    def getAttributesFrom(f: Feature): Unit = ???
-    def geometry: org.geoscript.geometry.Geometry = ???
-    def get[T](name: String): T = ???
+    def attributes: Map[String, Any] = {
+      val kvPairs = 
+        for (p <- feature.getProperties.asScala)
+        yield (p.getName.getLocalPart, p.getValue)
+      kvPairs.toMap
+    }
+    def attributes_= (values: Iterable[(String, Any)]) =
+      for ((k, v) <- values) feature.setAttribute(k, v)
+    def id: String = feature.getID
+    def geometry: org.geoscript.geometry.Geometry =
+      feature.getDefaultGeometry.asInstanceOf[org.geoscript.geometry.Geometry]
+    def geometry_=(g: org.geoscript.geometry.Geometry): Unit =
+      feature.setDefaultGeometry(g)
+    def get[T](name: String) = feature.getAttribute(name).asInstanceOf[T]
   }
 
   implicit class RichFeatureCollection(val collection: FeatureCollection)
@@ -47,14 +104,15 @@ package object feature {
         iter.close()
     }
   }
-
-  implicit object GeoFieldHasProjection extends HasProjection[GeoField] {
-    def reproject(t: GeoField, projection: Projection): GeoField = ???
-  }
 }
 
 package feature {
   class SchemaBuilder(factory: org.opengis.feature.`type`.FeatureTypeFactory) {
+    implicit object GeoFieldHasProjection extends HasProjection[GeoField] {
+      def reproject(t: GeoField, projection: Projection): GeoField =
+        GeoField(t.name, t.binding, projection)
+    }
+
     implicit object SchemaHasProjection extends HasProjection[Schema] {
       def reproject(t: Schema, projection: Projection): Schema =
         t.copy(fields = t.fields map {
@@ -63,325 +121,93 @@ package feature {
         })
     }
 
-    implicit class SchemaModifiers(val schema: Schema) {
-      def copy(name: String = schema.name, fields: Seq[Field] = schema.fields): Schema = ???
+    implicit class FieldModifiers(val field: Field) {
+      def copy(
+        name: String = field.name,
+        binding: Class[_] = field.binding)
+      : Field = Field(name, binding)
     }
 
-    def Field(name: String, binding: Class[_]): Field = ???
-    def GeoField(name: String, binding: Class[_], proj: Projection): GeoField = ???
-    def Schema(name: String, fields: Seq[Field]): Schema = ???
+    implicit class GeoFieldModifiers(val field: GeoField) {
+      def copy(
+        name: String = field.name,
+        binding: Class[_] = field.binding,
+        projection: Projection = field.projection)
+      : Field = GeoField(name, binding, projection)
+    }
+
+    implicit class SchemaModifiers(val schema: Schema) {
+      def copy(
+        name: String = schema.name,
+        fields: Seq[Field] = schema.fields)
+      : Schema = Schema(name, fields)
+    }
+
+    object Field {
+      def apply(name: String, binding: Class[_]): Field = {
+        val qname = new org.geotools.feature.NameImpl(name)
+        val attType = factory.createAttributeType(
+          qname, // type name
+          binding, // java class binding
+          false, // is identifiable?
+          false, // is abstract?
+          java.util.Collections.emptyList(), // list of filters for value constraints
+          null, // supertype
+          null) // internationalized string for title
+        factory.createAttributeDescriptor(
+          attType,
+          qname,
+          1, // minoccurs
+          1, // maxoccurs
+          true, // isNillable
+          null) // default value
+      }
+      def unapply(field: Field): Some[(String, Class[_])] =
+        Some((field.name, field.binding))
+    }
+
+    object GeoField {
+      def apply(
+        name: String, binding: Class[_], projection: Projection)
+      : GeoField = {
+        val qname = new org.geotools.feature.NameImpl(name)
+        val attType = factory.createGeometryType(
+          qname, // type name
+          binding, // java class binding
+          projection, // coordinate reference system
+          false, // is this type identifiable?
+          false, // is this type abstract?
+          java.util.Collections.emptyList(), // list of filters for value constraints
+          null, // supertype
+          null) // internationalized string for title
+        factory.createGeometryDescriptor(
+          attType, // attribute type
+          qname, // qualified name
+          1, // minoccurs
+          1, // maxoccurs
+          true, // isNillable
+          null) // default value
+      }
+
+      def unapply(field: GeoField): Some[(String, Class[_], Projection)] =
+        Some((field.name, field.binding, field.projection))
+    }
+
+    object Schema {
+      def apply(name: String, fields: Seq[Field]): Schema = {
+        val qname = new org.geotools.feature.NameImpl(name)
+        factory.createSimpleFeatureType(
+          qname, // qualified name
+          fields.asJava, // fields (order matters)
+          fields.collectFirst { case (g: GeoField) => g }.orNull, // default geometry field
+          false, // is this schema abstract?
+          Seq.empty[org.geoscript.filter.Filter].asJava, // list of filters defining runtime constraints
+          null, // supertype
+          null  // internationalized description
+        )
+      }
+      def unapply(schema: Schema): Some[(String, Seq[Field])] = 
+        Some((schema.name, schema.fields))
+    }
   }
 }
-
-// package feature.old {
-// 
-// import com.vividsolutions.jts.{geom => jts}
-// import org.geoscript.geometry._
-// import org.geoscript.projection._
-// import org.{geotools => gt}
-// import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-// import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
-// 
-// /**
-//  * A Schema enumerates the types and names of the properties of records in a
-//  * particular dataset.  For example, a Schema for a road dataset might have
-//  * fields like "name", "num_lanes", "the_geom".
-//  */
-// trait Schema {
-//   /**
-//    * The name of the dataset itself.  This is not a property of the data records.
-//    */
-//   def name: String
-// 
-//   /**
-//    * The geometry field for this layer, regardless of its name.
-//    */
-//   def geometry: GeoField
-// 
-//   /**
-//    * All fields in an iterable sequence.
-//    */
-//   def fields: Seq[Field]
-// 
-//   /**
-//    * The names of all fields in an iterable sequence.
-//    */
-//   def fieldNames: Seq[String] = fields map { _.name } 
-// 
-//   /**
-//    * Retrieve a field by name.
-//    */
-//   def get(fieldName: String): Field
-// 
-//   /**
-//    * Create an instance of a feature according to this Schema, erroring if:
-//    * <ul>
-//    *   <li> any values are omitted </li>
-//    *   <li> any values are the wrong type </li>
-//    *   <li> any extra values are present </li>
-//    * </ul>
-//    */
-//   def create(data: (String, AnyRef)*): Feature = {
-//     if (
-//       data.length != fields.length ||
-//       data.exists { case (key, value) => !get(key).gtBinding.isInstance(value) }
-//     ) {
-//       throw new RuntimeException(
-//         "Can't create feature; properties are: %s, but fields require %s.".format(
-//           data.mkString, fields.mkString
-//         )
-//       )
-//     }
-//     Feature(data: _*)
-//   }
-// 
-//   override def toString: String = {
-//     "<Schema name: %s, fields: %s>".format(
-//       name,
-//       fields.mkString("[", ", ", "]")
-//     )
-//   }
-// }
-// 
-// /**
-//  * A companion object for Schema that provides various ways of creating Schema
-//  * instances.
-//  */
-// object Schema {
-//   def apply(wrapped: SimpleFeatureType) = {
-//     new Schema {
-//       def name = wrapped.getTypeName()
-//       def geometry = Field(wrapped.getGeometryDescriptor())
-// 
-//       def fields: Seq[Field] = { 
-//         var buffer = new collection.mutable.ArrayBuffer[Field]
-//         val descriptors = wrapped.getAttributeDescriptors().iterator()
-//         while (descriptors.hasNext) { buffer += Field(descriptors.next) }
-//         buffer.toSeq
-//       }
-// 
-//       def get(fieldName: String) = Field(wrapped.getDescriptor(fieldName))
-//     }
-//   }
-// 
-//   def apply(n: String, f: Field*): Schema = apply(n, f.toSeq)
-// 
-//   def apply(n: String, f: Iterable[Field]): Schema = {
-//     new Schema {
-//       def name = n
-//       def geometry = 
-//         f.find(_.isInstanceOf[GeoField])
-//          .getOrElse(null)
-//          .asInstanceOf[GeoField]
-// 
-//       def fields = f.toSeq
-//       def get(fieldName: String) = f.find(_.name == fieldName).get
-//     }
-//   }
-// }
-// 
-// /**
-//  * A Field represents a particular named, typed property in a Schema.
-//  */
-// trait Field {
-//   def name: String
-//   def gtBinding: Class[_]
-//   override def toString = "%s: %s".format(name, gtBinding.getSimpleName)
-// }
-// 
-// /**
-//  * A Field that represents a Geometry. GeoFields add projection information to
-//  * normal fields.
-//  */
-// trait GeoField extends Field {
-//   override def gtBinding: Class[_]
-//   /**
-//    * The Projection used for this field's geometry.
-//    */
-//   def projection: Projection
-// 
-//   def copy(projection: Projection): GeoField = {
-//     val n = name
-//     val gb = gtBinding
-//     val p = projection
-// 
-//     new GeoField {
-//       val name = n
-//       override val gtBinding = gb
-//       val projection = p
-//     }
-//   }
-// 
-//   override def toString = "%s: %s [%s]".format(name, gtBinding.getSimpleName, projection)
-// }
-// 
-// /**
-//  * A companion object providing various methods of creating Field instances.
-//  */
-// object Field {
-//   /**
-//    * Create a GeoField by wrapping an OpenGIS GeometryDescriptor
-//    */
-//   def apply(wrapped: GeometryDescriptor): GeoField = 
-//     new GeoField {
-//       def name = wrapped.getLocalName
-//       override def gtBinding = wrapped.getType.getBinding
-//       def projection = wrapped.getCoordinateReferenceSystem()
-//     }
-// 
-//   /**
-//    * Create a Field by wrapping an OpenGIS AttributeDescriptor
-//    */
-//   def apply(wrapped: AttributeDescriptor): Field = {
-//     wrapped match {
-//       case geom: GeometryDescriptor => apply(geom)
-//       case wrapped => 
-//         new Field {
-//           def name = wrapped.getLocalName
-//           def gtBinding = wrapped.getType.getBinding
-//         }
-//     }
-//   }
-// 
-//   def apply[G : BoundGeometry](n: String, b: Class[G], p: Projection): GeoField =
-//     new GeoField {
-//       def name = n
-//       def gtBinding = implicitly[BoundGeometry[G]].binding
-//       def projection = p
-//     }
-// 
-//   def apply[S : BoundScalar](n: String, b: Class[S]): Field =
-//     new Field {
-//       def name = n
-//       def gtBinding = implicitly[BoundScalar[S]].binding
-//     }
-// }
-// 
-// /**
-//  * A Feature represents a record in a geospatial data set.  It should generally
-//  * identify a single "thing" such as a landmark or observation.
-//  */
-// trait Feature {
-//   /**
-//    * An identifier for this feature in the dataset.
-//    */
-//   def id: String
-//   
-//   /**
-//    * Retrieve a property of the feature, with an expected type. Typical usage is:
-//    * <pre>
-//    * val name = feature.get[String]("name")
-//    * </pre>
-//    */
-//   def get[A](key: String): A
-// 
-//   /**
-//    * Get the geometry for this feature.  This allows you to access the geometry
-//    * without worrying about its property name.
-//    */
-//   def geometry: Geometry
-// 
-//   /**
-//    * Get all properties for this feature as a Map.
-//    */
-//   def properties: Map[String, Any]
-// 
-//   def update(data: (String, Any)*): Feature = update(data.toSeq)
-// 
-//   def update(data: Iterable[(String, Any)]): Feature = {
-//     val props = properties
-//     assert(data.forall { x => props contains x._1 })
-//     Feature(props ++ data)
-//   }
-// 
-//   /**
-//    * Write the values in this Feature to a particular OGC Feature object.
-//    */
-//   def writeTo(feature: org.opengis.feature.simple.SimpleFeature) {
-//     for ((k, v) <- properties) feature.setAttribute(k, v) 
-//   }
-// 
-//   override def toString: String = 
-//     properties map {
-//       case (key, value: jts.Geometry) => 
-//         "%s: <%s>".format(key, value.getGeometryType())
-//       case (key, value) => 
-//         "%s: %s".format(key, value)
-//     } mkString("<Feature ", ", ", ">")
-// }
-// 
-// /**
-//  * A companion object for Feature providing several methods for creating
-//  * Feature instances.
-//  */
-// object Feature {
-//   /**
-//    * Create a GeoScript feature by wrapping a GeoAPI feature instance.
-//    */
-//   def apply(wrapped: SimpleFeature): Feature = {
-//     new Feature {
-//       def id: String = wrapped.getID
-// 
-//       def get[A](key: String): A = 
-//         wrapped.getAttribute(key).asInstanceOf[A]
-// 
-//       def geometry: Geometry = 
-//         wrapped.getDefaultGeometry().asInstanceOf[Geometry]
-// 
-//       def properties: Map[String, Any] = {
-//         val pairs = 
-//           for {
-//             i <- 0 until wrapped.getAttributeCount
-//             key = wrapped.getType().getDescriptor(i).getLocalName
-//             value = get[Any](key)
-//           } yield (key -> value)
-//         pairs.toMap
-//       }
-//     }
-//   }
-// 
-//   def apply(props: (String, Any)*): Feature = apply(props)
-// 
-//   /**
-//    * Create a feature from name/value pairs.  Example usage looks like:
-//    * <pre>
-//    * val feature = Feature("geom" -&gt; Point(12, 37), "type" -&gt; "radio tower")
-//    * </pre>
-//    */
-//   def apply(props: Iterable[(String, Any)]): Feature = {
-//     new Feature {
-//       def id: String = null
-// 
-//       def geometry = 
-//         props.collectFirst({ 
-//           case (name, geom: Geometry) => geom
-//         }).get
-// 
-//       def get[A](key: String): A = 
-//         props.find(_._1 == key).map(_._2.asInstanceOf[A]).get
-// 
-//       def properties: Map[String, Any] = Map(props.toSeq: _*)
-//     }
-//   }
-// }
-// 
-// /**
-//  * A collection of features, possibly not all loaded yet.  For example, queries
-//  * against Layers produce feature collections, but the query may not actually
-//  * be sent until you access the contents of the collection.
-//  *
-//  * End users will generally not need to create FeatureCollections directly.
-//  */
-// class FeatureCollection(
-//   wrapped: gt.data.FeatureSource[SimpleFeatureType, SimpleFeature],
-//   query: gt.data.Query
-// ) extends Traversable[Feature] {
-//   override def foreach[U](op: Feature => U) {
-//     val iter = wrapped.getFeatures().features()
-//     try
-//       while (iter.hasNext) op(Feature(iter.next))
-//     finally
-//       iter.close()
-//   }
-// }
-// }
