@@ -1,4 +1,7 @@
 package org.geoscript
+/**
+ * Manipulate geometries
+ */
 package object geometry {
   import com.vividsolutions.jts.{geom => jts}
 

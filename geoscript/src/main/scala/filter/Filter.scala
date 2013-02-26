@@ -1,11 +1,6 @@
 package org.geoscript.filter
 
 import scala.collection.JavaConverters._
-
-import com.vividsolutions.jts.{geom=>jts}
-import org.{geotools => gt}
-import org.opengis.{filter => ogc}
-
 import org.geoscript.geometry.Geometry
 
 object Filter {

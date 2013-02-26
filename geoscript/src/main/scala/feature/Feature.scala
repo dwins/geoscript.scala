@@ -3,6 +3,9 @@ package org.geoscript //.feature
 import org.geoscript.projection._
 import scala.collection.JavaConverters._
 
+/**
+ * Facilities for manipulating vector data.
+ */
 package object feature {
   /**
    * A Feature is a single entry in a geospatial dataset.  For example, a
