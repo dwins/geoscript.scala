@@ -193,7 +193,7 @@ package builder {
     }
     def unapply(feature: Feature): Option[T] = {
       val att = feature.getAttribute(name)
-      if (clazz.isInstance(att))
+      if (att == null || clazz.isInstance(att))
         Some(clazz.cast(att))
       else 
         None

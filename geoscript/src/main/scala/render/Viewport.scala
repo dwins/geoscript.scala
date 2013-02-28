@@ -1,13 +1,14 @@
 package org.geoscript
 
-import io._
 
 import org.{ geotools => gt }
 import com.vividsolutions.jts.{geom=>jts}
 import java.awt.{ Graphics2D, Rectangle, RenderingHints }
 import gt.geometry.jts.ReferencedEnvelope
 import scala.collection.JavaConverters._
+import org.geoscript.io._
 import org.geoscript.geometry._
+import org.geoscript.layer._
 
 package render {
   trait Context[T] {
