@@ -47,7 +47,7 @@ package object feature {
    * @see [[org.geoscript.feature.SchemaBuilder]]
    */
   val schemaFactory: org.opengis.feature.`type`.FeatureTypeFactory =
-    org.geotools.factory.CommonFactoryFinder.getFeatureTypeFactory(null)
+    new org.geotools.feature.`type`.FeatureTypeFactoryImpl
 
   /**
    * A feature factory with default configuration.

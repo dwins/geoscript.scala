@@ -99,6 +99,7 @@ package builder {
   sealed trait Fields[T] {
     def conformsTo(schema: Schema): Boolean
     def fields: Seq[Field]
+    def values(t: T): Seq[AnyRef]
     def unapply(feature: Feature): Option[T]
     def update(feature: Feature, value: T): Unit
 
@@ -151,7 +152,7 @@ package builder {
        featureFactory: org.opengis.feature.FeatureFactory)
     : T => Feature = {
       t => 
-        val feature = featureFactory.createSimpleFeature(Array.empty, schema, null)
+        val feature = featureFactory.createSimpleFeature(values(t).toArray, schema, "")
         update(feature, t)
         feature
     }
@@ -165,6 +166,10 @@ package builder {
     def conformsTo(schema: Schema): Boolean =
       (tFields conformsTo schema) && (uFields conformsTo schema)
     def fields = tFields.fields ++ uFields.fields
+    def values(x: T ~ U): Seq[AnyRef] = {
+      val (t ~ u) = x
+      tFields.values(t) ++ uFields.values(u)
+    }
     def update(feature: Feature, value: T ~ U) {
       val (t ~ u) = value
       tFields(feature) = t
@@ -182,6 +187,7 @@ package builder {
     def conformsTo(schema: Schema): Boolean = schema.fields.exists(field =>
       field.name == name && field.binding.isAssignableFrom(clazz))
     def fields = Seq(schemaBuilder.Field(name, clazz))
+    def values(t: T): Seq[AnyRef] = Seq(t)
     def update(feature: Feature, value: T) {
       feature.setAttribute(name, value)
     }
