@@ -2,16 +2,13 @@ package org.geoscript
 
 import java.io.File
 
-// import org.opengis.feature.simple.{ SimpleFeature, SimpleFeatureType }
-// import org.opengis.feature.`type`.{ AttributeDescriptor, GeometryDescriptor }
-import org.{ geotools => gt }
 import com.vividsolutions.jts.{ geom => jts }
 
 import org.geoscript.feature._
 import org.geoscript.filter._
 import org.geoscript.geometry._
 import org.geoscript.projection._
-import org.geoscript.workspace.{Directory,Workspace}
+import org.geoscript.workspace._
 
 package object layer {
   type Layer = org.geotools.data.FeatureSource[Schema, Feature]
@@ -36,23 +33,33 @@ package object layer {
      * operations.
      */
     def features: FeatureCollection =
-      source.getFeatures(new gt.data.Query)
+      source.getFeatures(new org.geotools.data.Query)
     
     /** 
      * Get a filtered feature collection.
      */
     def filter(pred: Filter): FeatureCollection =
-      source.getFeatures(new gt.data.Query(name, pred))
+      source.getFeatures(new org.geotools.data.Query(name, pred))
 
     /**
      * Get the number of features currently in the layer.
      */
-    def count: Int = source.getCount(new gt.data.Query())
+    def count: Int = source.getCount(new org.geotools.data.Query())
 
     /**
      * Get the bounding box of this Layer, in the format:
      */
     def envelope: Envelope = source.getBounds() // in schema.geometry.projection
+
+    /**
+     * Test whether the data source supports modifications and return a
+     * WritableLayer if so.  Otherwise, a None is returned.
+     */
+    def writable: Option[WritableLayer] =
+      source match {
+        case (writable: WritableLayer) => Some(writable)
+        case _ => None
+      }
   }
 
   implicit class RichWritableLayer(val store: WritableLayer) extends AnyVal {
@@ -69,7 +76,7 @@ package object layer {
      * repeated use of += when adding multiple features.
      */
     def ++= (features: Traversable[Feature]) {
-      val tx = new gt.data.DefaultTransaction
+      val tx = new org.geotools.data.DefaultTransaction
       val writer = dstore.getFeatureWriterAppend(store.name, tx)
 
       try {
@@ -107,7 +114,7 @@ package object layer {
     }
 
     def update(filter: Filter)(replace: Feature => Unit) {
-      val tx = new gt.data.DefaultTransaction
+      val tx = new org.geotools.data.DefaultTransaction
       val writer = filter match {
         case Include => dstore.getFeatureWriter(store.name, tx)
         case filter => dstore.getFeatureWriter(store.name, filter, tx)
