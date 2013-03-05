@@ -345,6 +345,35 @@ class SLDTest extends FunSuite with ShouldMatchers {
       (f \ "@name").text should equal("strConcat")
   }
 
+  test("Raster symbolizers can be encoded") {
+    val raster = css2sld2dom("/raster.simple.css")
+    raster \\ "RasterSymbolizer" should (not(have(size(0))))
+  }
+
+  ignore("Raster symbolizers can have ContrastEnhancement") {
+    val raster = css2sld2dom("/raster.colorenhancement.css")
+    (raster \\ "RasterSymbolizer" \\ "ColorEnhancement") 
+      .should(not(have(size(0))))
+  }
+
+  test("Raster symbolizers can have geometry") {
+    val raster = css2sld2dom("/raster.geometry.css")
+    (raster \\ "RasterSymbolizer" \ "Geometry")
+      .should(not(have(size(0))))
+  }
+
+  test("Raster symbolizers can have opacity") {
+    val raster = css2sld2dom("/raster.opacity.css")
+    (raster \\ "RasterSymbolizer" \ "Opacity")
+      .should(not(have(size(0))))
+  }
+
+  test("Raster symbolizers can have a colormap") {
+    val raster = css2sld2dom("/raster.colormap.css")
+    (raster \\ "RasterSymbolizer" \ "ColorMap")
+      .should(not(have(size(0))))
+  }
+
   test("Everything should convert without throwing Exceptions") {
     val testData = Seq(
       "/badstyle.css", "/camping.css", "/capitals.css", "/complex-scales.css",
@@ -353,10 +382,11 @@ class SLDTest extends FunSuite with ShouldMatchers {
       "/minimal.css", "/motorvag.css", "/overrides.css", "/percentage.css",
       "/planet_polygon.css", "/railroad.css", "/roads.css", "/scales.css",
       "/stacked-symbolizers.css", "/states.css", "/test-basic.css", "/test.css",
-      "/typenames.css", "/complex-label.css")
+      "/typenames.css", "/complex-label.css", "/raster.colorenhancement.css",
+      "/raster.colormap.css", "/raster.colormaptype.css", "/raster.gamma.css",
+      "/raster.geometry.css", "/raster.opacity.css", "/raster.simple.css")
 
     // no assertion, just checking that no exceptions are thrown
-    for (file <- testData)
-      { css2sld2dom(file) } 
+    for (file <- testData) css2sld2dom(file)
   }
 }
