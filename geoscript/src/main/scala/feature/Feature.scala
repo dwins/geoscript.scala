@@ -67,6 +67,8 @@ package object feature {
     def fields: Seq[Field] = schema.getAttributeDescriptors.asScala
     def field(name: String): Field = schema.getDescriptor(name)
     def geometryField: GeoField  = schema.getGeometryDescriptor
+    def mkFeature(attributes: AnyRef*)(id: String = "", factory: org.opengis.feature.FeatureFactory = featureFactory) =
+      factory.createSimpleFeature(attributes.toArray, schema, id)
   }
 
   implicit class RichField(val field: Field) extends AnyVal {
