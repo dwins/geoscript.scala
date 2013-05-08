@@ -1,8 +1,9 @@
 package org.geoscript.style
 package combinators
 
-import org.geoscript.filter.{ factory => _, _ }
 import scala.collection.JavaConversions._
+import org.geoscript.filter.{ factory => _, _ }
+import org.geoscript.filter.builder._
 
 sealed abstract trait Style {
   def where(filter: Filter): Style
@@ -55,7 +56,7 @@ abstract class SimpleStyle extends Style {
   override def where(p: Filter): Style =
     new DerivedStyle(this) {
       override def filter = 
-        delegate.filter.map(org.geoscript.filter.and(p, _): Filter).orElse(Some(p))
+        delegate.filter.map(p and _).orElse(Some(p))
     }
 
   override def aboveScale(s: Double): Style =
@@ -130,7 +131,7 @@ object Paint {
   import org.geoscript.geocss.CssOps.colors
 
   def named(name: String): Option[Paint] = 
-    colors.get(name).map(rgb => Color(literal(rgb)))
+    colors.get(name).map(rgb => Color(Literal(rgb)))
 }
 
 case class Color(rgb: Expression) extends Paint {
@@ -149,7 +150,7 @@ case class Color(rgb: Expression) extends Paint {
     mode: Stroke.Mode
   ): org.geotools.styling.Stroke = {
     factory.createStroke(
-      filter.literal(rgb),
+      Literal(rgb),
       if (width == null) null else width,
       if (opacity == null) null else opacity,
       if (linejoin == null) null else linejoin,
@@ -166,9 +167,8 @@ case class Color(rgb: Expression) extends Paint {
   ): org.geotools.styling.Fill = {
     factory.fill(
       null,
-      filter.literal(rgb),
-      Option(opacity)
-        .getOrElse(filter.literal(1))
+      Literal(rgb),
+      Option(opacity) getOrElse Literal(1)
     )
   }
 }
@@ -225,7 +225,7 @@ case class Label(
   text: Expression,
   geometry: Expression = null,
   font: Font = Font("Arial"),
-  fontFill: Fill = Fill(Color(literal("#000000"))),
+  fontFill: Fill = Fill(Color(Literal("#000000"))),
   halo: Fill = null,
   rotation: Double = 0,
   anchor: (Double, Double) = (0, 0.5),
@@ -255,9 +255,9 @@ case class Symbol(
   shape: Expression,
   fill: Fill = null,
   stroke: Stroke = null,
-  size: Expression = literal(16),
-  rotation: Expression = literal(0),
-  opacity: Expression = literal(1),
+  size: Expression = Literal(16),
+  rotation: Expression = Literal(0),
+  opacity: Expression = Literal(1),
   zIndex: Double = 0
 ) extends SimpleStyle with Paint {
   val filter = None
@@ -342,9 +342,9 @@ case class Symbol(
 
 case class Graphic(
   url: String,
-  opacity: Expression = literal(1),
-  size: Expression = literal(16),
-  rotation: Expression = literal(0),
+  opacity: Expression = Literal(1),
+  size: Expression = Literal(16),
+  rotation: Expression = Literal(0),
   zIndex: Double = 0
 ) extends SimpleStyle with Paint {
   private val factory =

@@ -13,6 +13,7 @@ package object workspace {
     def count = workspace.getTypeNames.length
     def names: Seq[String] = workspace.getTypeNames
     def layer(theName: String): Layer = workspace.getFeatureSource(theName)
+    def layers: Seq[Layer] = names.view.map(layer(_))
 
     def create(name: String, fields: Field*): Layer = create(name, fields) 
 

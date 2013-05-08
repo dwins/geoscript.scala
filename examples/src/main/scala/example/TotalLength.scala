@@ -1,14 +1,15 @@
 package org.geoscript.example
 
-import scala.collection.JavaConverters._
 import org.geoscript.feature._
+import org.geoscript.geometry._
 import org.geoscript.layer._
 import org.geoscript.workspace._
 
 /**
- * An example app for printing out some info about the schema of a shapefile.
+ * An example app for printing out the total length of all geometries in a
+ * shapefile.  Inspired by the "FirstProject" from the GeoTools documentation: 
  */
-object Identify extends App { 
+object TotalLength extends App {
   // by extending the scala.App trait from the Scala standard library, we avoid
   // writing the def main(args: Array[String]) that is otherwise required for 
   // an object to be executable.
@@ -18,9 +19,9 @@ object Identify extends App {
     // command line arguments.  We need at least one so we can interpret it as a
     // path!
     println(
-""" |Usage: Identify <path>
-    |An example script demonstrating the use of GeoScript to display a
-    |Shapefile's schema.
+""" |Usage: TotalLength <path>
+    |An example script demonstrating the use of GeoScript to compute the total
+    |length of geometries in a Shapefile and print it.
     |""".stripMargin)
     System.exit(0) 
   }
@@ -46,15 +47,12 @@ object Identify extends App {
   // use the first and only layer from the workspace.
   val layer: Layer = workspace.layers.head
 
-  // Now we build up a list of strings (we will concatenate them and print
-  // them all at once.)
-  val descriptionLines: Seq[String] = 
-    // Prefixing a string literal with 's' allows us to use ${} syntax for
-    // embedding Scala expressions.
-    Seq(s"Schema for ${layer.schema.name}") ++
-    // Using an 'f' prefix works similarly, but also allows us to use
-    // printf-style formatting.
-    layer.schema.fields.map(fld => f"${fld.name}%10s: ${fld.binding.getSimpleName}")
+  // While layer.features is a special FeatureCollection object with
+  // GIS-specific methods and operations, it is also integrated with the Scala
+  // collections framework.  This makes operations like extracting a field and
+  // summing it quite straightforward; see
+  // http://docs.scala-lang.org/overviews/collections/introduction.html
+  val totalLength: Double = layer.features.map(_.geometry.length).sum
 
-  println(descriptionLines.mkString("\n"))
+  println(s"Total geometry length: $totalLength")
 }

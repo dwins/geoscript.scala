@@ -1,5 +1,6 @@
 package org.geoscript //.feature
 
+import org.geoscript.geometry._
 import org.geoscript.projection._
 import scala.collection.JavaConverters._
 
@@ -89,6 +90,7 @@ package object feature {
     def attributes_= (values: Iterable[(String, Any)]) =
       for ((k, v) <- values) feature.setAttribute(k, v)
     def id: String = feature.getID
+    def schema: Schema = feature.getFeatureType
     def geometry: org.geoscript.geometry.Geometry =
       feature.getDefaultGeometry.asInstanceOf[org.geoscript.geometry.Geometry]
     def geometry_=(g: org.geoscript.geometry.Geometry): Unit =
@@ -122,6 +124,21 @@ package feature {
           case (g: GeoField) => org.geoscript.projection.reproject(g, projection)
           case other => other
         })
+    }
+
+    implicit object FeatureHasProjection extends HasProjection[Feature] {
+      def reproject(t: Feature, projection: Projection): Feature = {
+        val schema = org.geoscript.projection.reproject(t.schema, projection)
+        val tx = t.schema.geometryField.projection to projection
+        val attributes = 
+          schema.fields.map { f =>
+            t.attributes(f.name) match {
+              case (g: Geometry) => tx(g)
+              case v             => v.asInstanceOf[AnyRef]
+            }
+          }
+        featureFactory.createSimpleFeature(attributes.toArray, schema, t.id)
+      }
     }
 
     implicit class FieldModifiers(val field: Field) {
