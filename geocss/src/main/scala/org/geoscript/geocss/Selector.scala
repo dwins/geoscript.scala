@@ -40,9 +40,9 @@ object Selector {
         case (Not(p), Not(q)) => implies(q, p)
         case (p, Not(q)) => !allows(p, q)
         case (PseudoSelector("scale", ">", a), PseudoSelector("scale", ">", b)) => 
-          b.toDouble <= a.toDouble
+          b <= a
         case (PseudoSelector("scale", "<", a), PseudoSelector("scale", "<", b)) => 
-          b.toDouble >= a.toDouble
+          b >= a
         case (DataFilter(f), DataFilter(g)) =>
           try {
             given(f).reduce(g) == ogc.Filter.INCLUDE
@@ -68,9 +68,9 @@ object Selector {
         case (Not(p), Not(q)) => allows(q, p)
         case (Not(p), q) => !implies(q, p)
         case (PseudoSelector("scale", ">", a), PseudoSelector("scale", "<", b)) => 
-          b.toDouble > a.toDouble
+          b > a
         case (PseudoSelector("scale", "<", a), PseudoSelector("scale", ">", b)) => 
-          b.toDouble < a.toDouble
+          b < a
         case (DataFilter(f), DataFilter(g)) =>
           try {
             given(f).reduce(g) != ogc.Filter.EXCLUDE
@@ -247,7 +247,7 @@ case class Typename(typename: String) extends MetaSelector {
  * property such as the scale denominator at render time.  This corresponds to
  * the [&64;scale &gt; 10000] syntax in CSS, for example.
  */
-case class PseudoSelector(property: String, operator: String, value: String)
+case class PseudoSelector(property: String, operator: String, value: Double)
 extends MetaSelector {
   override def toString = "@%s%s%s".format(property, operator, value)
 }

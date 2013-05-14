@@ -44,7 +44,7 @@ object Converter {
     writer.close()
   }
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]) {
     val (options, filenames) = parse(args)
 
     val write: (Seq[Rule], java.net.URL, OutputStream) => Unit = 

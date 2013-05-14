@@ -118,7 +118,7 @@ object CssParser extends RegexParsers {
       op <- "[><=]".r
       num <- number
       _ <- literal("]")
-    } yield PseudoSelector(id, op, num)
+    } yield PseudoSelector(id, op, num.toDouble)
 
   val pseudoClass = (":" ~> identifier) ^^ PseudoClass
 

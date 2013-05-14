@@ -134,15 +134,21 @@ package object filter {
     }
 
     class Value(val text: String) {
+      lazy val asDouble =
+        try {
+          Some(text.toDouble)
+        } catch {
+          case (_: NumberFormatException) => None
+        }
+
       override def toString = text
       override def equals(that: Any) =
         that match {
           case (that: Value) => 
-            try {
-              this.text.toDouble == that.text.toDouble
-            } catch {
-              case (_: NumberFormatException) => this.text == that.text
-            }
+            if (this.asDouble.isDefined && that.asDouble.isDefined) 
+              this.asDouble == that.asDouble
+            else
+              this.text == that.text
           case _ => false 
         }
     }
@@ -153,12 +159,14 @@ package object filter {
         apply(literal.getValue.toString)
 
       implicit val valuesAreOrdered: Ordering[Value] =
-        Ordering.fromLessThan { (a: Value, b: Value) =>
-          try {
-            a.text.toDouble < b.text.toDouble
-          } catch {
-            case (_: NumberFormatException) => a.text < b.text
-          }
+        new Ordering[Value] {
+          val dbl = implicitly[Ordering[Double]]
+          val str = implicitly[Ordering[String]]
+          def compare(x: Value, y: Value): Int =
+            if (x.asDouble.isDefined && y.asDouble.isDefined)
+              dbl.compare(x.asDouble.get, y.asDouble.get)
+            else
+              str.compare(x.text, y.text)
         }
     }
     case object Unconstrained extends Constraint

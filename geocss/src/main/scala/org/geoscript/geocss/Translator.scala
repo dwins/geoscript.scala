@@ -590,8 +590,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val scales = 
       flatten(And(rule.selectors))
         .collect { 
-          case PseudoSelector("scale", _, d) => d.toDouble
-          case Not(PseudoSelector("scale", _, d)) => d.toDouble
+          case PseudoSelector("scale", _, d) => d
+          case Not(PseudoSelector("scale", _, d)) => d
         }
         .sorted
         .distinct
@@ -613,8 +613,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
     for {
       (rule, syms) <- group if syms.nonEmpty
       range @ (min, max) <- extractScaleRanges(rule)
-      minSelector = min.map(x => PseudoSelector("scale", ">", x.toString))
-      maxSelector = max.map(x => PseudoSelector("scale", "<", x.toString))
+      minSelector = min.map(x => PseudoSelector("scale", ">", x))
+      maxSelector = max.map(x => PseudoSelector("scale", "<", x))
       filter = reduce(allOf(rule.selectors ++ minSelector ++ maxSelector))
       if (filter != Exclude)
     } yield createSLDRule(min, max, realize(filter), rule.description.title, rule.description.abstrakt, syms)
@@ -687,7 +687,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         }
       reduced match {
         case And(sels) => sels
-        case sel               => Seq(sel)
+        case sel       => Seq(sel)
       }
     }
   }
@@ -736,7 +736,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
       reduce[Selector](And(a.selectors ++ b.selectors)) == Exclude
      
     val cliques = maximalCliques(xs.toSet, mutuallyExclusive)
-    val combinations = enumerateCombinations(cliques)
+    val combinations = visit(cliques).map(_.toSet).toSet
+    // val oldCombinations = enumerateCombinations(cliques)
+    // println(s"${oldCombinations.size}, ${combinations.size}")
 
     val ExclusiveRule = EmptyRule.copy(selectors = Seq(Exclude))
 
@@ -751,13 +753,39 @@ class Translator(val baseURL: Option[java.net.URL]) {
       for {
         combo <- combinations
         remainder = xs filterNot(combo contains _)
-        included = include(combo)
+        included = include(combo.toSet)
         excluded = exclude(remainder)
         constrained = constrain(included, excluded)
         ruleset = simplifySelector(constrained)
-        if ruleset.isSatisfiable
+        if ruleset.isSatisfiable 
       } yield ruleset
 
+    // println(rulesets.size)
+    // rulesets.toSeq
+    Nil
     rulesets.toSeq
+  }
+
+  import scala.annotation.tailrec
+
+  // @tailrec
+  def visit(cliques: Set[Set[Rule]]): Seq[List[Rule]] = {
+    def work[Rule](path: List[Rule], cliques: List[Set[Rule]]): Seq[List[Rule]] =
+        cliques match {
+          case Nil => 
+            Seq(path)
+          case top :: remainingCliques =>
+            val includingThisLevel: Seq[List[Rule]] = 
+              top.toSeq flatMap { i =>
+                val culledRemaining = 
+                  remainingCliques.filterNot(_ contains i).map(_ -- top)
+                work(i :: path, culledRemaining) // remainingCliques filterNot (_ contains i))
+              }
+           val excludingThisLevel: Seq[List[Rule]] =
+             work(path, remainingCliques)
+
+          includingThisLevel ++ excludingThisLevel
+        }
+    work(Nil, cliques.toList.sortBy(- _.size))
   }
 }
