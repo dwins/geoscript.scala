@@ -54,11 +54,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
   private val defaultRGB = filters.literal(colors("grey"))
 
-  def resolve(path: String): String =
-    baseURL match {
-      case None => new java.net.URL(path).toString
-      case Some(base) => new java.net.URL(base, path).toString
-    }
+  def resolve(path: String): String = {
+    val base = baseURL.getOrElse(new java.net.URL("file://"))
+    new java.net.URL(base, path).toString
+  }
 
 // externalGraphic, well-known graphic , color
   def fill(xs: Seq[Value]): (Option[String], Option[String], Option[OGCExpression]) = {

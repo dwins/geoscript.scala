@@ -77,7 +77,8 @@ package object feature {
 
   implicit class RichGeoField(val field: GeoField) extends AnyVal{
     def projection: org.geoscript.projection.Projection = 
-      field.getType.getCoordinateReferenceSystem
+      field.getType.asInstanceOf[org.opengis.feature.`type`.GeometryType]
+                   .getCoordinateReferenceSystem
   }
 
   implicit class RichFeature(val feature: Feature) extends AnyVal {
