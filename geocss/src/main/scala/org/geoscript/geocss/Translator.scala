@@ -11,6 +11,7 @@ import org.geotools.styling.{
   LineSymbolizer,
   PointSymbolizer,
   PolygonSymbolizer,
+  RasterSymbolizer,
   Symbolizer,
   TextSymbolizer,
   TextSymbolizer2,
@@ -179,12 +180,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
       case _ => None
     }
 
-  def getZIndex(xs: Seq[Value]): Option[Double] =
-    keyword(xs) flatMap { text =>
-      try Some(text.toDouble)
-      catch {
-        case (_: NumberFormatException) => None
-      }
+  def getLiteralDouble(xs: Seq[Value]): Option[Double] =
+    Some(xs) collect {
+      case Seq(Literal(Double(z))) => z
     }
 
   def scale(s: String): Float = {
@@ -230,10 +228,90 @@ class Translator(val baseURL: Option[java.net.URL]) {
     }).toArray
   }
 
-  // implicit def stringToFilter(literal: String): org.opengis.filter.Filter = {
-  //   val cql = literal.substring(1, literal.length - 1)
-  //   org.geotools.filter.text.ecql.ECQL.toFilter(cql)
-  // }
+  def channelSelection(xs: Seq[Value]): gt.ChannelSelection = {
+    object Channel {
+      def unapply(v: Value): Option[gt.SelectedChannelType] = 
+        v match {
+          case Literal("auto") => None
+          case Literal(text) => 
+            Some(styles.createSelectedChannelType(
+              text, null: gt.ContrastEnhancement))
+          case _ => None
+        }
+    }
+
+    val channels = 
+      Some(xs) collect {
+        case Seq(Channel(grey)) => Array(grey)
+        case Seq(Channel(r), Channel(g), Channel(b)) => Array(r, g, b)
+      }
+
+    channels.map(styles.createChannelSelection).orNull // TODO: return Option[ChannelSelection] instead.
+  }
+
+  object Double {
+    def unapply(s: String): Option[Double] =
+      try
+        Some(s.toDouble)
+      catch {
+        case (_: NumberFormatException) => None
+      }
+  }
+
+  def colorMap(rampType: Option[Int])(xs: Seq[Value]): Option[gt.ColorMap] = {
+    def getColorMapEntry(c: OGCExpression, v: Double, o: Double) = {
+      val e = styles.createColorMapEntry
+      e.setColor(c)
+      e.setQuantity(filters.literal(v))
+      e.setOpacity(filters.literal(o))
+      e
+    }
+    def getColorMap(entries: Seq[gt.ColorMapEntry]) = {
+      val m = styles.createColorMap
+      rampType.foreach(m.setType)
+      entries.foreach(m.addColorMapEntry)
+      m
+    }
+    def tryEntry(v: Value): Option[gt.ColorMapEntry] = 
+      Some(v) collect {
+        case Function("color-map-entry", Seq(Color(c), Literal(Double(v)))) =>
+          getColorMapEntry(c, v, 1)
+        case Function("color-map-entry", Seq(Color(c), Literal(Double(v)), Literal(Double(o)))) =>
+          getColorMapEntry(c, v, o)
+      }
+
+    def sequence[A](as: Seq[Option[A]]): Option[Seq[A]] =
+      (as foldRight (Some(Nil): Option[Seq[A]])) {
+        (aOpt, accum) => for (a <- aOpt; res <- accum) yield a +: res
+      }
+
+    sequence(xs map tryEntry).map(getColorMap)
+  }
+
+  def getOverlapBehavior(xs: Seq[Value]): Option[org.opengis.style.OverlapBehavior] = {
+    import scala.util.control.Exception.catching
+    xs.headOption flatMap {
+      case Literal(name) => 
+        catching(classOf[IllegalArgumentException]).opt {
+          org.opengis.style.OverlapBehavior.valueOf(name)
+        }
+      case _ => None
+    }
+  }
+
+  def getContrastMethod(xs: Seq[Value]): Option[org.opengis.style.ContrastMethod] =
+    xs.headOption collect {
+      case Literal("none") => org.opengis.style.ContrastMethod.NONE
+      case Literal("normalize") => org.opengis.style.ContrastMethod.NORMALIZE
+      case Literal("histogram") => org.opengis.style.ContrastMethod.HISTOGRAM
+    }
+
+  def getColorMapType(xs: Seq[Value]): Option[Int] =
+    xs.headOption collect {
+      case Literal("ramp") => org.geotools.styling.ColorMap.TYPE_RAMP
+      case Literal("intervals") => org.geotools.styling.ColorMap.TYPE_INTERVALS
+      case Literal("values") => org.geotools.styling.ColorMap.TYPE_VALUES
+    }
 
   def valToExpression(v: Value): Option[OGCExpression] =
     v match {
@@ -349,7 +427,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom = 
           props.get("stroke-geometry") orElse props.get("geometry") flatMap expression
         val zIndex: Double = 
-          props.get("stroke-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
+          props.get("stroke-z-index") orElse props.get("z-index") flatMap getLiteralDouble getOrElse(0d)
 
         val graphic = buildGraphic("stroke", props, markProps)
 
@@ -388,7 +466,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom =
           props.get("fill-geometry") orElse props.get("geometry") flatMap expression
         val zIndex: Double = 
-          props.get("fill-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
+          props.get("fill-z-index") orElse props.get("z-index") flatMap getLiteralDouble getOrElse(0d)
 
         val graphic = buildGraphic("fill", props, markProps) 
 
@@ -413,7 +491,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom = (props.get("mark-geometry") orElse props.get("geometry"))
           .flatMap(expression)
         val zIndex: Double = 
-          props.get("mark-z-index") orElse props.get("z-index") flatMap getZIndex getOrElse(0d)
+          props.get("mark-z-index") orElse props.get("z-index") flatMap getLiteralDouble getOrElse(0d)
 
         val graphic = buildGraphic("mark", props, markProps)
 
@@ -437,7 +515,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
         val geom = (props.get("label-geometry") orElse props.get("geometry"))
           .flatMap(expression)
         val zIndex: Double = 
-          props.get("label-z-index") orElse props.get("z-index") flatMap(getZIndex) getOrElse 0d
+          props.get("label-z-index") orElse props.get("z-index") flatMap(getLiteralDouble) getOrElse 0d
 
         val font = fontFamily.getOrElse(Nil).flatMap(valToExpression).map { familyName => {
           val fontStyle =
@@ -531,7 +609,52 @@ class Translator(val baseURL: Option[java.net.URL]) {
         (zIndex, sym)
       }
 
-    Seq(polySyms, lineSyms, pointSyms, textSyms).flatten
+    val rasterSyms: Seq[(Double, RasterSymbolizer)] =
+      (expand(properties, "raster-channels").toStream zip
+       (Stream.from(1) map { orderedMarkRules("outline", _) })
+      ).map { case (props, outlineProps) =>
+        val geom = 
+          (props get "raster-geometry")
+            .orElse(props get "geometry")
+            .flatMap(expression)
+        val opacity =
+          (props get "raster-opacity") flatMap expression
+        val channels =
+          (props get "raster-channels") map channelSelection
+        val overlap = (props get "raster-overlap-behavior") flatMap getOverlapBehavior
+        val colorMapType = (props get "raster-color-map-type") flatMap getColorMapType
+        val colorMapEntries =
+          (props get "raster-color-map") flatMap colorMap(colorMapType)
+        val contrastMethod =
+          (props get "raster-contrast-enhancement") flatMap getContrastMethod
+        val gamma = 
+          (props get "raster-gamma") flatMap getLiteralDouble
+        val relief = (null: org.geotools.styling.ShadedRelief)
+        val outline = (null: Symbolizer)
+        val zIndex: Double = 
+          (props get "raster-z-index")
+            .orElse(props get "z-index")
+            .flatMap(getLiteralDouble)
+            .getOrElse(0d)
+
+        val contrastEnhancement = styles.createContrastEnhancement()
+        contrastMethod.foreach(contrastEnhancement.setMethod)
+        gamma.foreach(g => contrastEnhancement.setGammaValue(filters.literal(g)))
+
+        val sym = styles.createRasterSymbolizer(
+          null, // This should be the geometry property, but it only accepts a string so we use setGeometry() after creation to pass an expression.
+          opacity.orNull,
+          channels.orNull,
+          overlap.map(filters.literal).orNull,
+          colorMapEntries.orNull,
+          contrastEnhancement,
+          relief,
+          outline)
+        sym.setGeometry(geom.orNull)
+        (zIndex, sym)
+      }
+
+    Seq(polySyms, lineSyms, pointSyms, textSyms, rasterSyms).flatten
   }
 
   type StyleSheet = Seq[Rule]
