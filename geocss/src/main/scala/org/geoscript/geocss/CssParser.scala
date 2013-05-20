@@ -43,27 +43,17 @@ object CssParser extends RegexParsers {
         }
     }
 
-  private object SingleComment extends Parser[String] {
-    val whiteSpace = """\s*""".r
-    val comment = """/\*((?:[^/]|[^*]/)*)\*/""".r
-
-    override def apply(in: Reader[Char]): ParseResult[String] = {
-      val source = in.source
-      val start = findStart(source, in.offset)
-      val space = source.subSequence(start, source.length)
-      comment.findPrefixMatchOf(space) match {
-        case Some(cmt) => Success(cmt.group(1), in.drop(start - in.offset + cmt.end))
-        case None => Failure("nothing found", in)
-      }
-    }
-
-    private def findStart(source: CharSequence, offset: Int): Int = {
-      val space = source.subSequence(offset, source.length)
-      whiteSpace.findPrefixMatchOf(space) match {
-        case Some(m) => offset + m.end
-        case None => offset
-      }
-    }
+  private val SingleComment: Parser[String] = {
+    val whitespacepadding = rep(elem("Whitespace", _.isWhitespace))
+    val startComment = elem('/') ~ elem('*')
+    val endComment = elem('*') ~ elem('/')
+    val commentChar = (elem('*') <~ not(elem('/'))) | elem("Comment content", _ != '*')
+    for {
+      _ <- whitespacepadding
+      _ <- startComment
+      body <- rep(commentChar)
+      _ <- endComment
+    } yield body.mkString
   }
 
   private val ParsedComment = rep1(SingleComment) map { x => Description(x.last) }
