@@ -11,6 +11,7 @@ object GeoScript extends Build {
       gtVersion := "8.5",
       scalaVersion := "2.10.0", 
       scalacOptions ++= Seq("-feature", "-deprecation", "-Xlint", "-unchecked"),
+      javacOptions ++= Seq("-source", "6"),
       publishTo := Some(Resolver.file("file", file("release")))
     )
 
