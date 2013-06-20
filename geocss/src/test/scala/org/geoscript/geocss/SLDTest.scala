@@ -345,6 +345,11 @@ class SLDTest extends FunSuite with ShouldMatchers {
       (f \ "@name").text should equal("strConcat")
   }
 
+  test("Solid font-fill should not use GraphicFill") {
+    val fontFill = css2sld2dom("/font-fill.css")
+    (fontFill \\ "GraphicFill") should have(size(0))
+  }
+
   test("Everything should convert without throwing Exceptions") {
     val testData = Seq(
       "/badstyle.css", "/camping.css", "/capitals.css", "/complex-scales.css",

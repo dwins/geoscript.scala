@@ -536,7 +536,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
           )
           val externalGraphic =
             buildExternalGraphic(fillParams._1, props.get("fill-mime").flatMap(keyword))
-          if (mark.isDefined || externalGraphic != null) {
+          if (mark.isDefined || externalGraphic.isDefined) {
             styles.createGraphic(
               externalGraphic.orNull,
               mark.orNull,
