@@ -345,6 +345,11 @@ class SLDTest extends FunSuite with ShouldMatchers {
       (f \ "@name").text should equal("strConcat")
   }
 
+  test("label-anchor should be applied even when no label-offset is provided") {
+    val fontFill = css2sld2dom("/label-anchor.css")
+    (fontFill \\ "AnchorPoint") should have(size(1))
+  }
+
   test("Solid font-fill should not use GraphicFill") {
     val fontFill = css2sld2dom("/font-fill.css")
     (fontFill \\ "GraphicFill") should have(size(0))

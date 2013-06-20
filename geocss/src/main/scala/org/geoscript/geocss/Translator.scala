@@ -565,23 +565,47 @@ class Translator(val baseURL: Option[java.net.URL]) {
           else
             None
 
-        val placement = offset match {
-          case Some(Seq(Some(d))) => styles.createLinePlacement(d)
-          case Some(Seq(Some(x), Some(y))) =>
+        val linePlacementOption = 
+          offset.collect {
+            case Seq(Some(d)) => styles.createLinePlacement(d)
+          }
+
+        val pointPlacementOption = 
+          offset.collect {
+            case Seq(Some(x), Some(y)) =>
+              styles.createPointPlacement(
+                anchorPoint.getOrElse(styles.getDefaultPointPlacement.getAnchorPoint),
+                styles.createDisplacement(x, y),
+                rotation.getOrElse(styles.getDefaultPointPlacement.getRotation))
+          }
+
+        val anchorPlacementOption =
+          anchorPoint.map { anchor =>
             styles.createPointPlacement(
-              anchorPoint.getOrElse(styles.getDefaultPointPlacement().getAnchorPoint()),
-              styles.createDisplacement(x, y),
-              rotation.getOrElse(styles.getDefaultPointPlacement().getRotation())
-            )
-          case _ => null
-        }
+              anchor, 
+              styles.getDefaultPointPlacement.getDisplacement,
+              rotation.getOrElse(styles.getDefaultPointPlacement.getRotation))
+          }
+
+        val placement = 
+          linePlacementOption orElse pointPlacementOption orElse anchorPlacementOption
+       //  offset match {
+       //    case Some(Seq(Some(d))) => styles.createLinePlacement(d)
+       //    case Some(Seq(Some(x), Some(y))) =>
+       //      styles.createPointPlacement(
+       //        anchorPoint.getOrElse(styles.getDefaultPointPlacement().getAnchorPoint()),
+       //        styles.createDisplacement(x, y),
+       //        rotation.getOrElse(styles.getDefaultPointPlacement().getRotation())
+       //      )
+       //    case _ => null
+       //  }
 
         val sym = styles.createTextSymbolizer(
           styles.createFill(fillParams.flatMap(_._3).orNull, null, fontOpacity.getOrElse(null), fontFill),
           font,
           halo,
           concatenatedExpression(props("label")),
-          placement,
+          placement.orNull,
           null  //the geometry, but only as a string. the setter accepts an expression so we use that instead
         )
         geom.foreach { sym.setGeometry(_) }
