@@ -7,8 +7,8 @@ See http://geoscript.org/ for details.
 Building
 --------
 
-GeoScript.scala is built using `SBT <http://github.com/mharrah/xsbt/>`_.
-Follow the SBT `installation instructions, <https://github.com/harrah/xsbt/wiki/Setup` and then::
+GeoScript.scala is built using `SBT <http://scala-sbt.org/>`_.
+Follow the SBT `installation instructions, <http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html>`_ and then::
 
     sbt test
 
@@ -29,7 +29,7 @@ You can run them using::
 Instead of the ``run`` command, you can use ``run-main`` instead.
 It allows you to specify the name of the program to run instead of selecting it interactively, which is more convenient for repeated runs.
 
-Using GeoScript.scala outside of sbt's console is still a work in progress.
+There is a screencast about building and running unit tests with SBT available at http://vimeo.com/68050280 .
 
 License information
 -------------------
