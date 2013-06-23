@@ -15,7 +15,7 @@ import org.geotools.filter.text.ecql.ECQL
  * @author David Winslow <cdwinslow@gmail.com>
  */
 object CssParser extends RegexParsers {
-  override val whiteSpace = """(\s|/\*([^/]|[^*]/)*\*/)+""".r
+  override val whiteSpace = """(?s)(?:\s|/\*.*?\*/)+""".r
 
   private val expressionPartial =
     new PartialFunction[String,Expression] {
