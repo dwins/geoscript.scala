@@ -151,23 +151,27 @@ class SLDTest extends FunSuite with ShouldMatchers {
     haloparams(0).text.trim should equal ("#FFFFFF")
     haloparams(1).text.trim.toDouble should be(closeTo(0.7, 0.001))
   }
-
-  test("GeoTools vendor options should be passed through") {
-    val vendorOptions = css2sld2dom("/gt-opts.css")
-
-    def vendor(name: String): Option[String] = {
-      (vendorOptions \\ "VendorOption") find {
-        _.attribute("name") map (_.text == name) getOrElse(false)
-      } map { 
-        _.child.text 
-      }
+  
+  /**
+   * Extracts the specified vendor option from the xml node
+   */
+  def getVendorOption(xml: scala.xml.Elem) (name: String): Option[String] = {
+    (xml \\ "VendorOption") find {
+      _.attribute("name") map (_.text == name) getOrElse(false)
+    } map { 
+      _.child.text 
     }
+  }
+
+  test("GeoTools text vendor options should be passed through") {
+    val vendorOptions = css2sld2dom("/gt-text-opts.css")
 
     // all vendor options should be direct children of textsymbolizers now
     vendorOptions \\ "VendorOption" should equal (
       vendorOptions \\ "TextSymbolizer" \ "VendorOption"
     )
-
+    
+    val vendor = getVendorOption(vendorOptions)_;
     vendor("allGroup") should be(Some("false"))
     vendor("maxAngleDelta") should be(Some("22.5"))
     vendor("followLine") should be(Some("false"))
@@ -186,6 +190,44 @@ class SLDTest extends FunSuite with ShouldMatchers {
 
     (vendorOptions \\ "Priority" \ "PropertyName").text should equal ("priority")
   }
+  
+  test("GeoTools polygon vendor options should be passed through") {
+    val vendorOptions = css2sld2dom("/gt-poly-opts.css")
+
+    // all vendor options should be direct children of polygon symbolizer now
+    vendorOptions \\ "VendorOption" should equal (
+      vendorOptions \\ "PolygonSymbolizer" \ "VendorOption"
+    )
+
+    val vendor = getVendorOption(vendorOptions)_;
+    vendor("labelObstacle") should be(Some("true"))
+    vendor("graphic-margin") should be(Some("10 20 40 30"))
+  }
+  
+  test("GeoTools point vendor options should be passed through") {
+    val vendorOptions = css2sld2dom("/gt-point-opts.css")
+
+    // all vendor options should be direct children of point symbolizer now
+    vendorOptions \\ "VendorOption" should equal (
+      vendorOptions \\ "PointSymbolizer" \ "VendorOption"
+    )
+
+    val vendor = getVendorOption(vendorOptions)_;
+    vendor("labelObstacle") should be(Some("true"))
+  }
+  
+  test("GeoTools line vendor options should be passed through") {
+    val vendorOptions = css2sld2dom("/gt-line-opts.css")
+
+    // all vendor options should be direct children of line symbolizer now
+    vendorOptions \\ "VendorOption" should equal (
+      vendorOptions \\ "LineSymbolizer" \ "VendorOption"
+    )
+
+    val vendor = getVendorOption(vendorOptions)_;
+    vendor("labelObstacle") should be(Some("true"))
+  }
+
 
 
   test("Mixing selector properties doensn't produce empty rules") {
