@@ -7,8 +7,8 @@ object GeoScript extends Build {
   val meta =
     Seq[Setting[_]](
       organization := "org.geoscript",
-      version := "0.8.1",
-      gtVersion := "8.5",
+      version := "0.8.2",
+      gtVersion := "9.3",
       scalaVersion := "2.10.0", 
       scalacOptions ++= Seq("-feature", "-deprecation", "-Xlint", "-unchecked"),
       javacOptions ++= Seq("-source", "6"),
