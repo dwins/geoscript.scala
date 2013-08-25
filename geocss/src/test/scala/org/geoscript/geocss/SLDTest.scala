@@ -354,6 +354,12 @@ class SLDTest extends FunSuite with ShouldMatchers {
     val fontFill = css2sld2dom("/font-fill.css")
     (fontFill \\ "GraphicFill") should have(size(0))
   }
+  
+  test("Colors are interpreted in case insensitive manner") {
+    val labels = css2sld2dom("/colorname.css")
+    val cssParameter = labels \\ "PolygonSymbolizer" \\ "Fill" \\ "CssParameter"
+    cssParameter.text should equal("#cd5c5c")
+  }
 
   test("Everything should convert without throwing Exceptions") {
     val testData = Seq(

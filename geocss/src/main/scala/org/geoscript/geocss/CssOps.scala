@@ -330,7 +330,7 @@ object CssOps {
         val chars = hex.flatMap(Seq.fill(2)(_)).mkString("#", "", "")
         Some(filters.literal(chars))
       case Literal(name) =>
-        colors.get(name).map(filters.literal(_))
+        colors.get(name.toLowerCase).map(filters.literal(_))
       case v =>
         valueToExpression(v)
     }
