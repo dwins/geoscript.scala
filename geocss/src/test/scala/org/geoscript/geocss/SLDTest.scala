@@ -407,7 +407,8 @@ class SLDTest extends FunSuite with ShouldMatchers {
     val testData = Seq(
       "/badstyle.css", "/camping.css", "/capitals.css", "/complex-scales.css",
       "/comprehensive.css", "/default_point.css", "/exclusive.css", "/filters.css",
-      "/gt-opts.css", "/hospital.css", "/mark-overrides.css", "/marks.css",
+      "/gt-line-opts.css", "/gt-point-opts.css", "/gt-poly-opts.css", 
+      "/gt-text-opts.css", "/hospital.css", "/mark-overrides.css", "/marks.css",
       "/minimal.css", "/motorvag.css", "/overrides.css", "/percentage.css",
       "/planet_polygon.css", "/railroad.css", "/roads.css", "/scales.css",
       "/stacked-symbolizers.css", "/states.css", "/test-basic.css", "/test.css",

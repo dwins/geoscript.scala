@@ -15,7 +15,10 @@ class SmokeTest extends FunSuite with ShouldMatchers {
     "/comprehensive.css" -> 1,
     "/scales.css"        -> 3,
     "/marks.css"         -> 2,
-    "/gt-opts.css"       -> 1,
+    "/gt-line-opts.css"  -> 1,
+    "/gt-point-opts.css" -> 1,
+    "/gt-poly-opts.css"  -> 1,
+    "/gt-text-opts.css"  -> 1,
     "/default_point.css" -> 2,
     "/hospital.css"      -> 3)
 
