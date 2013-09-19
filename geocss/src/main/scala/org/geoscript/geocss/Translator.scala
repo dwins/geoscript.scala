@@ -426,17 +426,16 @@ class Translator(val baseURL: Option[java.net.URL]) {
     /**
      * Applies the specified vendor options to the symbolizer, taking them from the collected properties values
      */
-    def applyVendorOptions(sym: Symbolizer, props : Map[String, Seq[Value]], vendorOptions : Seq[(String, String)]) : Unit = {
-       for (
-          (cssName, sldName) <- vendorOptions;
-          value <- props.get(cssName)
-        ) {
-          sym.getOptions().put(
-            sldName,
-            value.collect({ case Literal(x) => x }).mkString(" ")
-          )
-        }
-
+    def applyVendorOptions(sym: Symbolizer, props: Map[String, Seq[Value]], vendorOptions: Seq[(String, String)]): Unit = {
+      for {
+        (cssName, sldName) <- vendorOptions
+        value <- props.get(cssName)
+      } {
+        sym.getOptions().put(
+          sldName,
+          value.collect({ case Literal(x) => x }).mkString(" ")
+        )
+      }
     }
 
     val lineSyms: Seq[(Double, LineSymbolizer)] = 
