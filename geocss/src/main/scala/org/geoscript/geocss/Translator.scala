@@ -34,7 +34,7 @@ class Translator(val baseURL: Option[java.net.URL]) {
   val styles = org.geotools.factory.CommonFactoryFinder.getStyleFactory()
   type OGCExpression = org.opengis.filter.expression.Expression
 
-  val gtVendorOpts = Seq(
+  val gtTextVendorOpts = Seq(
     "-gt-label-padding" -> "spaceAround",
     "-gt-label-group" -> "group",
     "-gt-label-max-displacement" -> "maxDisplacement",
@@ -51,6 +51,19 @@ class Translator(val baseURL: Option[java.net.URL]) {
     "-gt-label-fit-goodness" -> "goodnessOfFit",
     "-gt-shield-resize" -> "graphic-resize",
     "-gt-shield-margin" -> "graphic-margin"
+  )
+  
+  val gtPolygonVendorOpts = Seq(
+    "-gt-graphic-margin" -> "graphic-margin",
+    "-gt-fill-label-obstacle" -> "labelObstacle"
+  )
+  
+  val gtPointVendorOpts = Seq(
+    "-gt-mark-label-obstacle" -> "labelObstacle"
+  )
+  
+  val gtLineVendorOpts = Seq(
+     "-gt-stroke-label-obstacle" -> "labelObstacle"
   )
 
   private val defaultRGB = filters.literal(colors("grey"))
@@ -409,6 +422,22 @@ class Translator(val baseURL: Option[java.net.URL]) {
 
     def orderedMarkRules(symbolizerType: String, order: Int): Seq[Property] =
       rule.context(symbolizerType, order)
+      
+    /**
+     * Applies the specified vendor options to the symbolizer, taking them from the collected properties values
+     */
+    def applyVendorOptions(sym: Symbolizer, props : Map[String, Seq[Value]], vendorOptions : Seq[(String, String)]) : Unit = {
+       for (
+          (cssName, sldName) <- vendorOptions;
+          value <- props.get(cssName)
+        ) {
+          sym.getOptions().put(
+            sldName,
+            value.collect({ case Literal(x) => x }).mkString(" ")
+          )
+        }
+
+    }
 
     val lineSyms: Seq[(Double, LineSymbolizer)] = 
       (expand(properties, "stroke").toStream zip
@@ -452,6 +481,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
             null
           )
         geom.foreach { sym.setGeometry }
+        
+        // collect the vendor options for line symbolizers
+        applyVendorOptions(sym, props, gtLineVendorOpts)
+        
         (zIndex, sym)
       }
 
@@ -481,6 +514,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
           null
         )
         geom.foreach { sym.setGeometry(_) }
+        
+        // collect the vendor options for polygon symbolizers
+        applyVendorOptions(sym, props, gtPolygonVendorOpts)
+        
         (zIndex, sym)
       }
 
@@ -498,6 +535,10 @@ class Translator(val baseURL: Option[java.net.URL]) {
         for (g <- graphic) yield {
           val sym = styles.createPointSymbolizer(g, null)
           geom.foreach { sym.setGeometry(_) }
+          
+          // collect the vendor options for point symbolizers
+          applyVendorOptions(sym, props, gtPointVendorOpts)
+          
           (zIndex, sym)
         }
       }
@@ -620,15 +661,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
           sym.setPriority(priority)
         }
 
-        for (
-          (cssName, sldName) <- gtVendorOpts;
-          value <- props.get(cssName)
-        ) {
-          sym.getOptions().put(
-            sldName,
-            value.collect({ case Literal(x) => x }).mkString(" ")
-          )
-        }
+        // collect the vendor options for text symbolizers
+        applyVendorOptions(sym, props, gtTextVendorOpts)
 
         (zIndex, sym)
       }
