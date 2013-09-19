@@ -1,0 +1,8 @@
+/**
+ * Example usage of GeoTools-specific extension properties
+ */
+* {
+  fill: red;
+  -gt-fill-label-obstacle: true;
+  -gt-graphic-margin: 10 20 40 30;
+}
