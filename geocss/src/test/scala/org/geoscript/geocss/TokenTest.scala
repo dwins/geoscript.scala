@@ -27,12 +27,12 @@ class TokenTest extends FunSuite with ShouldMatchers {
 
   test("'and' filter is correctly generated for larger And's") {
     val expected = 
-      for { 
+      for {
         f <- expr1.filterOpt
         g <- expr2.filterOpt
       } yield and(f, g)
 
-    expectResult(expected) {
+    assertResult(expected) {
       And(List(expr1, expr2)).filterOpt
     }
   }
