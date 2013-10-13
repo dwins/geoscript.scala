@@ -817,7 +817,9 @@ class Translator(val baseURL: Option[java.net.URL]) {
   }
 
   def createFeatureTypeStyles(spec: (Option[String], Seq[Seq[gt.Rule]])): Seq[gt.FeatureTypeStyle] =
-    spec._2.map { createFeatureTypeStyle(spec._1, _) }
+    spec._2.map { rules => 
+      createFeatureTypeStyle((spec._1, rules))
+    }
 
   def createFeatureTypeStyle(spec: (Option[String], Seq[gt.Rule])): gt.FeatureTypeStyle = {
     val (typename, rules) = spec
