@@ -9,7 +9,7 @@ libraryDependencies <++= gtVersion { v =>
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
-  "org.scalatest" %% "scalatest" % "1.9.1" % "test")
+  "org.scalatest" %% "scalatest" % "1.9.2" % "test")
 
 initialCommands += """
 import org.{ geotools => gt }
