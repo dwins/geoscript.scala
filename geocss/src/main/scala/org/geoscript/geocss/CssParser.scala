@@ -15,7 +15,7 @@ import org.geotools.filter.text.ecql.ECQL
  * @author David Winslow <cdwinslow@gmail.com>
  */
 object CssParser extends RegexParsers {
-  override val whiteSpace = """(?s)(?:\s|/\*.*?\*/)+""".r
+  override val whiteSpace: scala.util.matching.Regex = """(?s)(?:\s|/\*.*?\*/)+""".r
 
   private val expressionPartial =
     new PartialFunction[String,Expression] {
@@ -26,10 +26,9 @@ object CssParser extends RegexParsers {
         } catch {
           case (_: org.geotools.filter.text.cql2.CQLException) => false
         }
-
     }
 
-  private val expressionSelectorPartial =
+  private val expressionSelectorPartial: PartialFunction[String, Selector] =
     new PartialFunction[String, Selector] {
       def apply(exp: String): Selector = 
         Selector.asSelector(ECQL.toFilter(exp)) 
@@ -56,25 +55,25 @@ object CssParser extends RegexParsers {
     } yield body.mkString
   }
 
-  private val ParsedComment = rep1(SingleComment) map { x => Description(x.last) }
+  private val ParsedComment: Parser[Description] = rep1(SingleComment) map { x => Description(x.last) }
 
-  private val identifier = """[a-zA-Z]([a-zA-Z0-9]|[-_][a-zA-Z0-9])*""".r
-  private val fid = """[a-zA-Z]([a-zA-Z0-9]|[-._][a-zA-Z0-9])*""".r
+  private val identifier: Parser[String] = """[a-zA-Z]([a-zA-Z0-9]|[-_][a-zA-Z0-9])*""".r
+  private val fid: Parser[String] = """[a-zA-Z]([a-zA-Z0-9]|[-._][a-zA-Z0-9])*""".r
 
   val number: Parser[String] = """-?[0-9]*([0-9]\.|\.[0-9]|[0-9])[0-9]*""".r
-  private val measure = """([0-9]*\.[0-9]+|[0-9]+)[a-zA-z]+""".r
+  private val measure: Parser[String] = """([0-9]*\.[0-9]+|[0-9]+)[a-zA-z]+""".r
   val percentage: Parser[String] = """-?([0-9]*\.[0-9]+|[0-9]+)%""".r
-  private val string = (
+  private val string: Parser[String] = (
     (("\"" + """([^"]|\\"])*""" + "\"").r) | 
     (("'"  + """([^']|\\'])*""" + "'" ).r)
   ) map {s => s.substring(1, s.length - 1)}
 
-  private val color = """#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})""".r
-  private val literal = percentage|measure|number|string|color
+  private val color: Parser[String] = """#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})""".r
+  private val literal: Parser[String] = percentage|measure|number|string|color
 
-  val spaces = rep(elem("Whitespace", _.isWhitespace))
+  val spaces: Parser[_] = rep(elem("Whitespace", _.isWhitespace))
 
-  private val embeddedCQL = { 
+  private val embeddedCQL: Parser[String] = { 
     val doubleQuotedString = 
       for { 
         _    <- elem('"')
@@ -98,10 +97,10 @@ object CssParser extends RegexParsers {
     } yield body.mkString("")
   }
     
-  private val expressionSelector =
+  private val expressionSelector: Parser[Selector] =
     embeddedCQL ^? expressionSelectorPartial
 
-  val pseudoSelector =
+  val pseudoSelector: Parser[PseudoSelector] =
     for {
       _ <- literal("[@")
       id <- identifier
@@ -110,9 +109,10 @@ object CssParser extends RegexParsers {
       _ <- literal("]")
     } yield PseudoSelector(id, op, num.toDouble)
 
-  val pseudoClass = (":" ~> identifier) ^^ PseudoClass
+  val pseudoClass: Parser[PseudoClass] =
+    (":" ~> identifier) ^^ PseudoClass
 
-  val parameterizedPseudoClass =
+  val parameterizedPseudoClass: Parser[ParameterizedPseudoClass] =
     for {
       _ <- literal(":")
       id <- identifier
@@ -121,10 +121,12 @@ object CssParser extends RegexParsers {
       _ <- literal(")")
     } yield ParameterizedPseudoClass(id, num)
 
-  val url = "url(" ~> """[\.!#$%&*-~:/\p{Alnum}]+""".r <~ ")"
-  val function = (identifier <~ "(") ~ (repsep(value, ",") <~ ")")
+  val url: Parser[String] =
+    "url(" ~> """[\.!#$%&*-~:/\p{Alnum}]+""".r <~ ")"
+  val function: Parser[String ~ Seq[Value]] =
+    (identifier <~ "(") ~ (repsep(value, ",") <~ ")")
 
-  private def stripBraces(expr: String) =
+  private def stripBraces(expr: String): String =
     """^\[|\]$""".r.replaceAllIn(expr, "")
 
   // property names
@@ -139,29 +141,29 @@ object CssParser extends RegexParsers {
     ((identifier|literal) ^^ Literal) |
     (embeddedCQL ^? expressionPartial)
 
-  private val singleDefinition = rep(value)
+  private val singleDefinition: Parser[Seq[Value]] = rep(value)
 
-  private val multipleDefinition = rep1sep(singleDefinition, ",")
+  private val multipleDefinition: Parser[Seq[Seq[Value]]] = rep1sep(singleDefinition, ",")
 
-  private val property =
+  private val property: Parser[Property] =
     for {
       id   <- propname
       _    <- literal(":")
       defs <- multipleDefinition
     } yield Property(id, defs)
 
-  private val propertyList =
+  private val propertyList: Parser[Seq[Property]] =
     for { 
       _ <- literal("{")
       props <- rep1sep(property, ";")
       _ <- opt(";") ~ "}"
     } yield props
 
-  private val idSelector = ("#" ~> fid) map Id
+  private val idSelector: Parser[Selector] = ("#" ~> fid) map Id
 
-  private val catchAllSelector = literal("*") map {_ => Accept}
+  private val catchAllSelector: Parser[Selector] = literal("*") ^^^ Accept
 
-  private val typeNameSelector = identifier map Typename
+  private val typeNameSelector: Parser[Selector] = identifier map Typename
 
   private val basicSelector: Parser[Selector] =
     (catchAllSelector | idSelector | typeNameSelector | pseudoSelector |
@@ -170,12 +172,13 @@ object CssParser extends RegexParsers {
   private val pseudoElementSelector: Parser[Context] =
     (parameterizedPseudoClass | pseudoClass)
 
-  private val simpleSelector = 
+  private val simpleSelector: Parser[Seq[Either[Selector, Context]]] = 
     rep1((basicSelector ^^ (Left(_))) | (pseudoElementSelector ^^ (Right(_))))
 
-  private val selector = rep1sep(simpleSelector, ",")
+  private val selector: Parser[Seq[Seq[Either[Selector, Context]]]] =
+    rep1sep(simpleSelector, ",")
 
-  private val rule =
+  private val rule: Parser[Seq[Rule]] =
     for { 
       comment <- opt(ParsedComment)
       sel <- selector
@@ -183,15 +186,15 @@ object CssParser extends RegexParsers {
     } yield {
       val desc = comment.getOrElse(Description.empty)
 
-      val spec = (_: List[Either[Selector, _]])
+      val spec = (_: Seq[Either[Selector, _]])
          .collect { case Left(sel) => Specificity(sel) }
          .fold(Specificity.Zero) { _ + _ }
 
-      for (s <- sel.groupBy(spec).values) yield {
-        def extractSelector(xs: List[Either[Selector, Context]]): Selector =
+      for (s <- sel.groupBy(spec).values.to[Vector]) yield {
+        def extractSelector(xs: Seq[Either[Selector, Context]]): Selector =
           And(xs collect { case Left(s) => s })
 
-        def extractContext(xs: List[Either[Selector, Context]]): Option[Context] =
+        def extractContext(xs: Seq[Either[Selector, Context]]): Option[Context] =
           xs.collectFirst { case Right(x) => x }
 
         val sels =     s map extractSelector
@@ -200,7 +203,8 @@ object CssParser extends RegexParsers {
       }
     }
 
-  val styleSheet = rep(rule) map (_.flatten)
+  val styleSheet: Parser[Seq[Rule]] =
+    rep(rule) map (_.flatten)
 
   def parse(input: String): ParseResult[Seq[Rule]] =
     parseAll(styleSheet, input)
