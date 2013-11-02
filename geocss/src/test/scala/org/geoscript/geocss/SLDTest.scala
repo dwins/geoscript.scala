@@ -13,7 +13,7 @@ class SLDTest extends FunSuite with ShouldMatchers {
     val url = getClass.getResource(filename)
     val stream = getClass.getResourceAsStream(filename)
     require(stream != null, "Failed to load " + filename)
-    val styleSheet = CssParser.parse(stream).get
+    val (_, styleSheet) = CssParser.parse(stream).get
     val style = new Translator(Some(url)).css2sld(styleSheet)
     val bos = new java.io.ByteArrayOutputStream
     val xform = new org.geotools.styling.SLDTransformer

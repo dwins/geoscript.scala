@@ -30,7 +30,7 @@ class Regressions extends FunSuite with ShouldMatchers {
     }
 
   test("Overlapping scales should produce a single FeatureTypeStyle") {
-    val stylesheet = CssParser.parse(in("/scales.css"))
+    val stylesheet = CssParser.parse(in("/scales.css")).map(_._2)
     stylesheet should be ('successful)
     val sld = Translator.css2sld(stylesheet.get)
     sld.featureTypeStyles should have size(1)
@@ -38,7 +38,7 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("Rules with conflicting filters cancel out") {
-    val stylesheet = CssParser.parse(in("/exclusive.css"))
+    val stylesheet = CssParser.parse(in("/exclusive.css")).map(_._2)
     stylesheet should be ('successful)
     val sld = Translator.css2sld(stylesheet.get)
     sld.featureTypeStyles should have size(1)
@@ -46,7 +46,7 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("Overlapping scales should not hide filters") {
-    val stylesheet = CssParser.parse(in("/motorvag.css"))
+    val stylesheet = CssParser.parse(in("/motorvag.css")).map(_._2)
     stylesheet should be ('successful)
     val sld = Translator.css2sld(stylesheet.get)
     sld.featureTypeStyles should have size(1)
@@ -57,7 +57,7 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("Ratios should be expressible as decimals or percentages") {
-    val stylesheet = CssParser.parse(in("/percentage.css"))
+    val stylesheet = CssParser.parse(in("/percentage.css")).map(_._2)
     stylesheet should be ('successful)
     val rule = stylesheet.get.head
     rule should have(property("fill-opacity", List(List(Literal("50%")))))
@@ -65,14 +65,14 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("Colors should be accepted by the parser") {
-    val stylesheet = CssParser.parse(in("/states.css"))
+    val stylesheet = CssParser.parse(in("/states.css")).map(_._2)
     stylesheet should be ('successful)
     val rules = stylesheet.get
     rules(1) should have(property("fill", List(List(Literal("#4DFF4D")))))
   }
 
   test("Using multiple typenames should produce multiple FeatureTypeStyles") {
-    val stylesheet = CssParser.parse(in("/typenames.css"))
+    val stylesheet = CssParser.parse(in("/typenames.css")).map(_._2)
     stylesheet should be ('successful)
     val sld = Translator.css2sld(stylesheet.get)
     val names = for (ft <- sld.featureTypeStyles) yield
@@ -81,7 +81,7 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("The geometry expression should appear in the generated SLD") {
-    val stylesheet = CssParser.parse(in("/states.css"))
+    val stylesheet = CssParser.parse(in("/states.css")).map(_._2)
     stylesheet should be ('successful)
     val sld = Translator.css2sld(stylesheet.get)
     val symbolizerGeometries = 
@@ -96,14 +96,14 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("The parser should distinguish expressions from literals") {
-    val stylesheet = CssParser.parse(in("/states.css"))
+    val stylesheet = CssParser.parse(in("/states.css")).map(_._2)
     stylesheet should be ('successful)
     val rules = stylesheet.get
     rules.head should have(property("stroke-width", List(List(Literal("3")))))
   }
 
   test("Hatched strokes should be passed through") {
-    val stylesheet = CssParser.parse(in("/railroad.css"))
+    val stylesheet = CssParser.parse(in("/railroad.css")).map(_._2)
     stylesheet should be ('successful)
     val style = Translator.css2sld(stylesheet.get)
 
@@ -132,7 +132,7 @@ class Regressions extends FunSuite with ShouldMatchers {
   }
 
   test("Conflicting scale limits should be placed in separate rules") {
-    val stylesheet = CssParser.parse(in("/complex-scales.css"))
+    val stylesheet = CssParser.parse(in("/complex-scales.css")).map(_._2)
     stylesheet should be ('successful)
     val sld = Translator.css2sld(stylesheet.get)
     sld.featureTypeStyles should have size(1)

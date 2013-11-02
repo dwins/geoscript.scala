@@ -15,6 +15,9 @@ import org.geotools.filter.text.ecql.ECQL
  * @author David Winslow <cdwinslow@gmail.com>
  */
 object CssParser extends RegexParsers {
+  type Warn[T] = (Seq[Warning], T)
+  type RuleConstraint = Either[Selector, Context]
+
   override val whiteSpace: scala.util.matching.Regex = """(?s)(?:\s|/\*.*?\*/)+""".r
 
   private val expressionPartial =
@@ -172,10 +175,10 @@ object CssParser extends RegexParsers {
   private val pseudoElementSelector: Parser[Context] =
     (parameterizedPseudoClass | pseudoClass)
 
-  private val simpleSelector: Parser[Seq[Either[Selector, Context]]] = 
+  private val simpleSelector: Parser[Seq[RuleConstraint]] = 
     rep1((basicSelector ^^ (Left(_))) | (pseudoElementSelector ^^ (Right(_))))
 
-  private val selector: Parser[Seq[Seq[Either[Selector, Context]]]] =
+  private val selector: Parser[Seq[Seq[RuleConstraint]]] =
     rep1sep(simpleSelector, ",")
 
   private val rule: Parser[Seq[Rule]] =
@@ -186,15 +189,15 @@ object CssParser extends RegexParsers {
     } yield {
       val desc = comment.getOrElse(Description.empty)
 
-      val spec = (_: Seq[Either[Selector, _]])
+      val spec = (_: Seq[RuleConstraint])
          .collect { case Left(sel) => Specificity(sel) }
          .fold(Specificity.Zero) { _ + _ }
 
       for (s <- sel.groupBy(spec).values.to[Vector]) yield {
-        def extractSelector(xs: Seq[Either[Selector, Context]]): Selector =
+        def extractSelector(xs: Seq[RuleConstraint]): Selector =
           And(xs collect { case Left(s) => s })
 
-        def extractContext(xs: Seq[Either[Selector, Context]]): Option[Context] =
+        def extractContext(xs: Seq[RuleConstraint]): Option[Context] =
           xs.collectFirst { case Right(x) => x }
 
         val sels =     s map extractSelector
@@ -206,14 +209,14 @@ object CssParser extends RegexParsers {
   val styleSheet: Parser[Seq[Rule]] =
     rep(rule) map (_.flatten)
 
-  def parse(input: String): ParseResult[Seq[Rule]] =
-    parseAll(styleSheet, input)
+  def parse(input: String): ParseResult[Warn[Seq[Rule]]] =
+    parseAll(styleSheet, input).map((Nil, _))
 
-  def parse(input: java.io.InputStream): ParseResult[Seq[Rule]] =
+  def parse(input: java.io.InputStream): ParseResult[Warn[Seq[Rule]]] =
     parse(new java.io.InputStreamReader(input))
 
-  def parse(input: java.io.Reader): ParseResult[Seq[Rule]] =
+  def parse(input: java.io.Reader): ParseResult[Warn[Seq[Rule]]] =
     synchronized {
-      parseAll(styleSheet, input)
+      parseAll(styleSheet, input).map((Nil, _))
     }
 }

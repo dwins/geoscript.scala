@@ -53,7 +53,7 @@ object Benchmark {
         Translator.css2sld(
           CssParser.parse(
             ('A' to end).map { template.format(_) }.mkString
-          ).get
+          ).get._2
         )
       )
     }
@@ -63,7 +63,7 @@ object Benchmark {
     for (end <- 'A' to 'D') {
       val range = 1 + (end - 'A')
       val css = ('A' to end).map { template.format(_) }.mkString
-      val (cssRules, parseTime) = time { CssParser.parse(css).get }
+      val (cssRules, parseTime) = time { CssParser.parse(css).get._2 }
       val (sldRules: Style, transformTime) = time { Translator.css2sld(cssRules) }
       val (sld, encodeTime) = time { encodeSLD(sldRules) }
       println(Seq(range, parseTime, transformTime, ruleCount(sldRules), encodeTime).mkString(", "))
@@ -76,7 +76,7 @@ object Benchmark {
         [A=%1$s] { label: "%1$s"; }
         """.format(_)
       }.mkString
-      val (cssRules, parseTime) = time { CssParser.parse(css).get }
+      val (cssRules, parseTime) = time { CssParser.parse(css).get._2 }
       val (sldRules, transformTime) = time { Translator.css2sld(cssRules) }
       val (sld, encodeTime) = time { encodeSLD(sldRules) }
       println(Seq(range, parseTime, transformTime, ruleCount(sldRules), encodeTime).mkString(", "))

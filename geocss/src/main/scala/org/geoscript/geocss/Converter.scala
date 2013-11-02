@@ -69,11 +69,12 @@ object Converter {
         val styleSheet = CssParser.parse(new FileInputStream(in))
         val out = target(in, suffix)
         styleSheet match {
-          case Success(style, _) => write(style, url, out)
-          case ns: NoSuccess => { 
+          case Success((warnings, style), _) =>
+            warnings.foreach(println)
+            write(style, url, out)
+          case ns: NoSuccess =>
             println("In file: %s".format(in))
             println(ns)
-          }
         }
       } else {
         println("Skipping: %s [the file was not found]".format(x))

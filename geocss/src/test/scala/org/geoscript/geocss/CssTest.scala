@@ -25,7 +25,7 @@ class SmokeTest extends FunSuite with ShouldMatchers {
   def tryParsing(path: String, expectedRuleCount: Int) = {
     val source = getClass().getResourceAsStream(path)
     source should not be null
-    val rules = CssParser.parse(source)
+    val rules = CssParser.parse(source).map(_._2)
     rules should be ('successful)
     rules.get.size should equal (expectedRuleCount)
   }
@@ -33,7 +33,7 @@ class SmokeTest extends FunSuite with ShouldMatchers {
   def tryTransforming(path: String) = {
     val source = getClass.getResourceAsStream(path)
     source should not be null
-    val rules = CssParser.parse(source)
+    val rules = CssParser.parse(source).map(_._2)
     rules should be ('successful)
     sldBytes(rules.get) should be ('nonEmpty)
   }
