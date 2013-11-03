@@ -138,4 +138,11 @@ class Regressions extends FunSuite with ShouldMatchers {
     sld.featureTypeStyles should have size(1)
     sld.featureTypeStyles.flatMap(_.rules) should have size(2)
   }
+
+  test("Verify deprecated syntax generates warnings") {
+    val styleSheet = CssParser.parse(in("/warn.css"))
+    styleSheet should be ('successful)
+    val warnings = styleSheet.get._1
+    warnings should have size(1)
+  }
 }

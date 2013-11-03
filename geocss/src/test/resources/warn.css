@@ -1,0 +1,6 @@
+/**
+ * Verify that the deprecated '@scale' pseudoproperty generates a warning.
+ */
+[@scale < 10000] {
+    mark: symbol(circle);
+}
