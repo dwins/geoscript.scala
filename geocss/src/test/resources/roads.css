@@ -13,14 +13,14 @@
   /* z-index: 1;  /* there is a bug when no rules have a z-index of 0 */
 }
 
-[@scale < 10000000] {
+[@scale-denominator < 10000000] {
   stroke-width: 8px;
 }
 
-[@scale > 10000000] [@scale < 20000000] {
+[@scale-denominator > 10000000] [@scale-denominator < 20000000] {
   stroke-width: 4px;
 }
 
-[@scale > 20000000] {
+[@scale-denominator > 20000000] {
   stroke-width: 2px;
 }

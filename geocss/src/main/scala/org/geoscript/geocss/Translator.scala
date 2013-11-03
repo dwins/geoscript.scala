@@ -769,8 +769,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
     val scales = 
       flatten(And(rule.selectors))
         .collect { 
-          case PseudoSelector("scale", _, d) => d
-          case Not(PseudoSelector("scale", _, d)) => d
+          case PseudoSelector("scale-denominator", _, d) => d
+          case Not(PseudoSelector("scale-denominator", _, d)) => d
         }
         .sorted
         .distinct
@@ -792,8 +792,8 @@ class Translator(val baseURL: Option[java.net.URL]) {
     for {
       (rule, syms) <- group if syms.nonEmpty
       range @ (min, max) <- extractScaleRanges(rule)
-      minSelector = min.map(x => PseudoSelector("scale", ">", x))
-      maxSelector = max.map(x => PseudoSelector("scale", "<", x))
+      minSelector = min.map(x => PseudoSelector("scale-denominator", ">", x))
+      maxSelector = max.map(x => PseudoSelector("scale-denominator", "<", x))
       filter = reduce(allOf(rule.selectors ++ minSelector ++ maxSelector))
       if (filter != Exclude)
     } yield createSLDRule(min, max, realize(filter), rule.description.title, rule.description.abstrakt, syms)

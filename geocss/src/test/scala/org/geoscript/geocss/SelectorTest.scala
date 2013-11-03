@@ -6,8 +6,8 @@ import org.scalatest._, matchers._
 class SelectorTest extends FunSuite with ShouldMatchers {
   import Selector.SelectorsAreSentential.{ disprovenBy, provenBy }
 
-  def scale_<(d: Double): Selector = PseudoSelector("scale", "<", d)
-  def scale_>(d: Double): Selector = PseudoSelector("scale", ">", d)
+  def scale_<(d: Double): Selector = PseudoSelector("scale-denominator", "<", d)
+  def scale_>(d: Double): Selector = PseudoSelector("scale-denominator", ">", d)
   def not(s: Selector): Selector = Not(s)
   val cql = (ECQL.toFilter(_: String)) andThen (Selector.asSelector)
 

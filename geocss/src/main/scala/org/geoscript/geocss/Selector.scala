@@ -39,9 +39,9 @@ object Selector {
         case (DataFilter(ogc.Filter.EXCLUDE), _) => false
         case (Not(p), Not(q)) => implies(q, p)
         case (p, Not(q)) => !allows(p, q)
-        case (PseudoSelector("scale", ">", a), PseudoSelector("scale", ">", b)) => 
+        case (PseudoSelector("scale-denominator", ">", a), PseudoSelector("scale-denominator", ">", b)) => 
           b <= a
-        case (PseudoSelector("scale", "<", a), PseudoSelector("scale", "<", b)) => 
+        case (PseudoSelector("scale-denominator", "<", a), PseudoSelector("scale-denominator", "<", b)) => 
           b >= a
         case (DataFilter(f), DataFilter(g)) =>
           try {
@@ -67,9 +67,9 @@ object Selector {
         //case (NotSelector(p), NotSelector(q)) => allows(p, q)
         case (Not(p), Not(q)) => allows(q, p)
         case (Not(p), q) => !implies(q, p)
-        case (PseudoSelector("scale", ">", a), PseudoSelector("scale", "<", b)) => 
+        case (PseudoSelector("scale-denominator", ">", a), PseudoSelector("scale-denominator", "<", b)) => 
           b > a
-        case (PseudoSelector("scale", "<", a), PseudoSelector("scale", ">", b)) => 
+        case (PseudoSelector("scale-denominator", "<", a), PseudoSelector("scale-denominator", ">", b)) => 
           b < a
         case (DataFilter(f), DataFilter(g)) =>
           try {
@@ -245,7 +245,7 @@ case class Typename(typename: String) extends MetaSelector {
 /**
  * A Selector which uses CQL-like syntax to express constraints on a contextual
  * property such as the scale denominator at render time.  This corresponds to
- * the [&64;scale &gt; 10000] syntax in CSS, for example.
+ * the [&64;scale-denominator &gt; 10000] syntax in CSS, for example.
  */
 case class PseudoSelector(property: String, operator: String, value: Double)
 extends MetaSelector {
