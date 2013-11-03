@@ -3,9 +3,10 @@ package org.geoscript.geocss
 import CssOps.Specificity
 
 import scala.util.parsing.combinator.RegexParsers
-import scala.util.parsing.input.{Reader, StreamReader}
+import scala.util.parsing.input.{Position, Reader, StreamReader}
 
 import org.geotools.filter.text.ecql.ECQL
+import Writer.sugar
 
 /**
  * A parser for CSS syntax, extended a bit with CQL expressions and filters.
@@ -15,10 +16,15 @@ import org.geotools.filter.text.ecql.ECQL
  * @author David Winslow <cdwinslow@gmail.com>
  */
 object CssParser extends RegexParsers {
-  type Warn[T] = (Seq[Warning], T)
+  type Warn[T] = (List[Warning], T)
   type RuleConstraint = Either[Selector, Context]
 
   override val whiteSpace: scala.util.matching.Regex = """(?s)(?:\s|/\*.*?\*/)+""".r
+
+  private def positional[T](parser: Parser[T]): Parser[(Position, T)] =
+    Parser {
+      input => parser(input).map((input.pos, _))
+    }
 
   private val expressionPartial =
     new PartialFunction[String,Expression] {
@@ -74,7 +80,7 @@ object CssParser extends RegexParsers {
   private val color: Parser[String] = """#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})""".r
   private val literal: Parser[String] = percentage|measure|number|string|color
 
-  val spaces: Parser[_] = rep(elem("Whitespace", _.isWhitespace))
+  val spaces: Parser[Unit] = rep(elem("Whitespace", _.isWhitespace)) ^^^ {}
 
   private val embeddedCQL: Parser[String] = { 
     val doubleQuotedString = 
@@ -100,17 +106,21 @@ object CssParser extends RegexParsers {
     } yield body.mkString("")
   }
     
-  private val expressionSelector: Parser[Selector] =
-    embeddedCQL ^? expressionSelectorPartial
+  private val expressionSelector: Parser[Warn[RuleConstraint]] =
+    embeddedCQL ^? expressionSelectorPartial ^^ (x => (Nil, Left(x)))
 
-  val pseudoSelector: Parser[PseudoSelector] =
+  val pseudoSelector: Parser[Warn[RuleConstraint]] =
     for {
       _ <- literal("[@")
-      id <- identifier
+      (idPosition, id) <- positional(identifier)
       op <- "[><=]".r
       num <- number
       _ <- literal("]")
-    } yield PseudoSelector(id, op, num.toDouble)
+      warnings = if (id == "scale")
+                   List(Warning.deprecated(idPosition, "scale", "scale-denominator"))
+                 else
+                   Nil
+    } yield (warnings, Left(PseudoSelector(id, op, num.toDouble)))
 
   val pseudoClass: Parser[PseudoClass] =
     (":" ~> identifier) ^^ PseudoClass
@@ -155,68 +165,73 @@ object CssParser extends RegexParsers {
       defs <- multipleDefinition
     } yield Property(id, defs)
 
-  private val propertyList: Parser[Seq[Property]] =
+  private val propertyList: Parser[Warn[Seq[Property]]] =
     for { 
       _ <- literal("{")
       props <- rep1sep(property, ";")
       _ <- opt(";") ~ "}"
-    } yield props
+    } yield (Nil, props)
 
-  private val idSelector: Parser[Selector] = ("#" ~> fid) map Id
+  private val idSelector: Parser[Warn[RuleConstraint]] = ("#" ~> fid) ^^ (i => (Nil, Left(Id(i))))
 
-  private val catchAllSelector: Parser[Selector] = literal("*") ^^^ Accept
+  private val catchAllSelector: Parser[Warn[RuleConstraint]] = literal("*") ^^^ ((Nil, Left(Accept)): Warn[RuleConstraint])
 
-  private val typeNameSelector: Parser[Selector] = identifier map Typename
+  private val typeNameSelector: Parser[Warn[RuleConstraint]] = identifier ^^ (n => (Nil, Left(Typename(n))))
 
-  private val basicSelector: Parser[Selector] =
+  private val basicSelector: Parser[Warn[RuleConstraint]] =
     (catchAllSelector | idSelector | typeNameSelector | pseudoSelector |
-     expressionSelector)
+      expressionSelector)
 
-  private val pseudoElementSelector: Parser[Context] =
-    (parameterizedPseudoClass | pseudoClass)
+  private val pseudoElementSelector: Parser[Warn[RuleConstraint]] =
+    (parameterizedPseudoClass | pseudoClass) ^^ (x => (Nil, Right(x)))
 
-  private val simpleSelector: Parser[Seq[RuleConstraint]] = 
-    rep1((basicSelector ^^ (Left(_))) | (pseudoElementSelector ^^ (Right(_))))
+  private val simpleSelector: Parser[Warn[Seq[RuleConstraint]]] = 
+    rep1(basicSelector | pseudoElementSelector).map(x => Writer.sequence(x))
 
-  private val selector: Parser[Seq[Seq[RuleConstraint]]] =
-    rep1sep(simpleSelector, ",")
+  private val selector: Parser[Warn[Seq[Seq[RuleConstraint]]]] =
+    rep1sep(simpleSelector, ",").map((x: Seq[Warn[Seq[RuleConstraint]]]) => Writer.sequence(x))
 
-  private val rule: Parser[Seq[Rule]] =
+  private val rule: Parser[Warn[Seq[Rule]]] =
     for { 
       comment <- opt(ParsedComment)
-      sel <- selector
-      props <- propertyList
+      selW <- selector
+      propsW <- propertyList
     } yield {
-      val desc = comment.getOrElse(Description.empty)
+      for {
+        sel <- selW
+        props <- propsW
+      } yield {
+        val desc = comment.getOrElse(Description.empty)
 
-      val spec = (_: Seq[RuleConstraint])
-         .collect { case Left(sel) => Specificity(sel) }
-         .fold(Specificity.Zero) { _ + _ }
+        val spec = (_: Seq[RuleConstraint])
+           .collect { case Left(sel) => Specificity(sel) }
+           .fold(Specificity.Zero) { _ + _ }
 
-      for (s <- sel.groupBy(spec).values.to[Vector]) yield {
-        def extractSelector(xs: Seq[RuleConstraint]): Selector =
-          And(xs collect { case Left(s) => s })
-
-        def extractContext(xs: Seq[RuleConstraint]): Option[Context] =
-          xs.collectFirst { case Right(x) => x }
-
-        val sels =     s map extractSelector
-        val contexts = s map extractContext
-        Rule(desc, List(Or(sels)), contexts map (Pair(_, props)))
+        for (s <- sel.groupBy(spec).values.to[Vector]) yield {
+          def extractSelector(xs: Seq[RuleConstraint]): Selector =
+            And(xs collect { case Left(s) => s })
+  
+          def extractContext(xs: Seq[RuleConstraint]): Option[Context] =
+            xs.collectFirst { case Right(x) => x }
+  
+          val sels =     s map extractSelector
+          val contexts = s map extractContext
+          Rule(desc, List(Or(sels)), contexts map (Pair(_, props)))
+        }
       }
     }
 
-  val styleSheet: Parser[Seq[Rule]] =
-    rep(rule) map (_.flatten)
+  val styleSheet: Parser[Warn[Seq[Rule]]] =
+    rep(rule) map (x => Writer.sequence(x).map(_.flatten))
 
   def parse(input: String): ParseResult[Warn[Seq[Rule]]] =
-    parseAll(styleSheet, input).map((Nil, _))
+    parseAll(styleSheet, input)
 
   def parse(input: java.io.InputStream): ParseResult[Warn[Seq[Rule]]] =
     parse(new java.io.InputStreamReader(input))
 
   def parse(input: java.io.Reader): ParseResult[Warn[Seq[Rule]]] =
     synchronized {
-      parseAll(styleSheet, input).map((Nil, _))
+      parseAll(styleSheet, input)
     }
 }
