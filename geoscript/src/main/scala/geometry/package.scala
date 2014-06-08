@@ -117,7 +117,7 @@ package object geometry {
 }
 
 package geometry {
-  class Builder(factory: com.vividsolutions.jts.geom.GeometryFactory) {
+  class GeometryBuilder(factory: com.vividsolutions.jts.geom.GeometryFactory) {
     def Coordinate(x: Double, y: Double): Coordinate = new Coordinate(x, y)
     def mkCoord(xy: (Double, Double)) = (Coordinate _).tupled(xy)
 
@@ -151,7 +151,7 @@ package geometry {
       factory.createGeometryCollection(geoms.toArray)
   }
 
-  object builder extends Builder(factory)
+  object builder extends GeometryBuilder(factory)
 
   private[geometry] class FunctionAsCoordinateFilter(f: Coordinate => Unit)
   extends com.vividsolutions.jts.geom.CoordinateFilter
