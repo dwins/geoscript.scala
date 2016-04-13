@@ -55,7 +55,13 @@ class Translator(val baseURL: Option[java.net.URL]) {
   
   val gtPolygonVendorOpts = Seq(
     "-gt-graphic-margin" -> "graphic-margin",
-    "-gt-fill-label-obstacle" -> "labelObstacle"
+    "-gt-fill-label-obstacle" -> "labelObstacle",
+    "-gt-fill-random" -> "random",
+    "-gt-fill-random-seed" -> "random-seed",
+    "-gt-fill-random-tile-size" -> "random-tile-size",
+    "-gt-fill-random-symbol-count" -> "random-symbol-count",
+    "-gt-fill-random-space-around" -> "random-space-around",
+    "-gt-fill-random-rotation" -> "random-rotation"
   )
   
   val gtPointVendorOpts = Seq(

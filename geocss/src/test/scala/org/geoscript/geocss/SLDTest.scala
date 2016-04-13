@@ -202,6 +202,11 @@ class SLDTest extends FunSuite with ShouldMatchers {
     val vendor = getVendorOption(vendorOptions)_;
     vendor("labelObstacle") should be(Some("true"))
     vendor("graphic-margin") should be(Some("10 20 40 30"))
+    vendor("random") should be(Some("grid"))
+    vendor("random-seed") should be(Some("125"))
+    vendor("random-tile-size") should be(Some("128"))
+    vendor("random-space-around") should be(Some("3"))
+    vendor("random-rotation") should be(Some("free"))
   }
   
   test("GeoTools point vendor options should be passed through") {
