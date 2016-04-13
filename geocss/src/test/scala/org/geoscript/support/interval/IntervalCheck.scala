@@ -2,8 +2,7 @@ package org.geoscript.support.interval
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest._
-import org.scalatest.prop.Checkers
+import org.scalatest._, prop._
 
 class IntervalCheck extends PropSpec with Checkers {
   import Interval.intersection
