@@ -1,15 +1,16 @@
 package org.geoscript.support.interval
 
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
-import Arbitrary.arbitrary
-import org.scalatest._, prop._
+import org.scalatest._
+import org.scalatest.prop.Checkers
 
 class IntervalCheck extends PropSpec with Checkers {
   import Interval.intersection
   val joinLeft = Cap.join[String](_ < _) _
 
   implicit val arbCap: Arbitrary[Cap[String]] = 
-    Arbitrary { 
+    Arbitrary {
       for {
         s <- Gen.identifier
         b <- Gen.oneOf(true, false)
@@ -31,7 +32,7 @@ class IntervalCheck extends PropSpec with Checkers {
             Interval.finite(b, a)
         }
 
-      Gen.oneOf(lefts, rights, finite, Interval.Empty[String], Interval.Full[String])
+      Gen.oneOf[Interval[String]](lefts, rights, finite, Interval.Empty[String], Interval.Full[String])
     }
 
   property("join(x,y) always produces either x or y") {

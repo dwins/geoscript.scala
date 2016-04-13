@@ -1,6 +1,7 @@
 package org.geoscript.support.graph
 
 import org.scalatest._, prop._
+import org.scalatest.prop.Checkers
 
 class GraphCheck extends PropSpec with Checkers {
   val parity = (ps: Set[Int]) => 

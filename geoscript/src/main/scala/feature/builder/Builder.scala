@@ -187,7 +187,7 @@ package builder {
     def conformsTo(schema: Schema): Boolean = schema.fields.exists(field =>
       field.name == name && field.binding.isAssignableFrom(clazz))
     def fields = Seq(schemaBuilder.Field(name, clazz))
-    def values(t: T): Seq[AnyRef] = Seq(t)
+    def values(t: T): Seq[AnyRef] = Seq(t.asInstanceOf[AnyRef])
     def update(feature: Feature, value: T) {
       feature.setAttribute(name, value)
     }

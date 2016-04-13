@@ -39,7 +39,7 @@ trait GeoCrunch {
   ) = {
     val it = fc.features()
     try {
-      while (it.hasNext) try {
+      while (it.hasNext) {
           callback(it.next)
       }
     } finally { it.close() }

@@ -2,6 +2,7 @@ package org.geoscript.support.logic
 
 import org.scalacheck._, Arbitrary._, Prop.propBoolean
 import org.scalatest._, prop._
+import org.scalatest.prop.Checkers
 
 class KnowledgeSpecification extends PropSpec with Checkers {
   import Knowledge.sat
